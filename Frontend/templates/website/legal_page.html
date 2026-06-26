@@ -1,0 +1,38 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="legal-page">
+  <article class="legal-card">
+    <a href="{% url 'home' %}" class="order-back-link"><i class="fa-solid fa-arrow-left"></i> Back to Store</a>
+    <h1>{{ content_title }}</h1>
+    {% if content_intro %}
+      <p class="legal-intro">{{ content_intro }}</p>
+    {% endif %}
+
+    {% if content_sections %}
+      <div class="legal-section-grid">
+        {% for section in content_sections %}
+          <section class="legal-info-section">
+            <h2>{{ section.heading }}</h2>
+            <ul>
+              {% for item in section.items %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if content_body %}
+      <div class="legal-content">
+        {{ content_body|linebreaks }}
+      </div>
+    {% endif %}
+
+    {% if content_cta %}
+      <a href="{{ content_cta.url }}" class="legal-cta">{{ content_cta.label }}</a>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

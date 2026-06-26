@@ -1,0 +1,280 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexvers | Quality Spices, Handlooms & Crafts</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/website/site.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <a href="{% url 'home' %}" class="logo">
+                <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Greenbacks Lexverse Pvt. Ltd." class="brand-logo-img">
+            </a>
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <form method="get" action="{% url 'home' %}" id="store-search-form" style="width: 100%; display: flex; align-items: center; margin: 0;">
+                    <input type="text" name="q" value="{{ search_text|default:'' }}" placeholder="Search for 'Spices', 'Sarees', 'Handlooms'..." id="search-input">
+                    <input type="hidden" name="category" id="search-category-field" value="{{ selected_category }}">
+                    <input type="hidden" name="spice" id="search-spice-field" value="{{ selected_spice }}">
+                </form>
+            </div>
+            <div class="header-icons">
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <a href="{% url 'my-cart' %}" class="cart-icon-wrapper cart-nav-link" style="position: relative; cursor: pointer; color: inherit; text-decoration: none;">
+                    <i class="fa-solid fa-cart-shopping" title="Cart"></i>
+                    <span data-cart-count class="cart-badge">0</span>
+                </a>
+
+                <div class="profile-wrapper" style="position: relative; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    {% if request.user.is_authenticated %}
+                        <div class="account-avatar-small" style="background: #0078d7; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+                            {% if current_avatar_url %}
+                                <img src="{{ current_avatar_url }}" alt="{{ request.user.first_name|default:request.user.username }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                <span hidden>{{ current_avatar_initial }}</span>
+                            {% else %}
+                                <span>{{ current_avatar_initial }}</span>
+                            {% endif %}
+                        </div>
+                        <span style="font-size: 14px; font-weight: 600;">{{ request.user.first_name|default:request.user.username }}</span>
+                    {% else %}
+                        <i class="fa-solid fa-circle-user" title="Profile"></i>
+                        <span style="font-size: 14px; font-weight: 600;">Guest</span>
+                    {% endif %}
+
+                    <div class="profile-dropdown" style="position: absolute; top: 100%; right: 0; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; flex-direction: column; gap: 8px; min-width: 230px; z-index: 1000; margin-top: 10px;">
+                        {% if request.user.is_authenticated %}
+                            {% if request.user.is_staff %}
+                                <a href="{% url 'admin-dashboard' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-user-shield"></i> Admin Panel</a>
+                            {% elif is_seller_user %}
+                                <a href="{% url 'seller-dashboard' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-store"></i> Seller Panel</a>
+                            {% endif %}
+
+                            {% if show_customer_account_links %}
+                                <a href="{% url 'customer-panel' 'profile' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-user"></i> Customer Profile</a>
+                                <a href="{% url 'my-orders' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-bag-shopping"></i> Orders</a>
+                                <a href="{% url 'customer-panel' 'coupons' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-ticket"></i> Coupons</a>
+                                <a href="{% url 'customer-panel' 'saved' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-heart"></i> Save</a>
+                                <a href="{% url 'customer-panel' 'address' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-location-dot"></i> Saved Address</a>
+                                <a href="{% url 'customer-panel' 'help' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-headset"></i> Help</a>
+                                <a href="{% url 'become-seller' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-store"></i> Become Seller</a>
+                            {% endif %}
+                            <a href="{% url 'logout' %}" style="text-decoration: none; color: #d32f2f; font-size: 14px; padding: 5px; font-weight: 600;">Logout</a>
+                        {% else %}
+                            <a href="{% url 'login' %}" style="text-decoration: none; color: #0078d7; font-size: 14px; padding: 5px; font-weight: 600;">Login</a>
+                            <a href="{% url 'register' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;">Create Account</a>
+                            <a href="{% url 'become-seller' %}" style="text-decoration: none; color: #333; font-size: 14px; padding: 5px;"><i class="fa-solid fa-store"></i> Become Seller</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if category_tabs %}
+            <nav class="category-nav header-category-nav" id="category-strip" aria-label="Store categories">
+                {% include 'website/partials/category_strip.html' %}
+            </nav>
+        {% endif %}
+    </header>
+
+    {% include 'partials/alerts.html' %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'partials/footer.html' %}
+    {% comment %}
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-brand-block">
+          <a href="{% url 'home' %}" class="footer-brand" aria-label="Lexvers home">
+            <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Lexvers marketplace logo">
+          </a>
+          <p>Quality spices, sarees, handlooms, hand crafts, food, and curated marketplace picks in one simple shopping experience.</p>
+          <nav class="footer-brand-social" aria-label="Brand social links">
+            <a href="javascript:void(0)" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="javascript:void(0)" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="javascript:void(0)" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="javascript:void(0)" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+          </nav>
+        </div>
+
+        <div class="footer-col">
+          <h3>Quick Shop</h3>
+          <div class="footer-links">
+            {% for link in footer_quick_shop_links %}
+              <a href="{{ link.url }}">{{ link.label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h3>Customer Service</h3>
+          <div class="footer-links">
+            <a href="{% url 'help-center' %}">Help Center</a>
+            <a href="{% url 'faqs' %}">FAQs</a>
+            <a href="{% url 'track-order' %}">Track Order</a>
+            <a href="{% url 'return-refund-policy' %}">Return &amp; Refund Policy</a>
+            <a href="{% url 'shipping-policy' %}">Shipping Policy</a>
+            <a href="{% url 'cancellation-policy' %}">Cancellation Policy</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h3>Seller Section</h3>
+          <div class="footer-links">
+            <a href="{% url 'become-seller' %}">Become a Seller</a>
+            <a href="{% url 'seller-login' %}">Seller Login</a>
+            <a href="{% url 'seller-guidelines' %}">Seller Guidelines</a>
+          </div>
+        </div>
+
+        <div class="footer-col footer-legal-col">
+          <h3>Legal</h3>
+          <div class="footer-links">
+            <a href="{% url 'privacy-policy' %}">Privacy Policy</a>
+            <a href="{% url 'terms-of-condition' %}">Terms &amp; Conditions</a>
+            <a href="{% url 'cookie-policy' %}">Cookie Policy</a>
+            <a href="{% url 'disclaimer' %}">Disclaimer</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h3>Contact Us</h3>
+          <div class="footer-contact-list">
+            <a href="tel:+919938797981"><i class="fa-solid fa-phone"></i> +91 9938797981</a>
+            <a href="mailto:greenbacksjobexhibition@gmail.com"><i class="fa-solid fa-envelope"></i> greenbacks@gmail.com</a>
+            <span><i class="fa-solid fa-location-dot"></i> Bhubaneswar, Odisha, India</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <span>© 2026 Lexvers Marketplace. All rights reserved.</span>
+          <span class="footer-credit">Designed &amp; Managed by Greenbacks Lexverse Pvt. Ltd.</span>
+        </div>
+      </div>
+    </footer>
+    {% endcomment %}
+
+    <script>
+      const themeToggle = document.getElementById('theme-toggle');
+      const savedTheme = localStorage.getItem('lexvers_theme') || 'light';
+      document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+
+      function syncThemeIcon() {
+        if (!themeToggle) return;
+        const isDark = document.body.classList.contains('dark-mode');
+        themeToggle.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+          const isDark = document.body.classList.toggle('dark-mode');
+          localStorage.setItem('lexvers_theme', isDark ? 'dark' : 'light');
+          syncThemeIcon();
+        });
+        syncThemeIcon();
+      }
+
+      const profileWrapper = document.querySelector('.profile-wrapper');
+      if (profileWrapper) {
+        profileWrapper.addEventListener('click', function(e) {
+          const dropdown = this.querySelector('.profile-dropdown');
+          if (dropdown.style.display === 'flex') {
+              dropdown.style.display = 'none';
+          } else {
+              dropdown.style.display = 'flex';
+          }
+        });
+      }
+      document.addEventListener('click', function(e) {
+          if (!e.target.closest('.profile-wrapper')) {
+              const dropdown = document.querySelector('.profile-dropdown');
+              if (dropdown) dropdown.style.display = 'none';
+          }
+      });
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+              e.preventDefault();
+              document.getElementById('store-search-form').submit();
+          }
+        });
+      }
+
+      window.LexversWishlist = (function () {
+        function getCookie(name) {
+          const cookies = document.cookie ? document.cookie.split(';') : [];
+          for (const cookie of cookies) {
+            const trimmed = cookie.trim();
+            if (trimmed.startsWith(`${name}=`)) {
+              return decodeURIComponent(trimmed.slice(name.length + 1));
+            }
+          }
+          return '';
+        }
+
+        function syncButton(button, saved) {
+          button.classList.toggle('saved', saved);
+          const icon = button.querySelector('i');
+          if (icon) {
+            icon.className = `${saved ? 'fa-solid' : 'fa-regular'} fa-heart`;
+          }
+          button.setAttribute('aria-label', saved ? 'Remove from saved' : 'Save product');
+        }
+
+        function bind() {
+          document.querySelectorAll('[data-save-toggle]').forEach((button) => {
+            if (button.dataset.bound === '1') return;
+            button.dataset.bound = '1';
+            button.addEventListener('click', async function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+              const saveUrl = button.dataset.saveUrl;
+              if (!saveUrl) return;
+
+              button.disabled = true;
+              try {
+                const response = await fetch(saveUrl, {
+                  method: 'POST',
+                  headers: {
+                    'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                  },
+                });
+                if (response.status === 403 || response.redirected) {
+                  window.location.href = button.dataset.loginUrl || '{% url "login" %}';
+                  return;
+                }
+                if (!response.ok) throw new Error('Save failed');
+                const payload = await response.json();
+                syncButton(button, payload.saved);
+                window.dispatchEvent(new CustomEvent('lexvers:saved-changed', { detail: payload }));
+              } catch (error) {
+                button.classList.add('shake');
+                window.setTimeout(() => button.classList.remove('shake'), 320);
+              } finally {
+                button.disabled = false;
+              }
+            });
+          });
+        }
+
+        bind();
+        return { bind };
+      })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

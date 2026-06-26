@@ -1,0 +1,662 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/seller_panel/seller.css' %}">
+  <style>
+    .site-header .search-bar {
+      display: none !important;
+    }
+
+    .animated-hero-section {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      padding: clamp(34px, 4vw, 56px) 20px clamp(42px, 5vw, 66px);
+      background:
+        radial-gradient(ellipse at 14% 14%, rgba(255, 122, 0, 0.16), transparent 34%),
+        radial-gradient(ellipse at 88% 22%, rgba(250, 204, 21, 0.22), transparent 35%),
+        linear-gradient(135deg, #fffaf3 0%, #fff7ed 48%, #ffffff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .animated-hero-section::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(194, 65, 12, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 122, 0, 0.06) 1px, transparent 1px);
+      background-size: 54px 54px;
+      opacity: 0.32;
+    }
+
+    .hero-bg-shapes {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      animation: float 10s infinite ease-in-out;
+    }
+
+    .shape-1 { width: 300px; height: 300px; top: -10%; left: -5%; background: rgba(255, 122, 0, 0.24); }
+    .shape-2 { width: 400px; height: 400px; bottom: -20%; right: -10%; background: rgba(250, 204, 21, 0.24); animation-delay: -5s; }
+    .shape-3 { width: 220px; height: 220px; top: 42%; left: 50%; background: rgba(17, 24, 39, 0.09); animation-delay: -2s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.1); }
+    }
+
+    .hero-content-wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1300px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 0.86fr) minmax(520px, 1.14fr);
+      gap: clamp(28px, 3.5vw, 48px);
+      align-items: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255, 247, 237, 0.84);
+      border: 1px solid #ffd29a;
+      border-radius: 50px;
+      color: #b45309;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-title {
+      font-size: clamp(42px, 5.4vw, 64px);
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(100deg, #111827 0%, #7c2d12 46%, #ff7a00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .hero-actions-group {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-animated {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary-anim {
+      background: linear-gradient(135deg, #111827 0%, #2f2418 38%, #ff7a00 100%);
+      color: #fff !important;
+      box-shadow: 0 14px 28px rgba(255, 122, 0, 0.26);
+    }
+
+    .btn-primary-anim:hover,
+    .btn-primary-anim:focus-visible,
+    .btn-secondary-anim:hover,
+    .btn-secondary-anim:focus-visible {
+      transform: translateY(-3px);
+      color: #fff !important;
+    }
+
+    .btn-secondary-anim {
+      background: white;
+      color: #111827;
+      border: 2px solid #ffd29a;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .seller-hero-video-stage {
+      position: relative;
+      width: min(720px, 100%);
+      min-height: clamp(430px, 37vw, 540px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      isolation: isolate;
+    }
+
+    .seller-hero-video-card {
+      position: relative;
+      width: 100%;
+      max-width: 650px;
+      aspect-ratio: 4 / 3;
+      border-radius: 28px;
+      overflow: hidden;
+      background: #fff7ed;
+      box-shadow: 0 26px 58px rgba(15, 23, 42, 0.16);
+      z-index: 1;
+    }
+
+    .seller-hero-video-bg,
+    .seller-hero-video-main {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .seller-hero-video-bg {
+      opacity: 0.46;
+      filter: blur(22px) saturate(1.25);
+      transform: scale(1.16);
+    }
+
+    .seller-hero-video-main {
+      background: #fff7ed;
+      transform: scale(1.015);
+    }
+
+    .seller-video-badge {
+      position: absolute;
+      z-index: 6;
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #1f2937;
+      font-size: 15px;
+      font-weight: 900;
+      box-shadow: 0 18px 40px rgba(17, 24, 39, 0.12);
+      border: 1px solid rgba(255, 210, 154, 0.78);
+      backdrop-filter: blur(14px);
+      white-space: nowrap;
+    }
+
+    .seller-video-badge i {
+      color: #f59e0b;
+    }
+
+    .seller-video-badge.order {
+      top: 76px;
+      right: -18px;
+    }
+
+    .seller-video-badge.traffic {
+      left: 8px;
+      bottom: 98px;
+    }
+
+    .seller-video-badge.traffic i {
+      color: #15803d;
+    }
+
+    @media (max-width: 900px) {
+      .hero-content-wrapper {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-eyebrow {
+        margin: 0 auto 20px;
+      }
+
+      .hero-actions-group {
+        justify-content: center;
+      }
+
+      .seller-hero-video-stage {
+        min-height: auto;
+        margin: 20px auto 0;
+      }
+
+      .seller-video-badge.order {
+        top: 18px;
+        right: 8px;
+      }
+
+      .seller-video-badge.traffic {
+        left: 8px;
+        bottom: 18px;
+      }
+    }
+
+    .seller-registration-showcase {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 420px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    .seller-registration-showcase::before {
+      display: none;
+    }
+
+    .seller-showcase-image {
+      max-width: 100%;
+      width: min(100%, 560px);
+      height: auto;
+      object-fit: contain;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .seller-showcase-orbit {
+      position: absolute;
+      inset: 34px;
+      border: 1px dashed rgba(255, 255, 255, 0.34);
+      border-radius: 28px;
+      pointer-events: none;
+    }
+
+    .seller-showcase-card {
+      position: absolute;
+      width: min(245px, 44%);
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.15);
+      backdrop-filter: blur(18px);
+      animation: sellerCardFloat 7s ease-in-out infinite;
+    }
+
+    .seller-showcase-card .seller-card-icon,
+    .seller-dashboard-card .seller-card-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, #ff7a00, #ff9f1c);
+      box-shadow: 0 14px 24px rgba(255, 122, 0, 0.32);
+      margin-bottom: 14px;
+      font-size: 22px;
+    }
+
+    .seller-showcase-card h3,
+    .seller-dashboard-card h3 {
+      margin: 0 0 8px;
+      color: #111827;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .seller-showcase-card p,
+    .seller-dashboard-card p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .seller-showcase-card.setup {
+      top: 42px;
+      left: 34px;
+    }
+
+    .seller-showcase-card.approval {
+      top: 122px;
+      right: 22px;
+      animation-delay: -2s;
+    }
+
+    .seller-showcase-card.growth {
+      left: 54px;
+      bottom: 46px;
+      animation-delay: -4s;
+    }
+
+    .seller-showcase-card.orders {
+      right: 44px;
+      bottom: 30px;
+      animation-delay: -1s;
+    }
+
+    .seller-dashboard-card {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(235px, 42%);
+      padding: 18px;
+      transform: translate(-42%, -36%) rotate(-3deg);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 210, 154, 0.82);
+      box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+      backdrop-filter: blur(18px);
+    }
+
+    .seller-dashboard-screen {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      background: #fff7ed;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .seller-dashboard-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(251, 146, 60, 0.22);
+    }
+
+    .seller-dashboard-line:last-child {
+      border-bottom: 0;
+    }
+
+    .seller-faq-cta {
+      display: flex;
+      justify-content: center;
+      margin: 0 0 26px;
+    }
+
+    .seller-faq-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 0 28px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #111827 0%, #7c2d12 42%, #ff7a00 100%);
+      color: #fff !important;
+      text-decoration: none;
+      font-weight: 900;
+      box-shadow: 0 18px 38px rgba(255, 122, 0, 0.28);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .seller-faq-cta-btn:hover,
+    .seller-faq-cta-btn:focus-visible {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 48px rgba(255, 122, 0, 0.34);
+      color: #fff !important;
+    }
+
+    @keyframes sellerCardFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @media (max-width: 760px) {
+      .seller-registration-showcase {
+        min-height: auto;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .seller-registration-showcase::before,
+      .seller-showcase-orbit {
+        display: none;
+      }
+
+      .seller-showcase-card,
+      .seller-dashboard-card {
+        position: relative;
+        inset: auto;
+        width: auto;
+        transform: none;
+        animation: none;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="become-seller-page" id="BecomeSellerPage">
+  <section class="animated-hero-section">
+    <div class="hero-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+
+    <div class="hero-content-wrapper">
+      <div class="hero-text-block">
+        <div class="hero-eyebrow">
+          <i class="fa-solid fa-star" style="color: #f59e0b;"></i>
+          Seller Onboarding
+        </div>
+        <h1 class="hero-title">Start Selling Online With Lexvers</h1>
+        <p class="hero-subtitle">Grow your business by reaching thousands of customers. Add products, manage orders, track payments, and build your online store effortlessly with powerful tools.</p>
+        <div class="hero-actions-group">
+          <a href="#seller-registration" class="btn-animated btn-primary-anim" data-scroll-to-registration>
+            <i class="fa-solid fa-rocket"></i> Launch Store
+          </a>
+          <a href="{% url 'seller-login' %}" class="btn-animated btn-secondary-anim">
+            <i class="fa-solid fa-right-to-bracket"></i> Seller Login
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual-block">
+        <div class="seller-hero-video-stage">
+          <div class="seller-hero-video-card" aria-label="Seller onboarding video preview">
+            <video class="seller-hero-video-bg" src="{% static 'videos/seller_panel/seller_video.mp4' %}" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
+            <video class="seller-hero-video-main" src="{% static 'videos/seller_panel/seller_video.mp4' %}" autoplay muted loop playsinline preload="metadata"></video>
+          </div>
+          <div class="seller-video-badge order">
+            <i class="fa-solid fa-bell"></i>
+            <span>New Order Received!</span>
+          </div>
+          <div class="seller-video-badge traffic">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+            <span>Traffic up 45%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="become-seller-section" aria-labelledby="why-sell-title">
+    <div class="become-seller-container">
+      <div class="become-seller-section-head">
+        <span>Why sell with us</span>
+        <h2 id="why-sell-title">Everything sellers need to grow faster</h2>
+      </div>
+      <div class="why-sell-grid">
+        <article class="seller-info-card">
+          <i class="fa-solid fa-users"></i>
+          <h3>Reach More Customers</h3>
+          <p>Showcase your products to a wider online audience and turn more visitors into repeat buyers.</p>
+        </article>
+        <article class="seller-info-card">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <h3>Easy Product Upload</h3>
+          <p>Create listings with photos, prices, stock, and categories from one clean seller workspace.</p>
+        </article>
+        <article class="seller-info-card">
+          <i class="fa-solid fa-shield-halved"></i>
+          <h3>Secure Payments</h3>
+          <p>Track customer payments and receive seller payouts through a secure approval-based system.</p>
+        </article>
+        <article class="seller-info-card">
+          <i class="fa-solid fa-truck-fast"></i>
+          <h3>Manage Orders Easily</h3>
+          <p>View pending, packed, shipped, delivered, cancelled, and returned orders without confusion.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="become-seller-section become-seller-soft-section" aria-labelledby="how-it-works-title">
+    <div class="become-seller-container">
+      <div class="become-seller-section-head">
+        <span>How it works</span>
+        <h2 id="how-it-works-title">Launch your online store in three steps</h2>
+      </div>
+      <div class="seller-steps-grid">
+        <article class="seller-process-card">
+          <span>1</span>
+          <h3>Register as Seller</h3>
+          <p>Share your basic business details and submit your seller account request for review.</p>
+        </article>
+        <article class="seller-process-card">
+          <span>2</span>
+          <h3>Add Your Products</h3>
+          <p>After approval, add products with pricing, inventory, descriptions, and product images.</p>
+        </article>
+        <article class="seller-process-card">
+          <span>3</span>
+          <h3>Receive Orders & Earn</h3>
+          <p>Manage orders from your seller dashboard and track earnings as your business grows.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="become-seller-section" aria-labelledby="seller-benefits-title">
+    <div class="become-seller-container seller-benefits-layout">
+      <div class="become-seller-section-head align-left">
+        <span>Seller benefits</span>
+        <h2 id="seller-benefits-title">A practical toolkit for everyday commerce</h2>
+        <p>Built for sellers who want a simple, reliable way to list products, serve customers, and keep business moving.</p>
+      </div>
+      <div class="seller-benefits-grid">
+        <span><i class="fa-solid fa-check"></i>No technical knowledge needed</span>
+        <span><i class="fa-solid fa-check"></i>Fast product listing</span>
+        <span><i class="fa-solid fa-check"></i>Real-time order tracking</span>
+        <span><i class="fa-solid fa-check"></i>Secure payout system</span>
+        <span><i class="fa-solid fa-check"></i>Seller dashboard access</span>
+        <span><i class="fa-solid fa-check"></i>Admin approval system</span>
+        <span><i class="fa-solid fa-check"></i>Inventory management</span>
+        <span><i class="fa-solid fa-check"></i>Business growth support</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="become-seller-section become-seller-form-section" id="seller-registration" aria-labelledby="seller-registration-title">
+    <div class="become-seller-container seller-registration-layout">
+      <div class="seller-registration-copy">
+        <span class="become-seller-eyebrow">
+          <i class="fa-solid fa-file-signature"></i>
+          Seller registration
+        </span>
+        <h2 id="seller-registration-title">Create your seller account request</h2>
+        <p>Your seller account request will stay pending until admin approval. Dashboard access is enabled only after approval.</p>
+        <div class="seller-pending-note">
+          <i class="fa-solid fa-clock"></i>
+          <span>Approval usually starts after your details are reviewed by the admin team.</span>
+        </div>
+      </div>
+
+      <div class="seller-registration-showcase" aria-label="Seller registration visual">
+        <img src="{% static 'images/BCM_Seller_Photo/BCM_seller_photo.png.png' %}" alt="Become a Seller - Professional seller illustration" class="seller-showcase-image">
+      </div>
+    </div>
+  </section>
+
+  <section class="become-seller-section" aria-labelledby="seller-faq-title">
+    <div class="become-seller-container">
+      <div class="bs-clickit-wrap">
+        <img src="{% static 'images/BCM_Seller_Photo/BS_ClickIt.png' %}" alt="Become a Seller - Click to register" class="bs-clickit-img">
+      </div>
+
+      <div class="seller-faq-cta">
+        <a href="{% url 'seller-register' %}" class="seller-faq-cta-btn">
+          <i class="fa-solid fa-user-plus"></i>
+          Create your seller account
+        </a>
+      </div>
+      <div class="become-seller-section-head">
+        <span>FAQ</span>
+        <h2 id="seller-faq-title">Questions sellers ask first</h2>
+      </div>
+      <div class="seller-faq-list">
+        <details class="seller-faq-item">
+          <summary>Is seller registration free?</summary>
+          <p>Yes, submitting a seller account request is free. Your account is reviewed before dashboard access is activated.</p>
+        </details>
+        <details class="seller-faq-item">
+          <summary>How can I upload products?</summary>
+          <p>After admin approval, you can use the seller dashboard to add product details, prices, images, and inventory.</p>
+        </details>
+        <details class="seller-faq-item">
+          <summary>When will I receive payment?</summary>
+          <p>Payments are tracked in the seller panel and released through the payout process after orders are verified.</p>
+        </details>
+        <details class="seller-faq-item">
+          <summary>Can I manage orders from mobile?</summary>
+          <p>Yes, the seller experience is responsive, so orders and products can be reviewed from mobile, tablet, and desktop.</p>
+        </details>
+        <details class="seller-faq-item">
+          <summary>Do I need admin approval?</summary>
+          <p>Yes. New seller accounts remain pending until the admin reviews and approves the request.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const faqItems = document.querySelectorAll('.seller-faq-item');
+    const scrollLink = document.querySelector('[data-scroll-to-registration]');
+    const registrationSection = document.getElementById('seller-registration');
+
+    if (scrollLink && registrationSection) {
+      scrollLink.addEventListener('click', function (event) {
+        event.preventDefault();
+        registrationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    faqItems.forEach(function (item) {
+      item.addEventListener('toggle', function () {
+        if (!item.open) return;
+        faqItems.forEach(function (otherItem) {
+          if (otherItem !== item) otherItem.removeAttribute('open');
+        });
+      });
+    });
+  })();
+</script>
+{% endblock %}

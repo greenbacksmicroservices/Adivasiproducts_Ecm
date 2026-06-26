@@ -1,0 +1,68 @@
+<table>
+  <thead>
+    <tr>
+      <th>Order ID</th>
+      <th>Customer</th>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Price</th>
+      <th>Payment</th>
+      <th>Status</th>
+      <th>Shipping address</th>
+      <th>Order date</th>
+      <th>Invoice</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for order in orders %}
+      <tr>
+        <td>{{ order.id }}</td>
+        <td>{{ order.customer }}</td>
+        <td>{{ order.product }}</td>
+        <td>{{ order.quantity }}</td>
+        <td>{{ order.price }}</td>
+        <td><span class="seller-chip {{ order.payment_tone }}">{{ order.payment_status }}</span></td>
+        <td><span class="seller-chip {{ order.status_tone }}">{{ order.status }}</span></td>
+        <td>{{ order.address }}</td>
+        <td>{{ order.date }}</td>
+        <td>
+          {% if order.pk %}
+            <a href="{% url 'seller-order-invoice' order.pk %}" class="seller-small-link" target="_blank">Invoice</a>
+          {% else %}
+            <span class="seller-row-note">Not available</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if order.pk %}
+            <div class="seller-row-actions seller-order-actions">
+              <a href="{% url 'seller-order-invoice' order.pk %}" class="seller-small-link view" target="_blank">
+                <i class="fas fa-eye"></i> View
+              </a>
+              <form method="post" action="{% url 'seller-order-status-update' order.pk %}" class="seller-row-action-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'seller-dashboard' %}">
+                <select name="status" class="form-input">
+                  {% for value,label in seller_order_status_choices %}
+                    <option value="{{ value }}" {% if order.status_value == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="seller-small-btn edit"><i class="fas fa-pen"></i> Edit</button>
+              </form>
+              <form method="post" action="{% url 'seller-order-status-update' order.pk %}" class="seller-inline-action" data-seller-confirm="Cancel order {{ order.id }}?">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'seller-dashboard' %}">
+                <input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="seller-small-btn delete"><i class="fas fa-trash"></i> Delete</button>
+              </form>
+            </div>
+          {% else %}
+            <span class="seller-row-note">No action</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="11">No live orders yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

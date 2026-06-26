@@ -1,0 +1,97 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ item.name }}</h1>
+    <p>Complete product details with owner, photos, stock history, pricing, and shipping information.</p>
+  </div>
+  <div class="button-row">
+    <a href="{% url 'admin-item-edit' item.pk %}" class="btn-inline">Edit Product</a>
+    <a href="{% url 'admin-items' %}" class="btn-ghost">Back to Products</a>
+  </div>
+</section>
+
+<section class="admin-product-detail-grid">
+  <article class="admin-product-media">
+    <div class="admin-product-main-photo">
+      {% if item.image_source %}
+        <img src="{{ item.image_source }}" alt="{{ item.name }}">
+      {% else %}
+        <span>No photo</span>
+      {% endif %}
+    </div>
+
+    {% if gallery_images %}
+      <div class="admin-gallery-grid compact-gallery">
+        {% for photo in gallery_images %}
+          <figure class="admin-gallery-card">
+            <img src="{{ photo.image_source }}" alt="{{ photo.alt_text|default:item.name }}">
+            <figcaption>{{ photo.alt_text|default:'Gallery photo' }}</figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+
+  <article class="settings-card">
+    <div class="settings-card-head">
+      <span class="settings-icon"><i class="fas fa-circle-info"></i></span>
+      <div>
+        <h2>Product Summary</h2>
+        <p>{{ item.short_description }}</p>
+      </div>
+    </div>
+
+    <div class="settings-meta">
+      <div><span>Product ID</span><strong>{{ item.product_id }}</strong></div>
+      <div><span>Category</span><strong>{{ item.category.name|default:'General' }}</strong></div>
+      <div><span>Sub-category</span><strong>{{ item.sub_category|default:'Not added' }}</strong></div>
+      <div><span>Company</span><strong>{{ item.brand_name|default:'Lexvers' }}</strong></div>
+      <div><span>SKU</span><strong>{{ item.sku_code|default:'Not set' }}</strong></div>
+      <div><span>Owner</span><strong>{{ item.get_owner_type_display }} - {{ item.owner_label }}</strong></div>
+      <div><span>Approval</span><strong>{{ item.get_approval_status_display }}</strong></div>
+      <div><span>Initial stock</span><strong>{{ item.initial_stock }}</strong></div>
+      <div><span>Current stock</span><strong>{{ item.stock }}</strong></div>
+      <div><span>Price</span><strong>Rs. {{ item.price }}</strong></div>
+      <div><span>Compare price</span><strong>{% if item.original_price %}Rs. {{ item.original_price }}{% else %}Not set{% endif %}</strong></div>
+      <div><span>Pack size</span><strong>{{ item.pack_display }}</strong></div>
+      <div><span>Shipping weight</span><strong>{{ item.shipping_weight|default:'Not set' }}</strong></div>
+      <div><span>Return</span><strong>{% if item.return_available %}Available{% else %}Not available{% endif %}</strong></div>
+      <div><span>Warranty</span><strong>{{ item.warranty_details|default:'Not added' }}</strong></div>
+    </div>
+  </article>
+</section>
+
+<section class="insight-grid">
+  <article class="insight-panel">
+    <div class="insight-panel-head">
+      <div>
+        <h2>Description</h2>
+        <p>Customer-facing product copy.</p>
+      </div>
+    </div>
+    <div class="insight-list">
+      <div class="insight-item">
+        <strong>Full description</strong>
+        <p>{{ item.description|default:item.short_description }}</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="insight-panel">
+    <div class="insight-panel-head">
+      <div>
+        <h2>Specifications</h2>
+        <p>Detailed product facts for review and approval.</p>
+      </div>
+    </div>
+    <div class="insight-list">
+      <div class="insight-item">
+        <strong>Specs</strong>
+        <p>{{ item.specifications|default:'No specifications added yet.' }}</p>
+      </div>
+    </div>
+  </article>
+</section>
+{% endblock %}

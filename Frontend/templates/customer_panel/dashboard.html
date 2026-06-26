@@ -1,0 +1,355 @@
+{% extends 'layouts/customer_base.html' %}
+
+{% block content %}
+<section class="customer-panel-page">
+  <aside class="customer-sidebar">
+    <section class="customer-profile-card">
+      <div class="customer-avatar">
+        {% if current_avatar_url %}
+          <img src="{{ current_avatar_url }}" alt="{{ request.user.first_name|default:request.user.username }}" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+          <span hidden>{{ current_avatar_initial }}</span>
+        {% else %}
+          <span>{{ current_avatar_initial }}</span>
+        {% endif %}
+      </div>
+      <h1>{{ request.user.first_name|default:request.user.username }}</h1>
+      <p>{{ request.user.email|default:'Customer account' }}</p>
+    </section>
+    <nav class="customer-nav" aria-label="Customer navigation">
+      {% for item in customer_nav %}
+        <a href="{% url 'customer-panel' item.key %}" class="{% if customer_section == item.key %}active{% endif %}">
+          <i class="{{ item.icon }}"></i>
+          <span>{{ item.label }}</span>
+          {% if item.key == 'orders' %}
+            <b>{{ customer_counts.orders }}</b>
+          {% elif item.key == 'saved' %}
+            <b>{{ customer_counts.saved }}</b>
+          {% elif item.key == 'address' %}
+            <b>{{ customer_counts.addresses }}</b>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </nav>
+  </aside>
+
+  <section class="customer-content customer-content-full">
+    <div class="customer-page-top">
+      <a href="{% url 'home' %}" class="customer-home-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Main Home
+      </a>
+    </div>
+
+    {% if customer_section == 'profile' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Profile</h2>
+          <p>Name, phone, mail ID, photo, and language update .</p>
+        </div>
+      </div>
+      <form method="post" enctype="multipart/form-data" class="customer-form">
+        {% csrf_token %}
+        <input type="hidden" name="form_action" value="profile">
+        {{ profile_form.non_field_errors }}
+        {% for field in profile_form %}
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {{ field.errors }}
+        {% endfor %}
+        <button type="submit" class="customer-submit">Save Profile</button>
+      </form>
+    {% elif customer_section == 'orders' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Orders</h2>
+          <p>Your placed orders with payment, shipping, and item details.</p>
+        </div>
+        <span class="customer-count-pill">{{ customer_counts.orders }} orders</span>
+      </div>
+      <div class="customer-order-list">
+        {% for order in orders %}
+          <article class="address-card">
+            <div>
+              <h3>{{ order.order_number }}</h3>
+              <span>{{ order.get_status_display }}</span>
+            </div>
+            <p>{{ order.created_at|date:'d M Y, h:i A' }} | {{ order.get_payment_status_display }}</p>
+            <p>Total: Rs. {{ order.total_amount }} | Items: {{ order.item_count }}</p>
+            {% for item in order.items.all %}
+              <p>{{ item.product_name }} x {{ item.quantity }} - Rs. {{ item.line_total }}</p>
+            {% endfor %}
+            <a href="{% url 'my-order-detail' order.order_number %}" class="customer-primary-link">View Details</a>
+          </article>
+        {% empty %}
+          <div class="customer-empty">
+            <i class="fa-solid fa-bag-shopping"></i>
+            <h3>No orders yet</h3>
+            <p>Cart se Place order karne ke baad order history yahan aayegi.</p>
+            <a href="{% url 'home' %}" class="customer-primary-link">Start shopping</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% elif customer_section == 'coupons' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Coupons</h2>
+          <p>Available offers and future checkout coupons.</p>
+        </div>
+        <span class="customer-count-pill">{{ customer_counts.coupons }} coupons</span>
+      </div>
+      <div class="coupon-grid">
+        {% for coupon in coupon_rows %}
+          <article class="coupon-card">
+            <span>{{ coupon.status }}</span>
+            <h3>{{ coupon.code }}</h3>
+            <strong>{{ coupon.title }}</strong>
+            <p>{{ coupon.detail }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% elif customer_section == 'saved' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Saved</h2>
+          <p>Saved products yahan clean row view me manage karein.</p>
+        </div>
+        <span class="customer-count-pill" id="customer-saved-count">{{ customer_counts.saved }} saved</span>
+      </div>
+      <div id="saved-products-live" data-live-url="{% url 'customer-saved-live' %}">
+        {% include 'customer_panel/partials/saved_products.html' %}
+      </div>
+    {% elif customer_section == 'address' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Saved Address</h2>
+          <p>Delivery ke liye reusable addresses.</p>
+        </div>
+      </div>
+      <div class="address-grid">
+        {% for address in addresses %}
+          <article class="address-card address-manage-card">
+            <div>
+              <h3>{{ address.label }}</h3>
+              {% if address.is_default %}<span>Default</span>{% endif %}
+            </div>
+            <p>{{ address.full_name }} - {{ address.phone }}</p>
+            <p>{{ address.full_address }}</p>
+            <button type="button" class="address-edit-btn" data-edit-address="{{ address.pk }}">
+              <i class="fa-solid fa-pen"></i> Edit
+            </button>
+          </article>
+        {% empty %}
+          <div class="customer-empty compact">
+            <i class="fa-solid fa-location-dot"></i>
+            <h3>No address saved</h3>
+            <p>First delivery address add karo.</p>
+          </div>
+        {% endfor %}
+      </div>
+      {{ addresses_json|json_script:"customer-address-json" }}
+      <form method="post" class="customer-form address-form" data-customer-address-form>
+        {% csrf_token %}
+        <input type="hidden" name="form_action" value="address">
+        <input type="hidden" name="address_id" value="{{ editing_address_id }}" data-address-id-input>
+        <div class="address-form-head">
+          <div>
+            <h3 data-address-form-title>{% if editing_address_id %}Edit Address{% else %}Add New Address{% endif %}</h3>
+            <p data-address-form-subtitle>{% if editing_address_id %}Save changes to this saved address.{% else %}Add a reusable delivery address.{% endif %}</p>
+          </div>
+          <button type="button" class="address-cancel-edit" data-address-cancel {% if not editing_address_id %}hidden{% endif %}>Cancel edit</button>
+        </div>
+        {{ address_form.non_field_errors }}
+        {% for field in address_form %}
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {{ field.errors }}
+        {% endfor %}
+        <button type="submit" class="customer-submit" data-address-submit-label>{% if editing_address_id %}Save Changes{% else %}Save Address{% endif %}</button>
+      </form>
+    {% elif customer_section == 'help' %}
+      <div class="customer-section-head">
+        <div>
+          <h2>Help</h2>
+          <p>Support, order questions, seller help, aur account assistance.</p>
+        </div>
+      </div>
+      <div class="help-grid">
+        <article><i class="fa-solid fa-truck-fast"></i><h3>Delivery Help</h3><p>Shipping model connect hone ke baad tracking support yahan open hoga.</p></article>
+        <article><i class="fa-solid fa-rotate-left"></i><h3>Returns</h3><p>Return request flow order module ke saath enable hoga.</p></article>
+        <article><i class="fa-solid fa-store"></i><h3>Seller Support</h3><p>Seller banne ke liye registration form submit karke admin approval wait karein.</p></article>
+      </div>
+    {% endif %}
+  </section>
+</section>
+
+{% include 'cart/partials/cart_drawer.html' %}
+{% endblock %}
+
+{% block scripts %}
+{% include 'cart/partials/cart_script.html' %}
+<script>
+  (function () {
+    const shell = document.getElementById('saved-products-live');
+    const countLabel = document.getElementById('customer-saved-count');
+    const CSRF_NAME = 'csrftoken';
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+          return decodeURIComponent(trimmed.slice(name.length + 1));
+        }
+      }
+      return '';
+    }
+
+    async function shareSavedItem(button) {
+      const rawUrl = button.dataset.savedShareUrl || '';
+      const shareUrl = rawUrl.startsWith('http') ? rawUrl : `${window.location.origin}${rawUrl}`;
+      const payload = {
+        title: button.dataset.savedShareTitle || 'Saved product',
+        text: button.dataset.savedShareText || '',
+        url: shareUrl || window.location.href,
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(payload);
+          return;
+        }
+        if (!navigator.clipboard) return;
+        await navigator.clipboard.writeText(payload.url);
+        button.classList.add('copied');
+        button.innerHTML = '<i class="fa-solid fa-check"></i> Link copied';
+        window.setTimeout(() => {
+          button.classList.remove('copied');
+          button.innerHTML = '<i class="fa-solid fa-share-nodes"></i> Share';
+        }, 1500);
+      } catch (error) {
+        return;
+      }
+    }
+
+    function bindSavedRows() {
+      document.querySelectorAll('[data-saved-share]').forEach((button) => {
+        if (button.dataset.bound === '1') return;
+        button.dataset.bound = '1';
+        button.addEventListener('click', function () {
+          shareSavedItem(button);
+        });
+      });
+
+      document.querySelectorAll('[data-saved-remove-url]').forEach((button) => {
+        if (button.dataset.savedBound === '1') return;
+        button.dataset.savedBound = '1';
+        button.addEventListener('click', async function (event) {
+          event.preventDefault();
+          const saveUrl = button.dataset.savedRemoveUrl;
+          if (!saveUrl) return;
+
+          try {
+            const response = await fetch(saveUrl, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': getCookie(CSRF_NAME),
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            if (shell && shell.dataset.liveUrl) {
+              refreshSaved();
+            } else if (countLabel && Number.isInteger(payload.count)) {
+              countLabel.textContent = `${payload.count} saved`;
+            }
+          } catch (error) {
+            return;
+          }
+        });
+      });
+    }
+
+    async function refreshSaved() {
+      if (!shell || !shell.dataset.liveUrl) return;
+      try {
+        const response = await fetch(shell.dataset.liveUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) return;
+        const payload = await response.json();
+        shell.innerHTML = payload.html;
+        if (countLabel) countLabel.textContent = `${payload.count} saved`;
+        if (window.LexversCart) window.LexversCart.bindButtons();
+        bindSavedRows();
+      } catch (error) {
+        return;
+      }
+    }
+
+    bindSavedRows();
+    if (shell) {
+      window.addEventListener('lexvers:saved-changed', refreshSaved);
+      window.setInterval(refreshSaved, 5000);
+    }
+  })();
+
+  (function () {
+    const form = document.querySelector('[data-customer-address-form]');
+    const dataNode = document.getElementById('customer-address-json');
+    if (!form || !dataNode) return;
+
+    let addresses = [];
+    try {
+      addresses = JSON.parse(dataNode.textContent || '[]');
+    } catch (error) {
+      addresses = [];
+    }
+
+    const addressInput = form.querySelector('[data-address-id-input]');
+    const title = form.querySelector('[data-address-form-title]');
+    const subtitle = form.querySelector('[data-address-form-subtitle]');
+    const submit = form.querySelector('[data-address-submit-label]');
+    const cancel = form.querySelector('[data-address-cancel]');
+
+    function setField(name, value) {
+      const field = form.elements[name];
+      if (!field) return;
+      if (field.type === 'checkbox') {
+        field.checked = Boolean(value);
+        return;
+      }
+      field.value = value == null ? '' : value;
+    }
+
+    function setMode(isEdit) {
+      if (title) title.textContent = isEdit ? 'Edit Address' : 'Add New Address';
+      if (subtitle) subtitle.textContent = isEdit ? 'Save changes to this saved address.' : 'Add a reusable delivery address.';
+      if (submit) submit.textContent = isEdit ? 'Save Changes' : 'Save Address';
+      if (cancel) cancel.hidden = !isEdit;
+    }
+
+    function resetForm() {
+      form.reset();
+      if (addressInput) addressInput.value = '';
+      setMode(false);
+    }
+
+    document.querySelectorAll('[data-edit-address]').forEach((button) => {
+      button.addEventListener('click', function () {
+        const address = addresses.find((item) => String(item.id) === String(button.dataset.editAddress));
+        if (!address) return;
+        if (addressInput) addressInput.value = address.id;
+        ['address_type', 'label', 'full_name', 'phone', 'alternate_phone', 'email', 'house', 'area', 'landmark', 'city', 'district', 'state', 'pincode', 'country', 'is_default'].forEach((name) => {
+          setField(name, address[name]);
+        });
+        setMode(true);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    if (cancel) {
+      cancel.addEventListener('click', resetForm);
+    }
+    setMode(Boolean(addressInput && addressInput.value));
+  })();
+</script>
+{% endblock %}

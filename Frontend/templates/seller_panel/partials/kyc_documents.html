@@ -1,0 +1,33 @@
+<article class="seller-workspace">
+  <div class="seller-card-head">
+    <h2>Documents / KYC</h2>
+    <span class="seller-chip">Visible in admin</span>
+  </div>
+  {% if seller_profile %}
+    <div class="seller-document-grid">
+      <span><b>PAN card</b>{% if seller_profile.pan_document %}<a href="{{ seller_profile.pan_document.url }}" target="_blank">View</a>{% else %}<em>Pending</em>{% endif %}</span>
+      <span><b>Aadhaar card</b>{% if seller_profile.aadhaar_document %}<a href="{{ seller_profile.aadhaar_document.url }}" target="_blank">View</a>{% else %}<em>Pending</em>{% endif %}</span>
+      <span><b>GST certificate</b>{% if seller_profile.gst_document %}<a href="{{ seller_profile.gst_document.url }}" target="_blank">View</a>{% else %}<em>Optional / Pending</em>{% endif %}</span>
+      <span><b>Trade license</b>{% if seller_profile.trade_license_document %}<a href="{{ seller_profile.trade_license_document.url }}" target="_blank">View</a>{% else %}<em>Optional / Pending</em>{% endif %}</span>
+      <span><b>Company documents</b>{% if seller_profile.company_document %}<a href="{{ seller_profile.company_document.url }}" target="_blank">View</a>{% else %}<em>Optional / Pending</em>{% endif %}</span>
+      <span><b>Bank proof</b>{% if seller_profile.bank_document %}<a href="{{ seller_profile.bank_document.url }}" target="_blank">View</a>{% else %}<em>Pending</em>{% endif %}</span>
+      <span><b>Address proof</b>{% if seller_profile.address_proof %}<a href="{{ seller_profile.address_proof.url }}" target="_blank">View</a>{% else %}<em>Pending</em>{% endif %}</span>
+    </div>
+    <form method="post" action="{% url 'seller-settings-update' 'documents' %}" enctype="multipart/form-data" class="seller-product-form">
+      {% csrf_token %}
+      {{ seller_documents_form.non_field_errors }}
+      {% for field in seller_documents_form %}
+        <label>
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {{ field.errors }}
+        </label>
+      {% endfor %}
+      <div class="seller-form-actions">
+        <button type="submit" class="seller-btn"><i class="fas fa-file-arrow-up"></i> Save Documents</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="seller-empty">Approved seller profile connect hone ke baad document upload available hoga.</p>
+  {% endif %}
+</article>

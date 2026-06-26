@@ -1,0 +1,225 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+  </div>
+  {% if primary_action %}
+    {% if primary_action.modal %}
+      <button
+        type="button"
+        class="{% if primary_action.style == 'primary' %}btn-inline{% elif primary_action.style == 'danger' %}btn-danger{% else %}btn-ghost{% endif %}"
+        data-admin-form-trigger
+        data-form-url="{{ primary_action.href }}"
+        data-form-title="{{ primary_action.label }}"
+      >
+        {{ primary_action.label }}
+      </button>
+    {% else %}
+      <a
+        href="{{ primary_action.href }}"
+        class="{% if primary_action.style == 'primary' %}btn-inline{% elif primary_action.style == 'danger' %}btn-danger{% else %}btn-ghost{% endif %}"
+      >
+        {{ primary_action.label }}
+      </a>
+    {% endif %}
+  {% endif %}
+</section>
+
+{% if summary_cards %}
+  <section class="cards-grid dashboard-card-grid overview-summary-grid">
+    {% for card in summary_cards %}
+      <article class="metric-card {{ card.theme }}">
+        <div class="card-icon"><i class="{{ card.icon }}"></i></div>
+        <div class="card-info">
+          <p>{{ card.label }}</p>
+          <h3>{{ card.value }}</h3>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% endif %}
+
+{% if quick_actions %}
+  <section class="overview-quick-actions">
+    {% for action in quick_actions %}
+      {% if action.modal %}
+        <button
+          type="button"
+          class="overview-action {{ action.style }}"
+          data-admin-form-trigger
+          data-form-url="{{ action.href }}"
+          data-form-title="{{ action.label }}"
+        >
+          {{ action.label }}
+        </button>
+      {% elif action.method == 'post' %}
+        <form method="post" action="{{ action.href }}" class="overview-action-form" data-confirm-form data-confirm-message="{{ action.label }} this record?">
+          {% csrf_token %}
+          <button type="submit" class="overview-action {{ action.style }}">{{ action.label }}</button>
+        </form>
+      {% else %}
+        <a href="{{ action.href }}" class="overview-action {{ action.style }}">{{ action.label }}</a>
+      {% endif %}
+    {% endfor %}
+  </section>
+{% endif %}
+
+<div data-live-table-shell>
+  {% include 'admin_panel/partials/live_table.html' %}
+</div>
+
+<div class="stock-modal" data-stock-modal aria-hidden="true">
+  <div class="stock-modal-backdrop" data-stock-close></div>
+  <form method="post" class="stock-modal-card" data-stock-form>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <div class="stock-modal-head">
+      <div>
+        <h2>Add Stock</h2>
+        <p data-stock-title>Update available stock</p>
+        <p class="stock-current-line">Current Stock: <strong data-stock-current-label>0</strong></p>
+      </div>
+      <button type="button" class="stock-modal-close" data-stock-close aria-label="Close stock dialog">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <label for="stock-input">Add quantity</label>
+    <input id="stock-input" name="stock" type="number" min="0" step="1" class="form-input" required data-stock-input>
+    <div class="button-row">
+      <button type="submit" class="btn-inline">Update Stock</button>
+      <button type="button" class="btn-ghost" data-stock-close>Cancel</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.querySelector('[data-stock-modal]');
+    const form = document.querySelector('[data-stock-form]');
+    const title = document.querySelector('[data-stock-title]');
+    const currentLabel = document.querySelector('[data-stock-current-label]');
+    const input = document.querySelector('[data-stock-input]');
+    const closeButtons = document.querySelectorAll('[data-stock-close]');
+
+    if (!modal || !form || !input) {
+      return;
+    }
+
+    function closeModal() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    function bindStockButtons(scope) {
+      const triggers = (scope || document).querySelectorAll('[data-stock-trigger]');
+      triggers.forEach(function (trigger) {
+        if (trigger.dataset.stockBound === 'true') {
+          return;
+        }
+        trigger.dataset.stockBound = 'true';
+        trigger.addEventListener('click', function () {
+          form.action = trigger.dataset.stockAction;
+          title.textContent = trigger.dataset.stockName || 'Update available stock';
+          if (currentLabel) {
+            currentLabel.textContent = trigger.dataset.stockCurrent || '0';
+          }
+          input.value = '';
+          input.placeholder = 'Quantity to add';
+          input.dataset.stockMode = trigger.dataset.stockMode || 'set';
+          modal.classList.add('is-open');
+          modal.setAttribute('aria-hidden', 'false');
+          input.focus();
+        });
+      });
+    }
+
+    bindStockButtons(document);
+
+    closeButtons.forEach(function (button) {
+      button.addEventListener('click', closeModal);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    const shell = document.querySelector('[data-live-table-shell]');
+    const signatureUrl = '{% url "admin-live-signature" %}';
+    let lastSignature = '';
+
+    async function refreshTable() {
+      if (!shell) {
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set('partial', 'table');
+      const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!response.ok) {
+        return;
+      }
+      shell.innerHTML = await response.text();
+      bindStockButtons(shell);
+      if (window.bindAdminFormTriggers) {
+        window.bindAdminFormTriggers(shell);
+      }
+    }
+
+    async function pollSignature() {
+      try {
+        const response = await fetch(signatureUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        handleSignature(payload.signature);
+      } catch (error) {
+        return;
+      }
+    }
+
+    function handleSignature(signature) {
+      if (!lastSignature) {
+        lastSignature = signature;
+        return;
+      }
+      if (signature && signature !== lastSignature) {
+        lastSignature = signature;
+        refreshTable();
+      }
+    }
+
+    function connectLiveSocket() {
+      if (!window.WebSocket) {
+        return false;
+      }
+      const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+      const socket = new WebSocket(protocol + window.location.host + '/ws/admin/live/');
+      socket.addEventListener('message', function (event) {
+        try {
+          const payload = JSON.parse(event.data);
+          handleSignature(payload.signature);
+        } catch (error) {
+          return;
+        }
+      });
+      return true;
+    }
+
+    window.refreshAdminLiveTable = refreshTable;
+
+    pollSignature();
+    if (!connectLiveSocket()) {
+      window.setInterval(pollSignature, 5000);
+    } else {
+      window.setInterval(pollSignature, 15000);
+    }
+  });
+</script>
+{% endblock %}

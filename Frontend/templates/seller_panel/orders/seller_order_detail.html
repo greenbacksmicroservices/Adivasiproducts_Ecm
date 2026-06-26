@@ -1,0 +1,122 @@
+{% extends 'layouts/seller_base.html' %}
+
+{% block seller_content %}
+<section class="seller-page-heading">
+  <div>
+    <a href="{% url 'seller-orders' %}" class="seller-small-link"><i class="fas fa-arrow-left"></i> Orders</a>
+    <h1>{{ order.order_number }}</h1>
+    <p>{{ order.customer_name }} · {{ order.created_at|date:'d M Y, h:i A' }}</p>
+  </div>
+  <div class="seller-row-actions">
+    <button type="button" class="seller-small-btn view" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    <button type="button" class="seller-small-btn view" data-copy-order="{{ order.order_number }}"><i class="far fa-copy"></i> Copy ID</button>
+    {% if customer_whatsapp %}
+      <a class="seller-small-link view" href="https://wa.me/91{{ customer_whatsapp }}" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="seller-grid-two">
+  <article class="seller-workspace">
+    <h2>Customer & Address</h2>
+    <div class="seller-settings-grid compact">
+      <span><b>Name</b>{{ order.customer_name }}</span>
+      <span><b>Phone</b>{{ order.customer_phone }}</span>
+      <span><b>Payment</b>{{ order.payment_method }} · {{ order.get_payment_status_display }}</span>
+      <span><b>Total Order</b>Rs. {{ order.total_amount }}</span>
+      <span><b>Delivery</b>{% if order.shipping_fee %}Rs. {{ order.shipping_fee }}{% else %}Free{% endif %}</span>
+      <span class="full"><b>Address</b>{{ order.shipping_address }}</span>
+    </div>
+  </article>
+
+  <article class="seller-workspace">
+    <h2>Seller Actions</h2>
+    <form method="post" action="{% url 'seller-order-update-status' order.order_number %}" class="seller-product-form seller-inline-form">
+      {% csrf_token %}
+      <select name="status" class="form-input">
+        <option value="confirmed">Accept Order</option>
+        <option value="packed">Mark as Packed</option>
+        <option value="shipped">Ready for Pickup</option>
+        <option value="cancelled">Cancel Item</option>
+      </select>
+      <input type="text" name="note" class="form-input" placeholder="Optional seller remark">
+      <button type="submit" class="seller-btn"><i class="fas fa-pen"></i> Update</button>
+    </form>
+  </article>
+</section>
+
+<article class="seller-table-panel">
+  <div class="seller-card-head">
+    <div><h2>Your Products In This Order</h2><p>Only your product rows are shown.</p></div>
+    <span class="seller-chip {{ order.status_tone }}">{{ order.get_status_display }}</span>
+  </div>
+  <table>
+    <thead><tr><th>Product</th><th>Pack</th><th>Qty</th><th>Unit</th><th>Total</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for item in order_items %}
+        <tr>
+          <td>
+            <div class="seller-order-product-cell">
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product_name }}">
+              <span><b>{{ item.product_name }}</b><small>{{ item.brand_name|default:'Lexvers' }}</small></span>
+            </div>
+          </td>
+          <td>{{ item.pack_size }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>Rs. {{ item.unit_price }}</td>
+          <td>Rs. {{ item.line_total }}</td>
+          <td><span class="seller-chip {{ item.status_tone }}">{{ item.get_item_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">No accessible items found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+
+<article class="seller-workspace">
+  <h2>Order Timeline</h2>
+  <div class="seller-order-timeline">
+    {% for step in timeline_steps %}
+      <span class="{% if step.active %}active{% endif %} {% if step.current %}current{% endif %}">
+        <i class="fas fa-circle-check"></i>{{ step.label }}
+      </span>
+    {% endfor %}
+  </div>
+</article>
+
+<article class="seller-table-panel">
+  <div class="seller-card-head">
+    <div><h2>Shipment Tracking</h2><p>Courier and tracking details assigned to this order.</p></div>
+  </div>
+  <table>
+    <thead><tr><th>Courier</th><th>Tracking ID</th><th>Status</th><th>Location</th><th>Link</th></tr></thead>
+    <tbody>
+      {% for shipment in shipments %}
+        <tr>
+          <td>{{ shipment.courier.name|default:'Not assigned' }}</td>
+          <td>{{ shipment.tracking_number|default:'Not set' }}</td>
+          <td><span class="seller-chip {{ shipment.status_tone }}">{{ shipment.get_status_display }}</span></td>
+          <td>{{ shipment.last_location|default:'Not set' }}</td>
+          <td>{% if shipment.tracking_link %}<a href="{{ shipment.tracking_link }}" target="_blank" rel="noopener" class="seller-small-link">Track</a>{% else %}Not set{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No tracking record assigned yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endblock %}
+
+{% block seller_extra_scripts %}
+<script>
+  document.querySelectorAll('[data-copy-order]').forEach(function (button) {
+    button.addEventListener('click', async function () {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(button.dataset.copyOrder);
+        button.innerHTML = '<i class="fas fa-check"></i> Copied';
+      }
+    });
+  });
+</script>
+{% endblock %}

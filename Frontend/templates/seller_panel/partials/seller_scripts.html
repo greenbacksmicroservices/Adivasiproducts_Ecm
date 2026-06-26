@@ -1,0 +1,581 @@
+<script>
+  (function () {
+    const pageTitle = document.getElementById('seller-page-title');
+    const triggers = document.querySelectorAll('.seller-nav-trigger');
+    const sections = document.querySelectorAll('.seller-section');
+    const shell = document.querySelector('.seller-dashboard-shell');
+    const navGroups = document.querySelectorAll('[data-seller-nav-group]');
+    const sidebarToggle = document.querySelector('[data-seller-sidebar-toggle]');
+    const themeToggle = document.querySelector('[data-seller-theme-toggle]');
+    const headerMenuWrap = document.querySelector('[data-seller-header-menu-wrap]');
+    const headerMenuButton = document.querySelector('[data-seller-header-menu]');
+    const notificationMenuWrap = document.querySelector('[data-seller-notification-menu-wrap]');
+    const notificationMenuButton = document.querySelector('[data-seller-notification-menu]');
+    const notificationEndpoint = notificationMenuButton ? notificationMenuButton.dataset.sellerNotificationEndpoint : '';
+    const notificationList = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-list]') : null;
+    const notificationBadge = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-badge]') : null;
+    const notificationCount = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-count]') : null;
+    const notificationReadAll = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-read-all]') : null;
+    const rowModal = document.querySelector('[data-seller-row-modal]');
+    const rowModalBody = document.querySelector('[data-seller-row-modal-body]');
+    const liveUrl = shell ? shell.dataset.liveSellerDashboardUrl : '';
+    const dashboardUrl = shell ? shell.dataset.sellerDashboardUrl : '';
+    const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
+    const savedSidebar = localStorage.getItem('lexvers_seller_sidebar') || 'open';
+    const savedTheme = localStorage.getItem('lexvers_seller_theme') || 'light';
+
+    function bindProductSubCategoryDropdowns() {
+      document.querySelectorAll('form').forEach(function (form) {
+        const category = form.querySelector('[data-category-select]');
+        const subCategory = form.querySelector('[data-subcategory-select]');
+        if (!category || !subCategory) return;
+
+        function syncSubCategories() {
+          const selectedCategory = category.value;
+          let hasVisibleSelected = !subCategory.value;
+          Array.from(subCategory.options).forEach(function (option) {
+            const optionCategory = option.dataset.categoryId || '';
+            const isPlaceholder = option.value === '';
+            const isVisible = isPlaceholder || optionCategory === selectedCategory;
+            option.hidden = !isVisible;
+            option.disabled = !isVisible;
+            if (isVisible && option.selected) {
+              hasVisibleSelected = true;
+            }
+          });
+          if (!hasVisibleSelected) {
+            subCategory.value = '';
+          }
+        }
+
+        async function refreshSubCategories() {
+          const selectedCategory = category.value;
+          if (!selectedCategory) {
+            subCategory.innerHTML = '<option value="">---------</option>';
+            return;
+          }
+
+          try {
+            const response = await fetch(`${subCategoryOptionsUrl}?category_id=${encodeURIComponent(selectedCategory)}`);
+            if (!response.ok) {
+              syncSubCategories();
+              return;
+            }
+            const payload = await response.json();
+            const currentValue = subCategory.value;
+            subCategory.innerHTML = '<option value="">---------</option>';
+            (payload.options || []).forEach(function (item) {
+              const option = document.createElement('option');
+              option.value = item.id;
+              option.textContent = item.name;
+              option.dataset.categoryId = item.category_id;
+              option.dataset.categorySlug = item.category_slug;
+              if (String(item.id) === currentValue) {
+                option.selected = true;
+              }
+              subCategory.appendChild(option);
+            });
+          } catch (error) {
+            syncSubCategories();
+          }
+        }
+
+        category.addEventListener('change', refreshSubCategories);
+        syncSubCategories();
+      });
+    }
+
+    function syncTheme() {
+      const isDark = document.body.classList.contains('dark-mode');
+      if (!themeToggle) return;
+      themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+      themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    }
+
+    function setHeaderMenuOpen(isOpen) {
+      if (!headerMenuWrap || !headerMenuButton) return;
+      headerMenuWrap.classList.toggle('is-open', isOpen);
+      headerMenuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function setNotificationMenuOpen(isOpen) {
+      if (!notificationMenuWrap || !notificationMenuButton) return;
+      notificationMenuWrap.classList.toggle('is-open', isOpen);
+      notificationMenuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function updateNotificationCount(count) {
+      const safeCount = Number(count || 0);
+      if (notificationBadge) {
+        notificationBadge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+        notificationBadge.hidden = safeCount === 0;
+      }
+      if (notificationCount) {
+        notificationCount.textContent = safeCount + ' new';
+        notificationCount.hidden = safeCount === 0;
+      }
+      if (notificationReadAll) {
+        notificationReadAll.disabled = safeCount === 0;
+      }
+    }
+
+    function renderNotifications(payload) {
+      if (!payload || !notificationList) return;
+      updateNotificationCount(payload.unread_count);
+      notificationList.innerHTML = '';
+      const notifications = payload.notifications || [];
+      if (!notifications.length) {
+        const empty = document.createElement('p');
+        empty.className = 'seller-notification-empty';
+        empty.textContent = 'No new notifications';
+        notificationList.appendChild(empty);
+        return;
+      }
+      notifications.forEach(function (notification) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'seller-notification-item';
+        item.dataset.sellerNotificationId = notification.id;
+        item.dataset.sellerNotificationUrl = notification.url || '';
+        item.dataset.sellerSectionJump = notification.section || 'orders';
+        item.dataset.title = 'Orders';
+
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-circle-info';
+
+        const copy = document.createElement('span');
+        const title = document.createElement('b');
+        title.textContent = notification.title || 'Notification';
+        const message = document.createElement('small');
+        message.textContent = notification.message || notification.order_id || '';
+        const time = document.createElement('em');
+        time.textContent = notification.created_at || '';
+
+        copy.append(title, message, time);
+        item.append(icon, copy);
+        notificationList.appendChild(item);
+      });
+    }
+
+    async function fetchNotifications(params) {
+      if (!notificationEndpoint) return null;
+      const url = new URL(notificationEndpoint, window.location.origin);
+      Object.keys(params || {}).forEach(function (key) {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          url.searchParams.set(key, params[key]);
+        }
+      });
+      try {
+        const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) return null;
+        const payload = await response.json();
+        renderNotifications(payload);
+        return payload;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function closeRowModal() {
+      if (!rowModal) return;
+      rowModal.hidden = true;
+      if (rowModalBody) {
+        rowModalBody.innerHTML = '';
+      }
+    }
+
+    function openRowModal(button) {
+      if (!rowModal || !rowModalBody) return;
+      const row = button.closest('tr');
+      const table = button.closest('table');
+      if (!row || !table) return;
+      const headers = Array.from(table.querySelectorAll('thead th')).map(function (header) {
+        return header.textContent.trim();
+      });
+      const cells = Array.from(row.querySelectorAll('td'));
+      rowModalBody.innerHTML = cells.slice(0, Math.max(cells.length - 1, 0)).map(function (cell, index) {
+        const label = headers[index] || 'Details';
+        const value = cell.textContent.replace(/\s+/g, ' ').trim() || '--';
+        return '<span><b>' + label + '</b>' + value + '</span>';
+      }).join('');
+      rowModal.hidden = false;
+    }
+
+    function setGroupOpen(group, isOpen) {
+      if (!group) return;
+      const dropdown = group.querySelector('[data-seller-nav-dropdown]');
+      group.classList.toggle('is-open', isOpen);
+      group.classList.toggle('is-flyout-open', isOpen);
+      if (dropdown) {
+        dropdown.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+    }
+
+    function resolveSectionKey(sectionKey) {
+      const hasExactSection = Array.from(sections).some(function (section) {
+        return section.dataset.section === sectionKey;
+      });
+      if (hasExactSection) return sectionKey;
+      const parentKey = (sectionKey || '').split('-')[0];
+      const hasParentSection = Array.from(sections).some(function (section) {
+        return section.dataset.section === parentKey;
+      });
+      return hasParentSection ? parentKey : 'dashboard';
+    }
+
+    function goToDashboardSection(sectionKey, title) {
+      if (!dashboardUrl) return;
+      const url = new URL(dashboardUrl, window.location.origin);
+      if (sectionKey) url.searchParams.set('section', sectionKey);
+      if (title) url.searchParams.set('title', title);
+      window.location.href = url.toString();
+    }
+
+    function showSection(sectionKey, title) {
+      if (!sections.length) {
+        goToDashboardSection(sectionKey, title);
+        return;
+      }
+
+      const resolvedSectionKey = resolveSectionKey(sectionKey);
+      sections.forEach(function (section) {
+        section.classList.toggle('active', section.dataset.section === resolvedSectionKey);
+      });
+      triggers.forEach(function (trigger) {
+        trigger.classList.toggle('active', trigger.dataset.section === sectionKey || trigger.dataset.section === resolvedSectionKey);
+      });
+      navGroups.forEach(function (group) {
+        const hasActiveChild = Boolean(group.querySelector('.seller-nav-trigger.active'));
+        if (hasActiveChild) {
+          setGroupOpen(group, true);
+        }
+      });
+      if (pageTitle) {
+        pageTitle.textContent = title || 'Dashboard';
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set('section', sectionKey || resolvedSectionKey);
+      if (title) url.searchParams.set('title', title);
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    function bindQuantityOptions() {
+      document.querySelectorAll('[data-quantity-collapse]').forEach(function (section) {
+        const toggle = section.querySelector('[data-quantity-toggle]');
+        const addButton = section.querySelector('[data-add-quantity-option]');
+        const rows = Array.from(section.querySelectorAll('[data-quantity-row]'));
+
+        function setOpen(isOpen) {
+          section.classList.toggle('is-open', isOpen);
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          }
+        }
+
+        function syncAddButton() {
+          if (!addButton) return;
+          const hiddenRows = rows.filter(function (row) {
+            return !row.classList.contains('is-visible');
+          });
+          addButton.hidden = hiddenRows.length === 0;
+        }
+
+        rows.forEach(function (row, index) {
+          if (index === 0 || row.querySelector('.errorlist li')) {
+            row.classList.add('is-visible');
+          }
+        });
+        setOpen(section.dataset.open === 'true' || Boolean(section.querySelector('.errorlist li')));
+        syncAddButton();
+
+        if (toggle) {
+          toggle.addEventListener('click', function () {
+            setOpen(!section.classList.contains('is-open'));
+          });
+        }
+
+        if (addButton) {
+          addButton.addEventListener('click', function () {
+            const nextRow = rows.find(function (row) {
+              return !row.classList.contains('is-visible');
+            });
+            if (nextRow) {
+              nextRow.classList.add('is-visible');
+              setOpen(true);
+            }
+            syncAddButton();
+          });
+        }
+      });
+    }
+
+    function bindProfilePhotoPreview() {
+      document.querySelectorAll('[data-seller-profile-photo-input]').forEach(function (input) {
+        input.addEventListener('change', function () {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+          if (!allowed.includes(file.type)) {
+            window.alert('Only jpg, jpeg, png, or webp profile photos are allowed.');
+            input.value = '';
+            return;
+          }
+          const previewUrl = URL.createObjectURL(file);
+          document.querySelectorAll('[data-seller-avatar-img], [data-seller-photo-preview]').forEach(function (image) {
+            image.src = previewUrl;
+            image.hidden = false;
+          });
+          document.querySelectorAll('[data-seller-avatar-initial]').forEach(function (node) {
+            node.hidden = true;
+          });
+        });
+      });
+    }
+
+    if (savedSidebar === 'collapsed' && shell) {
+      shell.classList.add('is-sidebar-collapsed');
+      if (sidebarToggle) {
+        sidebarToggle.setAttribute('aria-pressed', 'true');
+      }
+    }
+
+    document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+    syncTheme();
+    bindProductSubCategoryDropdowns();
+    bindQuantityOptions();
+    bindProfilePhotoPreview();
+
+    if (sidebarToggle && shell) {
+      sidebarToggle.addEventListener('click', function () {
+        const isCollapsed = shell.classList.toggle('is-sidebar-collapsed');
+        sidebarToggle.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
+        localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+        navGroups.forEach(function (group) {
+          group.classList.remove('is-flyout-open');
+        });
+      });
+    }
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', function () {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('lexvers_seller_theme', isDark ? 'dark' : 'light');
+        syncTheme();
+      });
+    }
+
+    if (headerMenuButton) {
+      headerMenuButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        const isOpen = headerMenuWrap && headerMenuWrap.classList.contains('is-open');
+        setHeaderMenuOpen(!isOpen);
+        setNotificationMenuOpen(false);
+      });
+    }
+
+    if (notificationMenuButton) {
+      notificationMenuButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        const isOpen = notificationMenuWrap && notificationMenuWrap.classList.contains('is-open');
+        setNotificationMenuOpen(!isOpen);
+        setHeaderMenuOpen(false);
+        if (!isOpen) fetchNotifications();
+      });
+    }
+
+    if (notificationReadAll) {
+      notificationReadAll.addEventListener('click', function (event) {
+        event.preventDefault();
+        fetchNotifications({ mark_read: '1' });
+      });
+    }
+
+    triggers.forEach(function (trigger) {
+      trigger.addEventListener('click', function () {
+        const group = trigger.closest('[data-seller-nav-group]');
+        const isDropdown = trigger.hasAttribute('data-seller-nav-dropdown');
+        const isCollapsed = shell && shell.classList.contains('is-sidebar-collapsed');
+        const wasOpen = group && group.classList.contains(isCollapsed ? 'is-flyout-open' : 'is-open');
+
+        if (isDropdown && isCollapsed && group) {
+          navGroups.forEach(function (navGroup) {
+            if (navGroup !== group) navGroup.classList.remove('is-flyout-open');
+          });
+          setGroupOpen(group, !wasOpen);
+          return;
+        }
+
+        showSection(trigger.dataset.section, trigger.dataset.title);
+        if (group) {
+          setGroupOpen(group, isDropdown ? !wasOpen : true);
+        }
+      });
+    });
+
+    document.addEventListener('click', async function (event) {
+      const rowViewButton = event.target.closest('[data-seller-row-view]');
+      if (rowViewButton) {
+        event.preventDefault();
+        openRowModal(rowViewButton);
+        return;
+      }
+
+      if (event.target.closest('[data-seller-row-modal-close]')) {
+        event.preventDefault();
+        closeRowModal();
+        return;
+      }
+
+      const notificationOpener = event.target.closest('[data-seller-open-notifications]');
+      if (notificationOpener) {
+        event.preventDefault();
+        setNotificationMenuOpen(true);
+        setHeaderMenuOpen(false);
+        fetchNotifications();
+        return;
+      }
+
+      const notificationItem = event.target.closest('[data-seller-notification-id]');
+      if (notificationItem) {
+        event.preventDefault();
+        const targetUrl = notificationItem.dataset.sellerNotificationUrl;
+        await fetchNotifications({ read_id: notificationItem.dataset.sellerNotificationId });
+        setNotificationMenuOpen(false);
+        if (targetUrl) {
+          window.location.href = targetUrl;
+        } else {
+          showSection(notificationItem.dataset.sellerSectionJump || 'orders', notificationItem.dataset.title || 'Orders');
+        }
+        return;
+      }
+
+      const jumpButton = event.target.closest('[data-seller-section-jump]');
+      if (jumpButton) {
+        event.preventDefault();
+        showSection(jumpButton.dataset.sellerSectionJump, jumpButton.dataset.title);
+        setHeaderMenuOpen(false);
+        setNotificationMenuOpen(false);
+        return;
+      }
+
+      if (headerMenuWrap && !headerMenuWrap.contains(event.target)) {
+        setHeaderMenuOpen(false);
+      }
+      if (notificationMenuWrap && !notificationMenuWrap.contains(event.target)) {
+        setNotificationMenuOpen(false);
+      }
+      if (shell && shell.classList.contains('is-sidebar-collapsed') && !event.target.closest('[data-seller-nav-group]')) {
+        navGroups.forEach(function (group) {
+          group.classList.remove('is-flyout-open');
+        });
+      }
+    });
+
+    document.addEventListener('submit', function (event) {
+      const form = event.target;
+      const buttonConfirm = form.querySelector('[data-seller-confirm-action]');
+      const message = form.dataset.sellerConfirm || (buttonConfirm ? buttonConfirm.dataset.sellerConfirmAction : '');
+      if (message && !window.confirm(message)) {
+        event.preventDefault();
+      }
+    });
+
+    function updateText(selector, value) {
+      document.querySelectorAll(selector).forEach(function (node) {
+        node.textContent = value;
+      });
+    }
+
+    function formatLiveValue(key, value) {
+      if (['sale_percent', 'active_percent'].includes(key)) {
+        return value + '%';
+      }
+      return value;
+    }
+
+    function updateFragments(fragments) {
+      Object.keys(fragments || {}).forEach(function (key) {
+        document.querySelectorAll('[data-seller-live-fragment="' + key + '"]').forEach(function (node) {
+          if (node.contains(document.activeElement)) return;
+          if (node.querySelector('form') && node.closest('.seller-section.active')) return;
+          node.innerHTML = fragments[key];
+        });
+      });
+    }
+
+    function updateLiveDashboard(data) {
+      if (!data || !data.snapshot) return;
+
+      Object.keys(data.cards || {}).forEach(function (key) {
+        updateText('[data-seller-card-value="' + key + '"]', data.cards[key]);
+      });
+
+      Object.keys(data.snapshot).forEach(function (key) {
+        updateText('[data-seller-live-text="' + key + '"]', formatLiveValue(key, data.snapshot[key]));
+      });
+
+      const donut = document.querySelector('.seller-donut-ring');
+      if (donut) {
+        donut.style.setProperty('--seller-donut-progress', data.snapshot.sale_percent + '%');
+      }
+      const smallDonut = document.querySelector('.seller-small-donut');
+      if (smallDonut) {
+        smallDonut.style.setProperty('--seller-small-donut-progress', data.snapshot.active_percent + '%');
+      }
+
+      if (data.line_chart) {
+        const area = document.querySelector('[data-seller-line-area]');
+        const path = document.querySelector('[data-seller-line-path]');
+        const marker = document.querySelector('[data-seller-line-marker]');
+        const dot = document.querySelector('[data-seller-line-dot]');
+        const tooltip = document.querySelector('[data-seller-chart-tooltip]');
+        if (area) area.setAttribute('d', data.line_chart.area_path);
+        if (path) path.setAttribute('d', data.line_chart.line_path);
+        if (marker) {
+          marker.setAttribute('x1', data.line_chart.focus_x);
+          marker.setAttribute('x2', data.line_chart.focus_x);
+        }
+        if (dot) {
+          dot.setAttribute('cx', data.line_chart.focus_x);
+          dot.setAttribute('cy', data.line_chart.focus_y);
+        }
+        if (tooltip) {
+          tooltip.innerHTML = data.line_chart.focus_value + '<br><small>' + data.line_chart.focus_label + '</small>';
+        }
+      }
+
+      (data.progress_bars || []).forEach(function (bar, index) {
+        const node = document.querySelector('[data-seller-progress-bar="' + index + '"]');
+        if (node) {
+          node.style.height = bar.height + '%';
+        }
+      });
+
+      updateFragments(data.fragments);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const initialSection = params.get('section') || window.location.hash.replace('#', '');
+    if (initialSection && sections.length) {
+      showSection(initialSection, params.get('title'));
+    }
+
+    if (liveUrl) {
+      window.setInterval(function () {
+        fetch(liveUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (response) {
+            return response.ok ? response.json() : null;
+          })
+          .then(updateLiveDashboard)
+          .catch(function () {});
+      }, 5000);
+    }
+
+    fetchNotifications();
+    if (notificationEndpoint) {
+      window.setInterval(function () {
+        fetchNotifications();
+      }, 5000);
+    }
+  })();
+</script>

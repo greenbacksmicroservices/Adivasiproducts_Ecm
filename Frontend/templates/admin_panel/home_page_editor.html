@@ -1,0 +1,199 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+  </div>
+  <a href="{% url 'home' %}" class="btn-inline">Open Store</a>
+</section>
+
+<section class="form-panel homepage-editor-card homepage-settings-card">
+  <div class="panel-table-head">
+    <div>
+      <h2>Hero Controls</h2>
+      <p>Large hero aur small photo slider dono Top Deals par hi dikhenge. Dono ko alag-alag on/off kar sakte hain.</p>
+    </div>
+  </div>
+  <form method="post" class="stack-form compact-admin-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="settings">
+    {{ settings_form.non_field_errors }}
+    {% for field in settings_form %}
+      <label>{{ field.label }}</label>
+      {{ field }}
+      <small>{{ field.help_text }}</small>
+      {{ field.errors }}
+    {% endfor %}
+    <div class="button-row">
+      <button type="submit" class="btn-inline">Save Hero Settings</button>
+    </div>
+  </form>
+</section>
+
+<section class="homepage-editor-grid split-banners-grid">
+  <article class="form-panel homepage-editor-card">
+    <div class="panel-table-head">
+      <div>
+        <h2>Add Large Hero Photo</h2>
+        <p>Yeh bada hero section ke liye hai, text aur CTA ke saath dikhega.</p>
+      </div>
+    </div>
+    <form method="post" class="stack-form compact-admin-form" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="large-banner">
+      {% for hidden in large_banner_form.hidden_fields %}{{ hidden }}{% endfor %}
+      {{ large_banner_form.non_field_errors }}
+      {% for field in large_banner_form.visible_fields %}
+        <label>{{ field.label }}</label>
+        {{ field }}
+        <small>{{ field.help_text }}</small>
+        {{ field.errors }}
+      {% endfor %}
+      <div class="button-row">
+        <button type="submit" class="btn-inline">Add Large Hero</button>
+      </div>
+    </form>
+  </article>
+
+  <article class="form-panel homepage-editor-card">
+    <div class="panel-table-head">
+      <div>
+        <h2>Add Small Slider Photo</h2>
+        <p>Yeh chhota photo-only slider ke liye hai, screenshot jaisa card row me dikhega.</p>
+      </div>
+    </div>
+    <form method="post" class="stack-form compact-admin-form" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="compact-banner">
+      {% for hidden in compact_banner_form.hidden_fields %}{{ hidden }}{% endfor %}
+      {{ compact_banner_form.non_field_errors }}
+      {% for field in compact_banner_form.visible_fields %}
+        <label>{{ field.label }}</label>
+        {{ field }}
+        <small>{{ field.help_text }}</small>
+        {{ field.errors }}
+      {% endfor %}
+      <div class="button-row">
+        <button type="submit" class="btn-inline">Add Small Photo</button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<section class="homepage-banner-lists">
+  <article class="panel-table-wrap">
+    <div class="panel-table-head">
+      <div>
+        <h2>Large Hero Photos</h2>
+        <p>Bada hero section ke photos yahan alag manage honge.</p>
+      </div>
+      <a href="{% url 'admin-banners' %}" class="btn-ghost">All Banners</a>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th>Title</th>
+          <th>CTA</th>
+          <th>Order</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for banner in large_banners %}
+          <tr>
+            <td>
+              <span class="table-thumb wide">
+                {% if banner.image_source %}
+                  <img src="{{ banner.image_source }}" alt="{{ banner.title }}">
+                {% endif %}
+              </span>
+            </td>
+            <td>{{ banner.title }}</td>
+            <td>{{ banner.cta_text }}</td>
+            <td>{{ banner.display_order }}</td>
+            <td>
+              {% if banner.is_active %}
+                <span class="table-state success">Active</span>
+              {% else %}
+                <span class="table-state danger">Hidden</span>
+              {% endif %}
+            </td>
+            <td class="action-row">
+              <a href="{% url 'admin-banner-edit' banner.pk %}">Edit</a>
+              <form method="post" class="inline-delete-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete-banner">
+                <input type="hidden" name="banner_id" value="{{ banner.pk }}">
+                <button type="submit" class="danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No large hero photo yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="panel-table-wrap">
+    <div class="panel-table-head">
+      <div>
+        <h2>Small Slider Photos</h2>
+        <p>Chhota photo-only slider ke photos yahan alag manage honge.</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th>Title</th>
+          <th>CTA</th>
+          <th>Order</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for banner in compact_banners %}
+          <tr>
+            <td>
+              <span class="table-thumb wide">
+                {% if banner.image_source %}
+                  <img src="{{ banner.image_source }}" alt="{{ banner.title }}">
+                {% endif %}
+              </span>
+            </td>
+            <td>{{ banner.title }}</td>
+            <td>{{ banner.cta_text }}</td>
+            <td>{{ banner.display_order }}</td>
+            <td>
+              {% if banner.is_active %}
+                <span class="table-state success">Active</span>
+              {% else %}
+                <span class="table-state danger">Hidden</span>
+              {% endif %}
+            </td>
+            <td class="action-row">
+              <a href="{% url 'admin-banner-edit' banner.pk %}">Edit</a>
+              <form method="post" class="inline-delete-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete-banner">
+                <input type="hidden" name="banner_id" value="{{ banner.pk }}">
+                <button type="submit" class="danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">No small slider photo yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+{% endblock %}

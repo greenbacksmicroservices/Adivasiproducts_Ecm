@@ -1,0 +1,17 @@
+Watching for file changes with StatReloader
+[23/May/2026 12:11:14] "GET / HTTP/1.1" 200 45786
+[23/May/2026 12:11:15,019] - Broken pipe from ('127.0.0.1', 64154)
+D:\WEB DEVIOPMENT\Lexvers\store\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\forms.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\forms.py changed, reloading.
+Watching for file changes with StatReloader
+D:\WEB DEVIOPMENT\Lexvers\store\views.py changed, reloading.
+Watching for file changes with StatReloader

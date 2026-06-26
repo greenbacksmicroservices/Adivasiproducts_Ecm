@@ -1,0 +1,133 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ category.name }} Products</h1>
+    <p>Product table for this category with seller, company, price, stock and actions.</p>
+  </div>
+  <div class="button-row">
+    <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-item-create' %}" data-form-title="Add Product">+ New Product</button>
+    <a href="{% url 'admin-items' %}" class="btn-ghost">Back to Products</a>
+  </div>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head">
+    <div>
+      <h2>Products inside {{ category.name }}</h2>
+      <p>Database driven products only.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Product ID</th>
+        <th>Product Image</th>
+        <th>Product Name</th>
+        <th>Sub Category</th>
+        <th>Seller</th>
+        <th>Company</th>
+        <th>Price</th>
+        <th>Stock</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in products %}
+        <tr>
+          <td>{{ item.product_id }}</td>
+          <td>
+            <span class="table-thumb">
+              {% if item.image_source %}
+                <img src="{{ item.image_source }}" alt="{{ item.name }}">
+              {% endif %}
+            </span>
+          </td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.sub_category|default:'--' }}</td>
+          <td>{{ item.owner_label }}</td>
+          <td>{{ item.brand_name|default:'Lexvers' }}</td>
+          <td>Rs. {{ item.price }}</td>
+          <td><span class="stock-pill {{ item.stock_state }}">{{ item.stock }}</span></td>
+          <td>{% if item.is_active %}<span class="table-state success">Active</span>{% else %}<span class="table-state danger">Hidden</span>{% endif %}</td>
+          <td class="action-row">
+            <a href="{% url 'admin-item-detail' item.pk %}">View</a>
+            <a href="{% url 'admin-item-edit' item.pk %}">Edit</a>
+            <a class="danger" href="{% url 'admin-item-delete' item.pk %}">Delete</a>
+            <button
+              type="button"
+              class="overview-action stock"
+              data-stock-trigger
+              data-stock-action="{% url 'admin-item-stock-update' item.pk %}"
+              data-stock-name="{{ item.name }}"
+              data-stock-current="{{ item.stock }}"
+            >
+              Add Stock
+            </button>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10">No products inside this category yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<div class="stock-modal" data-stock-modal aria-hidden="true">
+  <div class="stock-modal-backdrop" data-stock-close></div>
+  <form method="post" class="stock-modal-card" data-stock-form>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <div class="stock-modal-head">
+      <div>
+        <h2>Add Stock</h2>
+        <p data-stock-title>Update available stock</p>
+        <p class="stock-current-line">Current Stock: <strong data-stock-current-label>0</strong></p>
+      </div>
+      <button type="button" class="stock-modal-close" data-stock-close aria-label="Close stock dialog">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <label for="stock-input">Add quantity</label>
+    <input id="stock-input" name="stock" type="number" min="0" step="1" class="form-input" required data-stock-input>
+    <div class="button-row">
+      <button type="submit" class="btn-inline">Update Stock</button>
+      <button type="button" class="btn-ghost" data-stock-close>Cancel</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.querySelector('[data-stock-modal]');
+    const form = document.querySelector('[data-stock-form]');
+    const title = document.querySelector('[data-stock-title]');
+    const currentLabel = document.querySelector('[data-stock-current-label]');
+    const input = document.querySelector('[data-stock-input]');
+    const closeButtons = document.querySelectorAll('[data-stock-close]');
+
+    document.querySelectorAll('[data-stock-trigger]').forEach(function (trigger) {
+      trigger.addEventListener('click', function () {
+        form.action = trigger.dataset.stockAction;
+        title.textContent = trigger.dataset.stockName || 'Update available stock';
+        currentLabel.textContent = trigger.dataset.stockCurrent || '0';
+        input.value = '';
+        input.placeholder = 'Quantity to add';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        input.focus();
+      });
+    });
+
+    closeButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+<article class="seller-workspace">
+  <div class="seller-card-head">
+    <h2>Bank Details</h2>
+    <span class="seller-chip">Admin synced</span>
+  </div>
+  {% if seller_profile %}
+    <div class="seller-settings-grid compact seller-read-grid">
+      <span><b>Cancelled cheque</b>{% if seller_profile.bank_document %}<a href="{{ seller_profile.bank_document.url }}" target="_blank">View uploaded proof</a>{% else %}Pending{% endif %}</span>
+      <span><b>Settlement status</b>{% if seller_profile.bank_account_number and seller_profile.bank_ifsc %}Ready{% else %}Incomplete{% endif %}</span>
+    </div>
+    <form method="post" action="{% url 'seller-settings-update' 'bank' %}" enctype="multipart/form-data" class="seller-product-form">
+      {% csrf_token %}
+      {{ seller_bank_form.non_field_errors }}
+      {% for field in seller_bank_form %}
+        <label>
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {{ field.errors }}
+        </label>
+      {% endfor %}
+      <div class="seller-form-actions">
+        <button type="submit" class="seller-btn"><i class="fas fa-building-columns"></i> Save Bank Details</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="seller-empty">Approved seller profile connect hone ke baad bank details update available hoga.</p>
+  {% endif %}
+</article>

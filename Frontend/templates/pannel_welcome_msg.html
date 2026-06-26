@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motivational Login Welcome</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Poppins:wght@200;400;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe, #e0f2fe);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+            position: relative;
+        }
+
+        /* Ambient Background Glow */
+        .bg-glow {
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, transparent 70%);
+            filter: blur(70px);
+            z-index: 1;
+            animation: moveGlow 10s infinite alternate;
+        }
+
+        .bg-glow.second {
+            width: 420px;
+            height: 420px;
+            right: -120px;
+            bottom: -120px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.28) 0%, transparent 70%);
+            animation-delay: 1.5s;
+        }
+
+        @keyframes moveGlow {
+            from {
+                transform: translate(-100px, -80px);
+            }
+            to {
+                transform: translate(100px, 90px);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 800px;
+            padding: 50px 35px;
+            border-radius: 32px;
+            background: rgba(255, 255, 255, 0.38);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            box-shadow: 0 25px 80px rgba(37, 99, 235, 0.18);
+        }
+
+        /* Elegant Welcome Text */
+        .welcome-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            color: #0f172a;
+            margin-bottom: 8px;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: reveal 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            text-shadow: 0 10px 30px rgba(59, 130, 246, 0.18);
+        }
+
+        /* Motivational Quote with Typewriter Style */
+        .motivation-text {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            font-style: italic;
+            color: #334155;
+            min-height: 44px;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+            font-weight: 300;
+        }
+
+        /* Premium Name Plate */
+        .name-wrapper {
+            display: inline-block;
+            padding: 15px 40px;
+            border-top: 1px solid rgba(37, 99, 235, 0.25);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.25);
+            position: relative;
+            opacity: 0;
+            animation: fadeIn 1.5s ease-out 1s forwards;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 14px;
+        }
+
+        .name-wrapper::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10%;
+            width: 3px;
+            height: 80%;
+            border-radius: 20px;
+            background: linear-gradient(to bottom, transparent, #2563eb, transparent);
+        }
+
+        .name-wrapper::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 10%;
+            width: 3px;
+            height: 80%;
+            border-radius: 20px;
+            background: linear-gradient(to bottom, transparent, #2563eb, transparent);
+        }
+
+        .user-name {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            color: #1e3a8a;
+            letter-spacing: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        @keyframes reveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Cursor blinking effect */
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            color: #2563eb;
+            margin-left: 5px;
+            animation: blink 0.7s infinite;
+            font-weight: 600;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                width: 90%;
+                padding: 42px 22px;
+                border-radius: 24px;
+            }
+
+            .user-name {
+                letter-spacing: 3px;
+            }
+
+            .name-wrapper {
+                padding: 14px 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-glow"></div>
+    <div class="bg-glow second"></div>
+
+    <div class="container">
+        <h1 class="welcome-title">Welcome back,</h1>
+
+        <div class="motivation-text">
+            <span id="typewriter"></span><span class="cursor">|</span>
+        </div>
+
+        <div class="name-wrapper">
+            <div class="user-name" id="nameDisplay">{{ display_name|default:user.get_full_name }}</div>
+        </div>
+    </div>
+
+    <script>
+        // Motivation Quotes Array
+        const quotes = [
+            "Your potential is endless.",
+            "Make today incredibly amazing.",
+            "Dream big. Work hard. Stay humble.",
+            "Believe in the magic within you.",
+            "Success is a journey, not a destination."
+        ];
+
+        let quoteIndex = 0;
+        let charIndex = 0;
+
+        const speed = 70;
+        const redirectUrl = "{{ redirect_url|default:'/'|escapejs }}";
+        const typewriterElement = document.getElementById("typewriter");
+
+        function type() {
+            if (charIndex < quotes[quoteIndex].length) {
+                typewriterElement.innerHTML += quotes[quoteIndex].charAt(charIndex);
+                charIndex++;
+                setTimeout(type, speed);
+            } else {
+                setTimeout(erase, 2000);
+            }
+        }
+
+        function erase() {
+            if (charIndex > 0) {
+                typewriterElement.innerHTML = quotes[quoteIndex].substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(erase, 30);
+            } else {
+                quoteIndex = (quoteIndex + 1) % quotes.length;
+                setTimeout(type, 500);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            setTimeout(type, 1500);
+
+            setTimeout(function() {
+                window.location.href = redirectUrl;
+            }, 4000);
+        });
+    </script>
+
+</body>
+</html>

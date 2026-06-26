@@ -1,0 +1,47 @@
+{% extends 'layouts/customer_base.html' %}
+
+{% block content %}
+<section class="order-flow-page">
+  <div class="order-flow-shell">
+    <header class="order-flow-head">
+      <div>
+        <a href="{% url 'home' %}" class="order-back-link"><i class="fa-solid fa-arrow-left"></i> Store</a>
+        <h1>My Orders</h1>
+        <p>Track every order, payment status, products, and delivery progress.</p>
+      </div>
+      <aside><span>Total Orders</span><strong>{{ orders|length }}</strong></aside>
+    </header>
+
+    <div class="my-order-grid">
+      {% for order in orders %}
+        <article class="my-order-card {% if not order.is_seen_by_admin %}fresh{% endif %}">
+          <div class="my-order-top">
+            <span>
+              <b>{{ order.order_number }}</b>
+              <small>{{ order.created_at|date:'d M Y, h:i A' }}</small>
+            </span>
+            <strong>Rs. {{ order.total_amount }}</strong>
+          </div>
+          <div class="my-order-images">
+            {% for item in order.items.all|slice:':4' %}
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product_name }}">
+            {% endfor %}
+          </div>
+          <div class="order-summary-pills">
+            <span class="status-badge {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span>
+            <span class="status-badge {{ order.status_tone }}">{{ order.get_status_display }}</span>
+          </div>
+          <a href="{% url 'my-order-detail' order.order_number %}" class="order-secondary-btn"><i class="fa-solid fa-eye"></i> View Details</a>
+        </article>
+      {% empty %}
+        <article class="order-empty-state">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <h2>No orders yet</h2>
+          <p>Products add karke checkout complete karte hi yahan tracking dikhegi.</p>
+          <a href="{% url 'home' %}" class="order-primary-btn">Start Shopping</a>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% load static %}
+
+<footer class="site-footer" aria-label="Lexvers Marketplace footer">
+  <div class="footer-shell">
+    <div class="footer-grid">
+      <section class="footer-card footer-brand-card" aria-labelledby="footer-brand-heading">
+        <a href="{% url 'home' %}" class="footer-logo-link" aria-label="Lexvers Marketplace home">
+          <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Lexvers Marketplace" class="footer-logo-img">
+        </a>
+        <h2 id="footer-brand-heading" class="sr-only">Lexvers Marketplace</h2>
+        <p class="footer-brand-copy">Quality spices, sarees, handlooms, hand crafts, food, and curated marketplace picks in one simple shopping experience.</p>
+
+        <div class="footer-cert-block">
+          <h3><span class="footer-heading-icon"><i class="fa-solid fa-certificate"></i></span>Certified Standards</h3>
+          <div class="footer-cert-list" aria-label="Certified standards">
+            <span class="footer-cert-badge">ISO 9001</span>
+            <span class="footer-cert-badge">ISO 22000</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="footer-card footer-col" aria-labelledby="footer-quick-shop-heading">
+        <h3 id="footer-quick-shop-heading"><span class="footer-heading-icon"><i class="fa-solid fa-bag-shopping"></i></span>Quick Shop</h3>
+        <nav class="footer-links" aria-label="Quick shop links">
+          {% for link in footer_quick_shop_links %}
+            <a href="{{ link.url }}">{{ link.label }}</a>
+          {% endfor %}
+        </nav>
+      </section>
+
+      <section class="footer-card footer-col" aria-labelledby="footer-service-heading">
+        <h3 id="footer-service-heading"><span class="footer-heading-icon"><i class="fa-solid fa-headset"></i></span>Customer Service</h3>
+        <nav class="footer-links" aria-label="Customer service links">
+          <a href="{% url 'help-center' %}">Help Center</a>
+          <a href="{% url 'faqs' %}">FAQs</a>
+          <a href="{% url 'track-order' %}">Track Order</a>
+          <a href="{% url 'return-refund-policy' %}">Return &amp; Refund Policy</a>
+          <a href="{% url 'shipping-policy' %}">Shipping Policy</a>
+          <a href="{% url 'cancellation-policy' %}">Cancellation Policy</a>
+        </nav>
+      </section>
+
+      <section class="footer-card footer-col" aria-labelledby="footer-seller-heading">
+        <h3 id="footer-seller-heading"><span class="footer-heading-icon"><i class="fa-solid fa-store"></i></span>Seller Section</h3>
+        <nav class="footer-links" aria-label="Seller section links">
+          <a href="{% url 'become-seller' %}">Become a Seller</a>
+          <a href="{% url 'seller-login' %}">Seller Login</a>
+          <a href="{% url 'seller-guidelines' %}">Seller Guidelines</a>
+        </nav>
+      </section>
+
+      <section class="footer-card footer-col" aria-labelledby="footer-legal-heading">
+        <h3 id="footer-legal-heading"><span class="footer-heading-icon"><i class="fa-solid fa-scale-balanced"></i></span>Legal</h3>
+        <nav class="footer-links" aria-label="Legal links">
+          <a href="{% url 'privacy-policy' %}">Privacy Policy</a>
+          <a href="{% url 'terms-and-conditions' %}">Terms &amp; Conditions</a>
+          <a href="{% url 'cookie-policy' %}">Cookie Policy</a>
+          <a href="{% url 'disclaimer' %}">Disclaimer</a>
+        </nav>
+      </section>
+
+      <section class="footer-card footer-contact-card" aria-labelledby="footer-contact-heading">
+        <h3 id="footer-contact-heading"><span class="footer-heading-icon"><i class="fa-solid fa-address-book"></i></span>Contact Us</h3>
+        <div class="footer-contact-list">
+          <a href="tel:+919938797981"><i class="fa-solid fa-phone"></i><span>+91 9938797981</span></a>
+          <a href="mailto:greenbacks@gmail.com"><i class="fa-solid fa-envelope"></i><span>greenbacks@gmail.com</span></a>
+          <span><i class="fa-solid fa-location-dot"></i><span>Bhubaneswar, Odisha, India</span></span>
+        </div>
+        <div class="footer-follow">
+          <h4>Follow Us</h4>
+          <div class="footer-socials" aria-label="Social media links">
+            <a href="javascript:void(0)" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="javascript:void(0)" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            <a href="javascript:void(0)" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="javascript:void(0)" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 Lexvers Marketplace. All rights reserved.</p>
+      <p><a href="https://serviceexhibition.com/" target="_blank" rel="noopener noreferrer">Designed &amp; Managed by Greenbacks Lexverse Pvt. Ltd.</a></p>
+    </div>
+  </div>
+</footer>

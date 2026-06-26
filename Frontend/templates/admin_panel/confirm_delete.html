@@ -1,0 +1,17 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="delete-card">
+  <h1>{{ title }}</h1>
+  <p>Are you sure you want to delete <strong>{{ object_label }}</strong>?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn-danger">Yes, Delete</button>
+    {% if back_href %}
+      <a href="{{ back_href }}" class="btn-ghost">Cancel</a>
+    {% else %}
+      <a href="{% url back_url %}" class="btn-ghost">Cancel</a>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

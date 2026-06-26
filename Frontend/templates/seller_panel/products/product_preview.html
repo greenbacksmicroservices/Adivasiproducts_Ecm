@@ -1,0 +1,68 @@
+{% extends 'layouts/seller_base.html' %}
+
+{% block seller_content %}
+  <div class="seller-page-heading">
+    <a href="{% url 'seller-dashboard' %}?section=products-2&title=All%20Products" class="seller-small-link"><i class="fas fa-arrow-left"></i> Products</a>
+    <div>
+      <h2>{{ product.name }}</h2>
+      <p>{{ product.product_id }} | {{ product.category.name|default:'General' }} | {{ product.get_approval_status_display }}</p>
+    </div>
+    <a href="{% url 'seller-product-edit' product.pk %}" class="seller-small-link edit"><i class="fas fa-pen"></i> Edit</a>
+  </div>
+
+  <section class="seller-preview-grid">
+    <article class="seller-workspace">
+      <div class="seller-preview-photo">
+        {% if product.image_source %}
+          <img src="{{ product.image_source }}" alt="{{ product.name }}">
+        {% else %}
+          <i class="fas fa-box-open"></i>
+        {% endif %}
+      </div>
+      <div class="seller-preview-gallery">
+        {% for photo in gallery_images %}
+          <img src="{{ photo.image_source }}" alt="{{ photo.alt_text|default:product.name }}">
+        {% empty %}
+          <span>No gallery photos.</span>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="seller-workspace">
+      <div class="seller-card-head">
+        <h2>Product Details</h2>
+        <span class="seller-chip {{ product.approval_tone }}">{{ product.get_approval_status_display }}</span>
+      </div>
+      <div class="seller-settings-grid compact">
+        <span><b>Company</b>{{ product.brand_name }}</span>
+        <span><b>Sub Category</b>{{ product.sub_category|default:'--' }}</span>
+        <span><b>Price</b>Rs. {{ product.price }}</span>
+        <span><b>MRP</b>{% if product.original_price %}Rs. {{ product.original_price }}{% else %}Not set{% endif %}</span>
+        <span><b>Stock</b>{{ product.stock }} units</span>
+        <span><b>SKU</b>{{ product.sku_code|default:'Not set' }}</span>
+      </div>
+      <div class="seller-detail-copy">
+        <h3>Short Description</h3>
+        <p>{{ product.short_description }}</p>
+        <h3>Description</h3>
+        <p>{{ product.description|default:'No description added.' }}</p>
+        <h3>Specifications</h3>
+        <p>{{ product.specifications|default:'No specifications added.' }}</p>
+      </div>
+    </article>
+  </section>
+
+  <article class="seller-workspace">
+    <div class="seller-card-head">
+      <h2>Quantity Options</h2>
+      <span class="seller-chip">{{ quantity_options|length }} options</span>
+    </div>
+    <div class="seller-settings-grid compact">
+      {% for option in quantity_options %}
+        <span><b>{{ option.label }}</b>Rs. {{ option.price }} | {{ option.stock }} stock</span>
+      {% empty %}
+        <span><b>Default</b>No separate quantity options.</span>
+      {% endfor %}
+    </div>
+  </article>
+{% endblock %}

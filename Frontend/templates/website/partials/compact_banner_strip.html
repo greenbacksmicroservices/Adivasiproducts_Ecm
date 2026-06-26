@@ -1,0 +1,37 @@
+{% if compact_banners %}
+<div
+  class="compact-hero-shell"
+  data-compact-carousel
+  data-interval="{{ homepage_settings.compact_hero_interval_ms|default:3000 }}"
+  data-original-count="{{ compact_banners|length }}"
+>
+  <button type="button" class="compact-arrow compact-prev" data-compact-prev aria-label="Previous photos">
+    <i class="fa-solid fa-chevron-left"></i>
+  </button>
+
+  <div class="compact-viewport">
+    <div class="compact-track" data-compact-track>
+      {% for banner in compact_banners %}
+        <a href="{{ banner.cta_link }}" class="compact-slide" data-compact-slide>
+          {% if banner.image_source %}
+            <img src="{{ banner.image_source }}" alt="{{ banner.title }}">
+          {% endif %}
+        </a>
+      {% endfor %}
+      {% if compact_banners|length > 1 %}
+        {% for banner in compact_banners %}
+          <a href="{{ banner.cta_link }}" class="compact-slide compact-clone" data-compact-slide aria-hidden="true" tabindex="-1">
+            {% if banner.image_source %}
+              <img src="{{ banner.image_source }}" alt="">
+            {% endif %}
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  <button type="button" class="compact-arrow compact-next" data-compact-next aria-label="Next photos">
+    <i class="fa-solid fa-chevron-right"></i>
+  </button>
+</div>
+{% endif %}

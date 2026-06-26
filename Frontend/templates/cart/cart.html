@@ -1,0 +1,295 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="cart-page">
+  <div class="cart-page-top">
+    <a href="{% url 'home' %}" class="customer-home-link">
+      <i class="fa-solid fa-arrow-left"></i>
+      Back to Main Home
+    </a>
+  </div>
+
+  <section class="cart-layout">
+    <section class="cart-main-panel">
+      <header class="cart-main-head">
+        <div>
+          <h1>My Cart</h1>
+          <p id="cart-page-count">0 items</p>
+        </div>
+        <a href="{% url 'customer-panel' 'saved' %}" class="cart-main-link">Saved Items</a>
+      </header>
+
+      <div class="cart-delivery-strip">
+        <span>From Saved Addresses</span>
+        <a href="{% url 'customer-panel' 'address' %}">Manage Address</a>
+      </div>
+
+      <div id="my-cart-items" class="my-cart-items"></div>
+    </section>
+
+    <aside class="cart-summary-panel">
+      <h2>Price Details</h2>
+
+      <div class="cart-summary-list">
+        <div><span>MRP (Incl. all taxes)</span><strong id="cart-mrp">Rs. 0.00</strong></div>
+        <div><span>Delivery</span><strong id="cart-fees">Rs. 0.00</strong></div>
+        <div><span>Discount</span><strong id="cart-discount">Rs. 0.00</strong></div>
+        <div class="total"><span>Total Amount</span><strong id="cart-total">Rs. 0.00</strong></div>
+      </div>
+
+      <p class="cart-save-chip" id="cart-saving-chip">You will save Rs. 0.00 on this order</p>
+      <p class="cart-safe-note"><i class="fa-solid fa-shield-heart"></i> Safe and secure payments. Easy returns.</p>
+
+      <button type="button" class="place-order-btn" id="place-order-btn">Proceed to Order</button>
+      <p class="cart-place-feedback" id="cart-place-feedback"></p>
+    </aside>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const CART_KEY = 'lexvers_cart_v1';
+    const shell = document.getElementById('my-cart-items');
+    const countLabel = document.getElementById('cart-page-count');
+    const mrpLabel = document.getElementById('cart-mrp');
+    const feesLabel = document.getElementById('cart-fees');
+    const discountLabel = document.getElementById('cart-discount');
+    const totalLabel = document.getElementById('cart-total');
+    const savingChip = document.getElementById('cart-saving-chip');
+    const placeOrderBtn = document.getElementById('place-order-btn');
+    const placeFeedback = document.getElementById('cart-place-feedback');
+    const PLACE_ORDER_URL = "{% url 'place-order' %}";
+
+    function readCart() {
+      try {
+        return JSON.parse(localStorage.getItem(CART_KEY) || '{}');
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    }
+
+    function clearCart() {
+      localStorage.removeItem(CART_KEY);
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+          return decodeURIComponent(trimmed.slice(name.length + 1));
+        }
+      }
+      return '';
+    }
+
+    function money(value) {
+      return `Rs. ${Number(value || 0).toFixed(2)}`;
+    }
+
+    function deliveryFee(subtotal) {
+      return subtotal > 0 && subtotal < 499.90 ? 80 : 0;
+    }
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function itemImage(item) {
+      return item.selectedVariantImage || item.variant_image || item.product_image || item.image || 'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=320&q=80';
+    }
+
+    function updateHeaderBadge(cart) {
+      const count = Object.values(cart).reduce((sum, row) => sum + row.qty, 0);
+      document.querySelectorAll('[data-cart-count]').forEach((badge) => {
+        badge.textContent = String(count);
+      });
+    }
+
+    function render() {
+      const cart = readCart();
+      const rows = Object.values(cart);
+      updateHeaderBadge(cart);
+
+      const subtotal = rows.reduce((sum, row) => sum + (Number(row.price || 0) * Number(row.qty || 0)), 0);
+      const mrp = subtotal * 1.12;
+      const fee = deliveryFee(subtotal);
+      const discount = Math.max(mrp - subtotal, 0);
+      const total = subtotal + fee;
+      const totalQty = rows.reduce((sum, row) => sum + Number(row.qty || 0), 0);
+
+      if (countLabel) {
+        countLabel.textContent = `${totalQty} item${totalQty === 1 ? '' : 's'}`;
+      }
+      if (mrpLabel) mrpLabel.textContent = money(mrp);
+      if (feesLabel) feesLabel.textContent = rows.length && fee === 0 ? 'Free' : money(fee);
+      if (discountLabel) discountLabel.textContent = `- ${money(discount)}`;
+      if (totalLabel) totalLabel.textContent = money(total);
+      if (savingChip) {
+        if (!rows.length) {
+          savingChip.textContent = 'Add products to see delivery charges.';
+        } else if (fee === 0) {
+          savingChip.textContent = `Free delivery unlocked. You will save ${money(discount)} on this order`;
+        } else {
+          savingChip.textContent = `Add ${money(499.90 - subtotal)} more for free delivery.`;
+        }
+      }
+
+      if (!rows.length) {
+        if (shell) {
+          shell.innerHTML = `
+            <article class="my-cart-empty">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <h3>Your cart is empty</h3>
+              <p>Add products from the home page and they will appear here instantly.</p>
+              <a href="{% url 'home' %}" class="customer-primary-link">Continue Shopping</a>
+            </article>
+          `;
+        }
+        return;
+      }
+
+      const html = rows.map((item) => `
+        <article class="my-cart-item">
+          <img src="${escapeHtml(itemImage(item))}" alt="${escapeHtml(item.name)}">
+          <div class="my-cart-info">
+            <h3>${escapeHtml(item.name)}</h3>
+            <p>${escapeHtml(item.brand || 'Lexvers')} | ${escapeHtml(item.pack || 'Standard pack')}</p>
+            <strong>${money(Number(item.price || 0) * Number(item.qty || 0))}</strong>
+            <div class="my-cart-meta">
+              <span>Unit: ${money(item.price)}</span>
+              <span>Stock: ${item.stock || 0}</span>
+            </div>
+
+            <div class="my-cart-actions">
+              <div class="my-cart-qty">
+                <button type="button" data-cart-action="minus" data-id="${escapeHtml(item.id)}">-</button>
+                <span>${item.qty}</span>
+                <button type="button" data-cart-action="plus" data-id="${escapeHtml(item.id)}">+</button>
+              </div>
+              <button type="button" class="my-cart-action-btn" data-cart-action="remove" data-id="${escapeHtml(item.id)}">Remove</button>
+              <button
+                type="button"
+                class="my-cart-action-btn"
+                data-cart-action="share"
+                data-name="${escapeHtml(item.name)}"
+                data-url="${escapeHtml(window.location.origin + '{% url "home" %}')}"
+              >
+                Share
+              </button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+
+      if (shell) shell.innerHTML = html;
+    }
+
+    async function shareRow(button) {
+      const payload = {
+        title: button.dataset.name || 'Lexvers product',
+        text: 'Check this product on Lexvers',
+        url: button.dataset.url || window.location.href,
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(payload);
+          return;
+        }
+        if (!navigator.clipboard) return;
+        await navigator.clipboard.writeText(payload.url);
+        button.textContent = 'Link copied';
+        window.setTimeout(() => {
+          button.textContent = 'Share';
+        }, 1400);
+      } catch (error) {
+        return;
+      }
+    }
+
+    if (shell) {
+      shell.addEventListener('click', async function (event) {
+        const button = event.target.closest('[data-cart-action]');
+        if (!button) return;
+        const action = button.dataset.cartAction;
+        const id = button.dataset.id;
+        const cart = readCart();
+
+        if (action === 'share') {
+          await shareRow(button);
+          return;
+        }
+        if (!id || !cart[id]) return;
+
+        if (action === 'minus') {
+          cart[id].qty -= 1;
+          if (cart[id].qty < 1) delete cart[id];
+        }
+        if (action === 'plus') {
+          const stock = Number(cart[id].stock || 0);
+          if (cart[id].qty < stock) cart[id].qty += 1;
+        }
+        if (action === 'remove') {
+          delete cart[id];
+        }
+
+        saveCart(cart);
+        render();
+      });
+    }
+
+    if (placeOrderBtn) {
+      placeOrderBtn.addEventListener('click', async function () {
+        const cart = readCart();
+        if (!Object.keys(cart).length) {
+          if (placeFeedback) placeFeedback.textContent = 'Cart empty hai. Pehle products add karein.';
+          return;
+        }
+        placeOrderBtn.disabled = true;
+        if (placeFeedback) placeFeedback.textContent = 'Checkout ready ho raha hai...';
+
+        try {
+          const response = await fetch(PLACE_ORDER_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ items: Object.values(cart) }),
+          });
+          const payload = await response.json();
+          if (response.status === 401 && payload.login_url) {
+            window.location.href = payload.login_url;
+            return;
+          }
+          if (!response.ok || !payload.ok) {
+            if (placeFeedback) placeFeedback.textContent = payload.message || 'Order place nahi ho paya.';
+            return;
+          }
+
+          window.location.href = payload.checkout_url || "{% url 'checkout-address' %}";
+        } catch (error) {
+          if (placeFeedback) placeFeedback.textContent = 'Network error. Please try again.';
+        } finally {
+          placeOrderBtn.disabled = false;
+        }
+      });
+    }
+
+    render();
+  })();
+</script>
+{% endblock %}

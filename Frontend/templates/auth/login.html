@@ -1,0 +1,822 @@
+{% extends 'layouts/auth_base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  .site-header,
+  .site-footer,
+  .flash-wrap {
+    display: none !important;
+  }
+
+  body {
+    background: #25175f;
+  }
+
+  main {
+    min-height: 100vh;
+  }
+
+  .login-screen {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    overflow: hidden;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #25175f;
+  }
+
+  .login-scene {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 560px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 0;
+    background: #090716;
+    box-shadow: none;
+    isolation: isolate;
+  }
+
+  .login-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 1;
+    filter: saturate(1.08) contrast(1.04) brightness(0.82);
+    mix-blend-mode: normal;
+  }
+
+  .login-scene::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at 50% 44%, rgba(119, 22, 22, 0.2), transparent 20%),
+      linear-gradient(180deg, rgba(30, 18, 76, 0.2) 0%, rgba(18, 12, 48, 0.46) 100%);
+    pointer-events: none;
+  }
+
+  .login-scene::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 30%;
+    z-index: 3;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(15, 9, 40, 0.42) 100%);
+    pointer-events: none;
+  }
+
+  .login-landscape,
+  .login-landscape span {
+    display: none;
+  }
+
+  .login-panel {
+    width: min(370px, calc(100% - 36px));
+    padding: 42px 36px 34px;
+    border: 1.5px solid rgba(255, 255, 255, 0.72);
+    border-radius: 18px;
+    background:
+      radial-gradient(ellipse at 36% 18%, rgba(154, 126, 126, 0.72), transparent 34%),
+      radial-gradient(ellipse at 74% 78%, rgba(255, 255, 255, 0.42), transparent 30%),
+      rgba(255, 255, 255, 0.2);
+    box-shadow:
+      inset 0 1px 0 rgba(164, 23, 23, 0.48),
+      0 24px 54px rgba(16, 11, 64, 0.3);
+    backdrop-filter: blur(22px);
+    animation: loginFloat 0.75s ease both;
+    z-index: 5;
+  }
+
+  .login-panel h1 {
+    margin: 0 0 30px;
+    color: #fff;
+    font-size: 31px;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: 0;
+    text-shadow: 0 3px 12px rgba(15, 9, 40, 0.28);
+  }
+
+  .login-form {
+    display: grid;
+    gap: 17px;
+  }
+
+  .login-input-wrap {
+    position: relative;
+  }
+
+  .login-input-wrap i {
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 15px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  .login-input-wrap .form-input {
+    width: 100%;
+    height: 47px;
+    padding: 0 46px 0 18px;
+    border: 1.6px solid rgba(255, 255, 255, 0.82);
+    border-radius: 999px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08);
+  }
+
+  .login-input-wrap .form-input::placeholder {
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .login-input-wrap .form-input:focus {
+    border-color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.13), inset 0 0 20px rgba(255, 255, 255, 0.12);
+  }
+
+  .login-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    margin-top: -1px;
+  }
+
+  .login-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .login-check input {
+    width: 14px;
+    height: 14px;
+    accent-color: #fff;
+  }
+
+  .login-options a,
+  .login-register a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+  }
+
+  .login-submit {
+    width: 100%;
+    height: 47px;
+    margin-top: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    color: #15102e;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 14px 28px rgba(16, 11, 64, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .login-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px rgba(16, 11, 64, 0.28);
+  }
+
+  .login-alt-button {
+    width: 100%;
+    height: 45px;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.4px solid rgba(255, 255, 255, 0.74);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .login-alt-button:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .login-alt-button:disabled,
+  .login-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+    transform: none;
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    height: 1px;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .login-otp-form[hidden],
+  .login-otp-step[hidden] {
+    display: none !important;
+  }
+
+  .login-otp-note {
+    margin: -2px 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  .login-otp-note strong {
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+
+  .login-status {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+
+  .login-status.success {
+    border-color: rgba(187, 247, 208, 0.7);
+    background: rgba(22, 163, 74, 0.22);
+  }
+
+  .login-status.error {
+    border-color: rgba(254, 202, 202, 0.75);
+    background: rgba(185, 28, 28, 0.25);
+  }
+
+  .login-status[hidden] {
+    display: none;
+  }
+
+  .login-otp-boxes {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .login-otp-box {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 1.5px solid rgba(255, 255, 255, 0.76);
+    border-radius: 13px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.13);
+    color: #fff;
+    font-size: 21px;
+    font-weight: 900;
+    text-align: center;
+    box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.08);
+  }
+
+  .login-otp-box:focus {
+    border-color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.13), inset 0 0 18px rgba(255, 255, 255, 0.12);
+  }
+
+  .login-switch-link {
+    border: 0;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .login-spinner {
+    width: 16px;
+    height: 16px;
+    display: none;
+    border: 2px solid rgba(21, 16, 46, 0.32);
+    border-top-color: #15102e;
+    border-radius: 50%;
+    animation: loginSpin 0.7s linear infinite;
+  }
+
+  .login-submit.is-loading,
+  .login-alt-button.is-loading {
+    gap: 8px;
+  }
+
+  .login-submit.is-loading .login-spinner,
+  .login-alt-button.is-loading .login-spinner {
+    display: inline-block;
+  }
+
+  .login-alt-button .login-spinner {
+    border-color: rgba(255, 255, 255, 0.38);
+    border-top-color: #fff;
+  }
+
+  .login-toast-wrap {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 30;
+    display: grid;
+    gap: 10px;
+  }
+
+  .login-toast {
+    max-width: min(360px, calc(100vw - 36px));
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.28);
+    font-size: 13px;
+    font-weight: 800;
+    animation: loginToast 0.24s ease both;
+  }
+
+  .login-toast.error {
+    background: #b91c1c;
+  }
+
+  .login-register {
+    margin: 16px 0 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .login-demo {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .login-demo strong {
+    color: #fff;
+  }
+
+  .login-errors,
+  .login-form .errorlist {
+    margin: 0;
+    padding: 9px 11px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 11px;
+    list-style: none;
+  }
+
+  @keyframes loginFloat {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes loginSpin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes loginToast {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .login-screen {
+      padding: 0;
+    }
+
+    .login-scene {
+      height: 100vh;
+      min-height: 520px;
+      border-radius: 0;
+    }
+
+    .login-panel {
+      width: min(312px, calc(100% - 28px));
+    }
+
+    .cloud-1 {
+      left: -95px;
+    }
+
+    .cloud-2 {
+      left: 20%;
+    }
+
+    .ridge.back,
+    .ridge {
+      width: 145%;
+      left: -28%;
+    }
+  }
+</style>
+
+<section class="login-screen">
+  <div class="login-scene">
+    <video class="login-video" autoplay muted loop playsinline>
+      <source src="{% static 'videos/auth/login_video-lexvers.mp4' %}" type="video/mp4">
+    </video>
+
+    <div class="login-landscape" aria-hidden="true">
+      <span class="cloud cloud-1"></span>
+      <span class="cloud cloud-2"></span>
+      <span class="cloud cloud-3"></span>
+      <span class="bird bird-1"></span>
+      <span class="bird bird-2"></span>
+      <span class="ridge back"></span>
+      <span class="ridge"></span>
+      <span class="ridge front"></span>
+      <span class="ground"></span>
+    </div>
+
+    <div
+      class="login-panel"
+      data-login-panel
+      data-otp-request-url="{% url 'login-otp-request' %}"
+      data-otp-verify-url="{% url 'login-otp-verify' %}"
+    >
+      <h1 data-login-title>Login</h1>
+      <form method="post" class="login-form" data-password-form>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="login-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div>
+          <div class="login-input-wrap">
+            {{ form.username }}
+            <i class="fa-solid fa-envelope"></i>
+          </div>
+          {{ form.username.errors }}
+        </div>
+
+        <div>
+          <div class="login-input-wrap">
+            {{ form.password }}
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          {{ form.password.errors }}
+        </div>
+
+        <div class="login-options">
+          
+          <a href="{% url 'forgot-password' %}">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="login-submit">Login</button>
+        <div class="login-divider"><span>OR</span></div>
+        <button type="button" class="login-alt-button" data-show-otp>Login with OTP</button>
+      </form>
+
+      <form class="login-form login-otp-form" data-otp-form hidden>
+        {% csrf_token %}
+        <div class="login-status" data-otp-message hidden></div>
+
+        <div class="login-otp-step" data-otp-email-step>
+          <div class="login-input-wrap">
+            <input type="email" name="email" class="form-input" placeholder="Email ID" autocomplete="email" data-otp-email required>
+            <i class="fa-solid fa-envelope"></i>
+          </div>
+        </div>
+
+        <button type="button" class="login-submit" data-send-otp>
+          <span class="login-spinner"></span>
+          <span data-send-label>Send OTP</span>
+        </button>
+
+        <div class="login-otp-step" data-otp-code-step hidden>
+          <p class="login-otp-note">OTP sent to <strong data-otp-email-label></strong></p>
+          <input type="hidden" name="otp" data-otp-hidden>
+          <div class="login-otp-boxes" aria-label="Enter 6 digit OTP">
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" data-otp-box>
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+            <input class="login-otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+          </div>
+        </div>
+
+        <button type="button" class="login-submit" data-verify-otp hidden>
+          <span class="login-spinner"></span>
+          <span>Verify OTP & Login</span>
+        </button>
+
+        <button type="button" class="login-alt-button" data-resend-otp hidden>
+          <span class="login-spinner"></span>
+          <span data-resend-label>Resend OTP</span>
+        </button>
+
+        <button type="button" class="login-switch-link" data-show-password>Login with Password</button>
+      </form>
+
+      <p class="login-register">
+        Don't have an account? <a href="{% url 'register' %}">Create Account</a>
+      </p>
+      
+    </div>
+  </div>
+</section>
+<div class="login-toast-wrap" data-login-toast-wrap></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const panel = document.querySelector('[data-login-panel]');
+    if (!panel) return;
+
+    const passwordForm = panel.querySelector('[data-password-form]');
+    const otpForm = panel.querySelector('[data-otp-form]');
+    const title = panel.querySelector('[data-login-title]');
+    const showOtpBtn = panel.querySelector('[data-show-otp]');
+    const showPasswordBtn = panel.querySelector('[data-show-password]');
+    const sendBtn = panel.querySelector('[data-send-otp]');
+    const verifyBtn = panel.querySelector('[data-verify-otp]');
+    const resendBtn = panel.querySelector('[data-resend-otp]');
+    const resendLabel = panel.querySelector('[data-resend-label]');
+    const emailInput = panel.querySelector('[data-otp-email]');
+    const emailStep = panel.querySelector('[data-otp-email-step]');
+    const codeStep = panel.querySelector('[data-otp-code-step]');
+    const emailLabel = panel.querySelector('[data-otp-email-label]');
+    const messageBox = panel.querySelector('[data-otp-message]');
+    const otpHidden = panel.querySelector('[data-otp-hidden]');
+    const otpBoxes = Array.from(panel.querySelectorAll('[data-otp-box]'));
+    const toastWrap = document.querySelector('[data-login-toast-wrap]');
+    let resendTimer = null;
+    let currentEmail = '';
+
+    function getCookie(name) {
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      for (const cookie of cookies) {
+        const trimmed = cookie.trim();
+        if (trimmed.startsWith(`${name}=`)) {
+          return decodeURIComponent(trimmed.slice(name.length + 1));
+        }
+      }
+      return '';
+    }
+
+    function showMessage(message, type) {
+      if (!message) {
+        messageBox.hidden = true;
+        messageBox.textContent = '';
+        return;
+      }
+      messageBox.hidden = false;
+      messageBox.textContent = message;
+      messageBox.className = `login-status ${type === 'error' ? 'error' : 'success'}`;
+    }
+
+    function showToast(message, type) {
+      if (!message || !toastWrap) return;
+      const toast = document.createElement('div');
+      toast.className = `login-toast ${type === 'error' ? 'error' : ''}`;
+      toast.textContent = message;
+      toastWrap.appendChild(toast);
+      window.setTimeout(() => toast.remove(), 4200);
+    }
+
+    function setLoading(button, loading) {
+      if (!button) return;
+      button.disabled = loading;
+      button.classList.toggle('is-loading', loading);
+    }
+
+    function syncOtp() {
+      otpHidden.value = otpBoxes.map((box) => box.value).join('');
+    }
+
+    function clearOtp() {
+      otpBoxes.forEach((box) => {
+        box.value = '';
+      });
+      syncOtp();
+    }
+
+    function showOtpMode() {
+      passwordForm.hidden = true;
+      otpForm.hidden = false;
+      title.textContent = 'Login with OTP';
+      showMessage('', '');
+      window.setTimeout(() => emailInput.focus(), 80);
+    }
+
+    function showPasswordMode() {
+      otpForm.hidden = true;
+      passwordForm.hidden = false;
+      title.textContent = 'Login';
+      showMessage('', '');
+      clearOtp();
+      window.clearInterval(resendTimer);
+    }
+
+    function showCodeStep(email) {
+      currentEmail = email;
+      emailStep.hidden = true;
+      codeStep.hidden = false;
+      verifyBtn.hidden = false;
+      resendBtn.hidden = false;
+      emailLabel.textContent = email;
+      window.setTimeout(() => otpBoxes[0].focus(), 80);
+    }
+
+    function startResendTimer(seconds) {
+      let remaining = Math.max(parseInt(seconds || '60', 10), 0);
+      window.clearInterval(resendTimer);
+      function render() {
+        if (remaining > 0) {
+          resendBtn.disabled = true;
+          resendLabel.textContent = `Resend in ${remaining}s`;
+          remaining -= 1;
+        } else {
+          resendBtn.disabled = false;
+          resendLabel.textContent = 'Resend OTP';
+          window.clearInterval(resendTimer);
+        }
+      }
+      render();
+      resendTimer = window.setInterval(render, 1000);
+    }
+
+    async function postForm(url, formData) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData,
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+      if (!response.ok || payload.success === false) {
+        throw new Error(payload.message || 'Network error. Please try again.');
+      }
+      return payload;
+    }
+
+    async function requestOtp(email, button) {
+      const formData = new FormData();
+      formData.append('email', email);
+      setLoading(button, true);
+      try {
+        const payload = await postForm(panel.dataset.otpRequestUrl, formData);
+        if (payload.redirect_url) {
+          window.location.href = payload.redirect_url;
+          return;
+        }
+        showCodeStep(payload.email || email);
+        clearOtp();
+        startResendTimer(payload.cooldown_seconds || 60);
+        showMessage(payload.message || 'OTP sent to your email.', 'success');
+        showToast(payload.message || 'OTP sent to your email.');
+      } catch (error) {
+        showMessage(error.message, 'error');
+        showToast(error.message, 'error');
+      } finally {
+        setLoading(button, false);
+        if (button === resendBtn && resendLabel.textContent.startsWith('Resend in')) {
+          resendBtn.disabled = true;
+        }
+      }
+    }
+
+    async function verifyOtp() {
+      syncOtp();
+      if (otpHidden.value.length !== 6) {
+        showMessage('Enter the 6 digit OTP.', 'error');
+        showToast('Enter the 6 digit OTP.', 'error');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('otp', otpHidden.value);
+      setLoading(verifyBtn, true);
+      try {
+        const payload = await postForm(panel.dataset.otpVerifyUrl, formData);
+        showToast(payload.message || 'Login successful.');
+        window.location.href = payload.redirect_url || '{% url "role-redirect" %}';
+      } catch (error) {
+        showMessage(error.message, 'error');
+        showToast(error.message, 'error');
+      } finally {
+        setLoading(verifyBtn, false);
+      }
+    }
+
+    otpBoxes.forEach((box, index) => {
+      box.addEventListener('input', () => {
+        box.value = box.value.replace(/\D/g, '').slice(-1);
+        syncOtp();
+        if (box.value && otpBoxes[index + 1]) {
+          otpBoxes[index + 1].focus();
+        }
+      });
+      box.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace' && !box.value && otpBoxes[index - 1]) {
+          otpBoxes[index - 1].focus();
+        }
+      });
+      box.addEventListener('paste', (event) => {
+        event.preventDefault();
+        const pasted = (event.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+        if (!pasted) return;
+        otpBoxes.forEach((item, pasteIndex) => {
+          item.value = pasted[pasteIndex] || '';
+        });
+        syncOtp();
+        otpBoxes[Math.min(pasted.length, otpBoxes.length) - 1].focus();
+      });
+    });
+
+    showOtpBtn.addEventListener('click', showOtpMode);
+    showPasswordBtn.addEventListener('click', showPasswordMode);
+    otpForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (codeStep.hidden) {
+        sendBtn.click();
+      } else {
+        verifyBtn.click();
+      }
+    });
+    sendBtn.addEventListener('click', () => {
+      const email = emailInput.value.trim();
+      if (!email) {
+        showMessage('Enter your email address.', 'error');
+        showToast('Enter your email address.', 'error');
+        emailInput.focus();
+        return;
+      }
+      requestOtp(email, sendBtn);
+    });
+    resendBtn.addEventListener('click', () => {
+      requestOtp(currentEmail || emailInput.value.trim(), resendBtn);
+    });
+    verifyBtn.addEventListener('click', verifyOtp);
+  })();
+</script>
+{% endblock %}

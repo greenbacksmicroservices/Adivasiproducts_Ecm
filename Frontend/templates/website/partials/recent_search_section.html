@@ -1,0 +1,43 @@
+{% if recent_search_section %}
+  <section class="recent-search-section">
+    <div class="recent-search-head">
+      <div>
+        <span>Recent searches</span>
+        <h2>{% if recent_search_section.user_label %}{{ recent_search_section.user_label }}, still looking for these?{% else %}Still looking for these?{% endif %}</h2>
+      </div>
+      <a href="{% url 'home' %}" class="recent-search-reset">Continue shopping</a>
+    </div>
+    <div class="recent-search-grid">
+      {% for card in recent_search_section.cards %}
+        <article class="recent-search-card">
+          <a href="{{ card.url }}" class="recent-search-main">
+            <span class="recent-search-image">
+              {% if card.image %}
+                <img src="{{ card.image }}" alt="{{ card.term }}">
+              {% else %}
+                <i class="fa-solid fa-magnifying-glass"></i>
+              {% endif %}
+            </span>
+            <span>
+              <em>Search again</em>
+              <b>{{ card.term }}</b>
+              <small>{{ card.match_count }} matching product{% if card.match_count != 1 %}s{% endif %}</small>
+            </span>
+          </a>
+          {% if card.category %}
+            <a href="{{ card.category_url }}" class="recent-category-pill">
+              <i class="fa-solid fa-layer-group"></i> {{ card.category.name }}
+            </a>
+          {% endif %}
+          {% if card.products %}
+            <div class="recent-product-mini">
+              {% for product in card.products %}
+                <a href="{% url 'product-detail' product.slug %}">{{ product.name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

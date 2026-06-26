@@ -1,0 +1,15 @@
+<article class="seller-table-panel">
+  <div class="seller-card-head">
+    <h2>{{ title }}</h2>
+    <span class="seller-chip">{{ seller_order_rows|length }} orders</span>
+  </div>
+  {% include 'seller_panel/partials/order_table.html' with orders=seller_order_rows %}
+  {% if shipping %}
+    <form class="seller-product-form seller-inline-form">
+      <label><span>Courier name</span><input class="form-input" type="text"></label>
+      <label><span>Tracking ID</span><input class="form-input" type="text"></label>
+      <label><span>Dispatch date</span><input class="form-input" type="date"></label>
+      <label><span>Expected delivery date</span><input class="form-input" type="date"></label>
+    </form>
+  {% endif %}
+</article>

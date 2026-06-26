@@ -1,0 +1,295 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section
+  class="storefront-shell"
+  id="store-shell"
+  data-endpoint="{% url 'live-store' %}"
+  data-signature="{{ signature }}"
+  data-view-key="{{ view_key }}"
+  data-route-category="{{ selected_category }}"
+>
+  <section class="hero-section {% if not show_hero %}is-hidden{% endif %}" id="banner-strip">
+      {% include 'website/partials/banner_grid.html' %}
+  </section>
+
+  <section class="compact-hero-section {% if not show_compact_hero %}is-hidden{% endif %}" id="compact-banner-strip">
+      {% include 'website/partials/compact_banner_strip.html' %}
+  </section>
+
+  <div id="spice-filters-strip">
+      {% include 'website/partials/spice_icons_strip.html' %}
+  </div>
+
+  <div id="store-content">
+      {% include 'website/partials/store_content.html' %}
+  </div>
+</section>
+
+{% include 'cart/partials/cart_drawer.html' %}
+{% endblock %}
+
+{% block scripts %}
+{% include 'cart/partials/cart_script.html' %}
+<script>
+  (function () {
+    const storeRoot = document.getElementById('store-shell');
+    if (!storeRoot) return;
+
+    const endpoint = storeRoot.dataset.endpoint;
+    const searchCategoryField = document.getElementById('search-category-field');
+    const searchSpiceField = document.getElementById('search-spice-field');
+    let heroTimer = null;
+    let compactTimer = null;
+
+    const state = {
+      signature: storeRoot.dataset.signature || '',
+      viewKey: storeRoot.dataset.viewKey || '',
+    };
+
+    function syncSearchFieldsFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (searchCategoryField) searchCategoryField.value = params.get('category') || storeRoot.dataset.routeCategory || '';
+      if (searchSpiceField) searchSpiceField.value = params.get('spice') || '';
+    }
+
+    function updateUrlParams(params, pathname) {
+      const query = params.toString();
+      const nextUrl = `${pathname || window.location.pathname}${query ? `?${query}` : ''}`;
+      window.history.replaceState({}, '', nextUrl);
+      if (searchCategoryField) searchCategoryField.value = params.get('category') || '';
+      if (searchSpiceField) searchSpiceField.value = params.get('spice') || '';
+    }
+
+    function bindCategoryTabs() {
+      document.querySelectorAll('[data-category]').forEach((tab) => {
+        tab.addEventListener('click', (event) => {
+          event.preventDefault();
+          const params = new URLSearchParams(window.location.search);
+          const nextCategory = tab.dataset.category || '';
+
+          if (nextCategory) {
+            params.set('category', nextCategory);
+          } else {
+            params.delete('category');
+          }
+
+          if (nextCategory !== (searchCategoryField ? searchCategoryField.value : params.get('category'))) {
+            params.delete('spice');
+          }
+
+          const nextPath = new URL(tab.href, window.location.origin).pathname;
+          updateUrlParams(params, nextPath);
+          refreshLive(true);
+        });
+      });
+    }
+
+    function bindSpiceFilters() {
+      document.querySelectorAll('[data-spice]').forEach((chip) => {
+        chip.addEventListener('click', (event) => {
+          event.preventDefault();
+          const params = new URLSearchParams(window.location.search);
+          const spiceKey = chip.dataset.spice || '';
+          const currentCategory = (chip.closest('[data-filter-category]') || {}).dataset?.filterCategory
+            || (searchCategoryField ? searchCategoryField.value : '')
+            || params.get('category')
+            || '';
+          if (currentCategory) {
+            params.set('category', currentCategory);
+          }
+
+          if (spiceKey) {
+            params.set('spice', spiceKey);
+          } else {
+            params.delete('spice');
+          }
+
+          updateUrlParams(params);
+          refreshLive(true);
+        });
+      });
+    }
+
+    function initHeroCarousel() {
+      if (heroTimer) {
+        window.clearInterval(heroTimer);
+        heroTimer = null;
+      }
+
+      const carousel = document.querySelector('[data-hero-carousel]');
+      if (!carousel) return;
+
+      const track = carousel.querySelector('[data-hero-track]');
+      const slides = Array.from(carousel.querySelectorAll('[data-hero-slide]'));
+      const dots = Array.from(carousel.querySelectorAll('[data-hero-dot]'));
+      const nextButton = carousel.querySelector('[data-hero-next]');
+      const prevButton = carousel.querySelector('[data-hero-prev]');
+      const interval = Number.parseInt(carousel.dataset.interval || '3000', 10);
+      const originalCount = Number.parseInt(carousel.dataset.originalCount || `${slides.length}`, 10);
+      let index = 0;
+
+      if (!track || slides.length < 1) return;
+
+      function moveTo(nextIndex, animate) {
+        index = nextIndex;
+        track.style.transition = animate ? 'transform 0.65s ease' : 'none';
+        track.style.transform = `translateX(-${index * 100}%)`;
+        dots.forEach((dot, dotIndex) => {
+          dot.classList.toggle('active', dotIndex === (index % originalCount));
+        });
+      }
+
+      function showSlide(nextIndex) {
+        if (originalCount <= 1) return;
+
+        if (nextIndex < 0) {
+          moveTo(originalCount, false);
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => moveTo(originalCount - 1, true));
+          });
+          return;
+        }
+
+        moveTo(nextIndex, true);
+
+        if (nextIndex >= originalCount) {
+          window.setTimeout(() => {
+            moveTo(0, false);
+          }, 670);
+        }
+      }
+
+      if (nextButton) nextButton.onclick = () => showSlide(index + 1);
+      if (prevButton) prevButton.onclick = () => showSlide(index - 1);
+      dots.forEach((dot, dotIndex) => {
+        dot.onclick = () => moveTo(dotIndex, true);
+      });
+
+      moveTo(0, false);
+      if (originalCount > 1) {
+        heroTimer = window.setInterval(() => showSlide(index + 1), interval);
+      }
+    }
+
+    function initCompactCarousel() {
+      if (compactTimer) {
+        window.clearInterval(compactTimer);
+        compactTimer = null;
+      }
+
+      const carousel = document.querySelector('[data-compact-carousel]');
+      if (!carousel) return;
+
+      const track = carousel.querySelector('[data-compact-track]');
+      const slides = Array.from(carousel.querySelectorAll('[data-compact-slide]'));
+      const nextButton = carousel.querySelector('[data-compact-next]');
+      const prevButton = carousel.querySelector('[data-compact-prev]');
+      const interval = Number.parseInt(carousel.dataset.interval || '3000', 10);
+      const originalCount = Number.parseInt(carousel.dataset.originalCount || `${slides.length}`, 10);
+      let index = 0;
+
+      if (!track || slides.length < 1 || originalCount < 1) return;
+
+      function slideStep() {
+        const gap = Number.parseFloat(window.getComputedStyle(track).columnGap || '0');
+        const rect = slides[0].getBoundingClientRect();
+        return rect.width + gap;
+      }
+
+      function moveTo(nextIndex, animate) {
+        index = nextIndex;
+        track.style.transition = animate ? 'transform 0.55s ease' : 'none';
+        track.style.transform = `translateX(-${index * slideStep()}px)`;
+      }
+
+      function showSlide(nextIndex) {
+        if (originalCount <= 1) return;
+
+        if (nextIndex < 0) {
+          moveTo(originalCount - 1, true);
+          return;
+        }
+
+        moveTo(nextIndex, true);
+
+        if (nextIndex >= originalCount) {
+          window.setTimeout(() => {
+            moveTo(0, false);
+          }, 560);
+        }
+      }
+
+      if (nextButton) nextButton.onclick = () => showSlide(index + 1);
+      if (prevButton) prevButton.onclick = () => showSlide(index - 1);
+
+      window.addEventListener('resize', () => moveTo(index % originalCount, false), { passive: true });
+      moveTo(0, false);
+
+      if (originalCount > 1) {
+        compactTimer = window.setInterval(() => showSlide(index + 1), interval);
+      }
+    }
+
+    async function refreshLive(forceFetch) {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('category') && searchCategoryField && searchCategoryField.value) {
+        params.set('category', searchCategoryField.value);
+      }
+      params.set('signature', forceFetch ? '' : state.signature);
+      params.set('view_key', forceFetch ? '' : state.viewKey);
+      const liveStatus = document.getElementById('live-status');
+
+      try {
+        const response = await fetch(`${endpoint}?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error('Request failed');
+        }
+
+        const payload = await response.json();
+        if (!payload.changed) {
+          if (liveStatus) liveStatus.textContent = 'Connected';
+          return;
+        }
+
+        state.signature = payload.signature;
+        state.viewKey = payload.view_key;
+
+        const categoryShell = document.getElementById('category-strip');
+        const spiceFilterShell = document.getElementById('spice-filters-strip');
+        const bannerShell = document.getElementById('banner-strip');
+        const compactBannerShell = document.getElementById('compact-banner-strip');
+        const storeContent = document.getElementById('store-content');
+
+        if (categoryShell) categoryShell.innerHTML = payload.categories_html;
+        if (spiceFilterShell) spiceFilterShell.innerHTML = payload.spice_filters_html;
+        if (bannerShell) {
+          bannerShell.innerHTML = payload.banners_html;
+          bannerShell.classList.toggle('is-hidden', !payload.banners_html.trim());
+        }
+        if (compactBannerShell) {
+          compactBannerShell.innerHTML = payload.compact_banners_html;
+          compactBannerShell.classList.toggle('is-hidden', !payload.compact_banners_html.trim());
+        }
+        if (storeContent) storeContent.innerHTML = payload.store_content_html;
+
+        bindCategoryTabs();
+        bindSpiceFilters();
+        initHeroCarousel();
+        initCompactCarousel();
+        if (window.LexversCart) window.LexversCart.bindButtons();
+        if (liveStatus) liveStatus.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (error) {
+        if (liveStatus) liveStatus.textContent = 'Reconnecting...';
+      }
+    }
+
+    bindCategoryTabs();
+    bindSpiceFilters();
+    initHeroCarousel();
+    initCompactCarousel();
+    syncSearchFieldsFromUrl();
+    window.setInterval(() => refreshLive(false), 4000);
+  })();
+</script>
+{% endblock %}

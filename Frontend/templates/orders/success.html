@@ -1,0 +1,93 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="order-flow-page">
+  <div class="order-flow-shell">
+    <section class="order-success-hero">
+      <div class="success-checkmark"><i class="fa-solid fa-check"></i></div>
+      <h1>Order Placed Successfully</h1>
+      <p>{{ order.estimated_delivery_message }}</p>
+      <div class="order-success-actions">
+        <a href="{% url 'my-order-detail' order.order_number %}" class="order-primary-btn"><i class="fa-solid fa-receipt"></i> View Order Details</a>
+        <a href="{% url 'home' %}" class="order-secondary-btn"><i class="fa-solid fa-store"></i> Continue Shopping</a>
+      </div>
+    </section>
+
+    <div class="order-detail-grid">
+      <article class="order-detail-card summary">
+        <h2>{{ order.order_number }}</h2>
+        <div class="order-copy-row">
+          <span>{{ order.created_at|date:'d M Y, h:i A' }}</span>
+          <button type="button" data-copy-order="{{ order.order_number }}"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <div class="order-summary-pills">
+          <span class="status-badge {{ order.status_tone }}">{{ order.get_status_display }}</span>
+          <span class="status-badge {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span>
+        </div>
+      </article>
+
+      <article class="order-detail-card">
+        <h3>Customer</h3>
+        <p><b>{{ order.customer_name }}</b></p>
+        <p>{{ order.customer_phone }}</p>
+        <p>{{ order.shipping_address }}</p>
+      </article>
+
+      <article class="order-detail-card">
+        <h3>Payment</h3>
+        <p>{{ order.payment_method }}</p>
+        <strong>Rs. {{ order.total_amount }}</strong>
+      </article>
+    </div>
+
+    <section class="order-detail-card totals">
+      <h3>Payment Summary</h3>
+      <div class="cart-summary-list">
+        <div><span>Subtotal</span><strong>Rs. {{ order.subtotal }}</strong></div>
+        <div><span>Delivery Charge</span><strong>{% if order.shipping_fee %}Rs. {{ order.shipping_fee }}{% else %}Free{% endif %}</strong></div>
+        <div><span>Discount</span><strong>Rs. {{ order.discount_amount }}</strong></div>
+        <div class="total"><span>Total Paid / Payable</span><strong>Rs. {{ order.total_amount }}</strong></div>
+      </div>
+    </section>
+
+    <section class="order-detail-card">
+      <h3>Products</h3>
+      <div class="order-product-list">
+        {% for item in order_items %}
+          <div class="order-product-row">
+            <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=200&q=80' }}" alt="{{ item.product_name }}">
+            <span><b>{{ item.product_name }}</b><small>{{ item.seller_name }} &middot; {{ item.pack_size }}</small></span>
+            <em>x{{ item.quantity }}</em>
+            <strong>Rs. {{ item.line_total }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="order-detail-card">
+      <h3>Tracking</h3>
+      <div class="order-timeline">
+        {% for step in timeline_steps %}
+          <span class="{% if step.active %}active{% endif %} {% if step.current %}current{% endif %}">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ step.label }}
+          </span>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-copy-order]').forEach(function (button) {
+    button.addEventListener('click', async function () {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(button.dataset.copyOrder);
+        button.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+      }
+    });
+  });
+</script>
+{% endblock %}

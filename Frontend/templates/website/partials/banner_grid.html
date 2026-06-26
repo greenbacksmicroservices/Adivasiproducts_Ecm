@@ -1,0 +1,38 @@
+{% if banners %}
+<div class="hero-carousel" data-hero-carousel data-interval="{{ homepage_settings.hero_interval_ms|default:3000 }}" data-original-count="{{ banners|length }}">
+  <div class="hero-track" data-hero-track>
+    {% for banner in banners %}
+      <a href="{{ banner.cta_link }}" class="hero-slide" data-hero-slide>
+        {% if banner.image_source %}
+          <img src="{{ banner.image_source }}" alt="{{ banner.title }}">
+        {% endif %}
+      </a>
+    {% endfor %}
+    {% if banners|length > 1 %}
+      {% for banner in banners %}
+        {% if forloop.first %}
+          <a href="{{ banner.cta_link }}" class="hero-slide hero-clone" data-hero-slide aria-hidden="true" tabindex="-1">
+            {% if banner.image_source %}
+              <img src="{{ banner.image_source }}" alt="">
+            {% endif %}
+          </a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if banners|length > 1 %}
+    <button type="button" class="hero-arrow hero-prev" data-hero-prev aria-label="Previous banner">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button type="button" class="hero-arrow hero-next" data-hero-next aria-label="Next banner">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <div class="hero-dots">
+      {% for banner in banners %}
+        <button type="button" data-hero-dot class="{% if forloop.first %}active{% endif %}" aria-label="Show banner {{ forloop.counter }}"></button>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endif %}

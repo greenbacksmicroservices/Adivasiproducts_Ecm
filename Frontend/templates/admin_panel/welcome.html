@@ -1,0 +1,125 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="4;url={% url 'home' %}">
+  <title>Welcome | Greenbacks Lexvers Pvt. Ltd.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(22, 166, 106, 0.14), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(191, 149, 63, 0.2), transparent 32%),
+        #fff;
+      color: #102033;
+      font-family: Poppins, sans-serif;
+      overflow: hidden;
+    }
+
+    .welcome-shell {
+      width: min(880px, calc(100% - 32px));
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      text-align: center;
+      animation: welcomeIn 0.8s ease both;
+    }
+
+    .welcome-logo {
+      width: min(280px, 70vw);
+      height: 120px;
+      object-fit: contain;
+      filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.16));
+    }
+
+    .welcome-kicker {
+      color: #526174;
+      font-size: clamp(14px, 2vw, 18px);
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(36px, 7vw, 74px);
+      line-height: 1.04;
+      background: linear-gradient(90deg, #946c1c, #e5c365, #0f766e, #102033);
+      background-size: 220% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shine 3.2s linear infinite;
+    }
+
+    p {
+      max-width: 560px;
+      margin: 0;
+      color: #536179;
+      line-height: 1.7;
+    }
+
+    .welcome-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .welcome-btn {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: #102033;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: 0 16px 32px rgba(16, 32, 51, 0.18);
+    }
+
+    .welcome-note {
+      color: #8a96a8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @keyframes shine {
+      to { background-position: 220% center; }
+    }
+
+    @keyframes welcomeIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <main class="welcome-shell">
+    <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Greenbacks Lexvers Pvt. Ltd." class="welcome-logo">
+    <div class="welcome-kicker">Welcome to</div>
+    <h1>Greenbacks Lexvers Pvt. Ltd.</h1>
+    <p>Quality spices, handlooms, crafts, sarees, and curated food picks in one marketplace experience.</p>
+    <div class="welcome-actions">
+      <a href="{% url 'home' %}" class="welcome-btn">Enter Website</a>
+    </div>
+    <div class="welcome-note">Opening the store automatically...</div>
+  </main>
+</body>
+</html>

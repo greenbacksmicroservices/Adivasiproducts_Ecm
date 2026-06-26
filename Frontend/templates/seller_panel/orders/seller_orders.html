@@ -1,0 +1,90 @@
+{% extends 'layouts/seller_base.html' %}
+
+{% block seller_content %}
+<section class="seller-page-heading">
+  <div>
+    <h1>Orders</h1>
+    <p>Only orders containing your products are visible here.</p>
+  </div>
+  <button type="button" class="seller-small-link" data-seller-open-notifications><i class="fas fa-bell"></i> Notifications</button>
+</section>
+
+<section class="seller-metrics expanded">
+  <article class="seller-metric"><span>New Orders</span><strong>{{ summary.new }}</strong></article>
+  <article class="seller-metric"><span>Pending Packing</span><strong>{{ summary.pending }}</strong></article>
+  <article class="seller-metric"><span>Packed</span><strong>{{ summary.packed }}</strong></article>
+  <article class="seller-metric"><span>Shipped</span><strong>{{ summary.shipped }}</strong></article>
+  <article class="seller-metric"><span>Delivered</span><strong>{{ summary.delivered }}</strong></article>
+  <article class="seller-metric"><span>Delivered Revenue</span><strong>Rs. {{ summary.revenue }}</strong></article>
+</section>
+
+<article class="seller-table-panel">
+  <div class="seller-card-head">
+    <div>
+      <h2>Order Items</h2>
+      <p>Search by order ID, phone, product name, or customer.</p>
+    </div>
+    <span class="seller-chip warning"><span data-seller-order-unread>{{ summary.unseen }}</span> unseen</span>
+  </div>
+
+  <form method="get" class="seller-order-filter">
+    <input class="form-input" type="search" name="q" value="{{ filters.q }}" placeholder="Order ID, customer phone, product">
+    <select class="form-input" name="status">
+      <option value="">All status</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="seller-small-btn view"><i class="fas fa-filter"></i> Filter</button>
+    <a href="{% url 'seller-orders' %}" class="seller-small-link">Reset</a>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>Order ID</th><th>Customer</th><th>Address</th><th>Product</th><th>Qty</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for item in order_items %}
+        <tr class="{% if not item.is_seen_by_seller %}seller-new-order-row{% endif %}">
+          <td><strong>{{ item.order.order_number }}</strong>{% if not item.is_seen_by_seller %}<span class="seller-chip info">New</span>{% endif %}</td>
+          <td>{{ item.order.customer_name }}<span class="seller-row-note">{{ item.order.customer_phone }}</span></td>
+          <td>{{ item.order.address_short }}</td>
+          <td>
+            <div class="seller-order-product-cell">
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product_name }}">
+              <span><b>{{ item.product_name }}</b><small>{{ item.pack_size }}</small></span>
+            </div>
+          </td>
+          <td>{{ item.quantity }}</td>
+          <td>Rs. {{ item.line_total }}</td>
+          <td><span class="seller-chip {{ item.order.payment_tone }}">{{ item.order.get_payment_status_display }}</span></td>
+          <td><span class="seller-chip {{ item.status_tone }}">{{ item.get_item_status_display }}</span></td>
+          <td>{{ item.order.created_at|date:'d M Y' }}</td>
+          <td><a href="{% url 'seller-order-detail' item.order.order_number %}" class="seller-small-link view"><i class="fas fa-eye"></i> View</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10">No seller orders found yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endblock %}
+
+{% block seller_extra_scripts %}
+<script>
+  (function () {
+    const unread = document.querySelector('[data-seller-order-unread]');
+    async function poll() {
+      try {
+        const response = await fetch("{% url 'seller-order-notifications' %}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (unread) unread.textContent = payload.unread_count;
+      } catch (error) {
+        return;
+      }
+    }
+    window.setInterval(poll, 10000);
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <body style="margin:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f8fb;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:22px;overflow:hidden;border:1px solid #e5e7eb;">
+            <tr><td style="padding:26px 28px;background:#f97316;color:#ffffff;"><h1 style="margin:0;font-size:24px;">Seller request submitted</h1></td></tr>
+            <tr>
+              <td style="padding:28px;">
+                <p style="margin:0 0 14px;font-size:16px;line-height:1.6;">Hi {{ seller.name|default:'seller' }},</p>
+                <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#334155;">Your seller email is verified and your Lexvers seller request is now pending admin approval.</p>
+                <div style="margin:16px 0;padding:14px 16px;border-radius:14px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:14px;">
+                  Request ID: <strong>{{ seller.request_code }}</strong><br>
+                  Status: <strong>{{ seller.get_status_display }}</strong>
+                </div>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Dashboard access will unlock only after admin approval.</p>
+              </td>
+            </tr>
+            <tr><td style="padding:18px 28px;background:#f8fafc;color:#64748b;font-size:12px;text-align:center;">Greenbacks Lexvers Pvt. Ltd.</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

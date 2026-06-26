@@ -1,0 +1,121 @@
+{{ form.non_field_errors }}
+
+<section class="seller-form-section">
+  <div class="seller-form-section-head">
+    <span><i class="fas fa-box-open"></i></span>
+    <div>
+      <h2>Basic Product Details</h2>
+      <p>Name, category, brand, and customer-facing description.</p>
+    </div>
+  </div>
+  <div class="seller-form-grid">
+    {% include 'seller_panel/partials/form_field.html' with field=form.product_id %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.name %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.category %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.sub_category %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.brand_name %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.short_description full=True %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.description full=True %}
+  </div>
+</section>
+
+<section class="seller-form-section">
+  <div class="seller-form-section-head">
+    <span><i class="fas fa-indian-rupee-sign"></i></span>
+    <div>
+      <h2>Pricing Details</h2>
+      <p>Selling price and optional compare price.</p>
+    </div>
+  </div>
+  <div class="seller-form-grid">
+    {% include 'seller_panel/partials/form_field.html' with field=form.price %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.original_price %}
+  </div>
+</section>
+
+<section class="seller-form-section">
+  <div class="seller-form-section-head">
+    <span><i class="fas fa-warehouse"></i></span>
+    <div>
+      <h2>Stock / Inventory</h2>
+      <p>Inventory, SKU, shipping, and return settings.</p>
+    </div>
+  </div>
+  <div class="seller-form-grid">
+    {% include 'seller_panel/partials/form_field.html' with field=form.stock %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.sku_code %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.shipping_weight %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.return_available %}
+  </div>
+</section>
+
+<section class="seller-form-section">
+  <div class="seller-form-section-head">
+    <span><i class="fas fa-images"></i></span>
+    <div>
+      <h2>Images</h2>
+      <p>Main image plus optional gallery photos.</p>
+    </div>
+  </div>
+  <div class="seller-form-grid">
+    {% include 'seller_panel/partials/form_field.html' with field=form.image_file full=True %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_1 %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_2 %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_3 %}
+  </div>
+</section>
+
+{% if form.quantity_rows %}
+  <section class="seller-form-section seller-quantity-options" data-quantity-collapse data-open="{% if form.errors %}true{% else %}false{% endif %}">
+    <button type="button" class="seller-collapsible-head" data-quantity-toggle aria-expanded="false">
+      <span class="seller-collapse-title">
+        <i class="fas fa-layer-group"></i>
+        <span>
+          <b>Quantity Options</b>
+          <small>Add 100Gm, 200Gm, 500Gm packs with separate price, stock, SKU, and photo.</small>
+        </span>
+      </span>
+      <span class="seller-collapse-icon">
+        <i class="fas fa-plus seller-collapse-plus"></i>
+        <i class="fas fa-minus seller-collapse-minus"></i>
+      </span>
+    </button>
+    <div class="seller-collapsible-body" data-quantity-body>
+      <div class="seller-quantity-grid">
+        {% for row in form.quantity_rows %}
+          <article class="seller-quantity-card {% if row.index == 1 or row.existing or row.label.errors or row.price.errors or row.original_price.errors or row.stock.errors or row.sku.errors or row.image.errors %}is-visible{% endif %}" data-quantity-row>
+            <h3>Option {{ row.index }}</h3>
+            {% include 'seller_panel/partials/form_field.html' with field=row.label %}
+            {% include 'seller_panel/partials/form_field.html' with field=row.price %}
+            {% include 'seller_panel/partials/form_field.html' with field=row.original_price %}
+            {% include 'seller_panel/partials/form_field.html' with field=row.stock %}
+            {% include 'seller_panel/partials/form_field.html' with field=row.sku %}
+            {% include 'seller_panel/partials/form_field.html' with field=row.image %}
+            {% if row.remove %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.remove %}
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+      <button type="button" class="seller-add-quantity-btn" data-add-quantity-option>
+        <i class="fas fa-plus"></i> Add more quantity option
+      </button>
+    </div>
+  </section>
+{% endif %}
+
+<section class="seller-form-section">
+  <div class="seller-form-section-head">
+    <span><i class="fas fa-list-check"></i></span>
+    <div>
+      <h2>SEO / Extra Details</h2>
+      <p>Specifications and optional product metadata.</p>
+    </div>
+  </div>
+  <div class="seller-form-grid">
+    {% include 'seller_panel/partials/form_field.html' with field=form.specifications full=True %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.warranty_details %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.pack_size %}
+    {% include 'seller_panel/partials/form_field.html' with field=form.spice_level %}
+  </div>
+</section>

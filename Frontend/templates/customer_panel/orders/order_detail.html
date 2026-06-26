@@ -1,0 +1,146 @@
+{% extends 'layouts/customer_base.html' %}
+
+{% block content %}
+<section class="order-flow-page">
+  <div class="order-flow-shell">
+    <header class="order-flow-head">
+      <div>
+        <a href="{% url 'my-orders' %}" class="order-back-link"><i class="fa-solid fa-arrow-left"></i> My Orders</a>
+        <h1>{{ order.order_number }}</h1>
+        <p>{{ order.created_at|date:'d M Y, h:i A' }} · {{ order.estimated_delivery_message }}</p>
+      </div>
+      <aside><span>Total Amount</span><strong>Rs. {{ order.total_amount }}</strong></aside>
+    </header>
+
+    <div class="order-detail-grid">
+      <article class="order-detail-card summary">
+        <h2>Summary</h2>
+        <div class="order-summary-pills">
+          <span class="status-badge {{ order.status_tone }}">{{ order.get_status_display }}</span>
+          <span class="status-badge {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span>
+        </div>
+        <div class="order-action-row">
+          <button type="button" class="order-secondary-btn" data-copy-order="{{ order.order_number }}"><i class="fa-regular fa-copy"></i> Copy Order ID</button>
+          <button type="button" class="order-secondary-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+        </div>
+      </article>
+
+      <article class="order-detail-card">
+        <h3>Delivery Address</h3>
+        <p><b>{{ order.customer_name }}</b></p>
+        <p>{{ order.customer_phone }}{% if order.alternate_phone %}, {{ order.alternate_phone }}{% endif %}</p>
+        <p>{{ order.shipping_address }}</p>
+      </article>
+
+      <article class="order-detail-card">
+        <h3>Payment</h3>
+        <p>{{ order.payment_method }}</p>
+        <p>{{ order.get_payment_status_display }}</p>
+        <strong>Rs. {{ order.total_amount }}</strong>
+      </article>
+    </div>
+
+    <section class="order-detail-card">
+      <h3>Order Timeline</h3>
+      <div class="order-timeline">
+        {% for step in timeline_steps %}
+          <span class="{% if step.active %}active{% endif %} {% if step.current %}current{% endif %}">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ step.label }}
+          </span>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="order-detail-card">
+      <h3>Shipment Tracking</h3>
+      <div class="order-product-list">
+        {% for shipment in shipments %}
+          <div class="order-product-row">
+            <span>
+              <b>{{ shipment.courier.name|default:'Courier not assigned' }}</b>
+              <small>{{ shipment.get_status_display }}{% if shipment.last_location %} - {{ shipment.last_location }}{% endif %}</small>
+              {% if shipment.tracking_number %}<small>Tracking ID: {{ shipment.tracking_number }}</small>{% endif %}
+            </span>
+            {% if shipment.tracking_link %}
+              <a href="{{ shipment.tracking_link }}" target="_blank" rel="noopener" class="order-secondary-btn">Track</a>
+            {% else %}
+              <em>{{ shipment.updated_at|date:'d M Y' }}</em>
+            {% endif %}
+          </div>
+        {% empty %}
+          <p>Tracking details will appear here after dispatch.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="order-detail-card">
+      <h3>Return / Refund Status</h3>
+      <div class="order-product-list">
+        {% for request_row in return_requests %}
+          <div class="order-product-row">
+            <span>
+              <b>{{ request_row.reason }}</b>
+              <small>Return: {{ request_row.get_status_display }} | Refund: {{ request_row.get_refund_status_display }}</small>
+              {% if request_row.admin_note %}<small>{{ request_row.admin_note }}</small>{% endif %}
+            </span>
+            <strong>Rs. {{ request_row.refund_amount }}</strong>
+          </div>
+        {% empty %}
+          <p>No return or refund request for this order.</p>
+        {% endfor %}
+      </div>
+      {% if order.status == 'delivered' %}
+        <form method="post" enctype="multipart/form-data" class="checkout-form checkout-address-form">
+          {% csrf_token %}
+          <input type="hidden" name="form_action" value="return_request">
+          <label class="full">Return reason<input type="text" name="reason" class="form-input" placeholder="Damaged item, wrong product, quality issue" required></label>
+          <label class="full">Details<textarea name="details" class="form-input" rows="3" placeholder="Add details for admin review"></textarea></label>
+          <label class="full">Proof image/video<input type="file" name="proof_file" class="form-input" accept="image/*,video/*"></label>
+          <button type="submit" class="order-primary-btn">Request Return / Refund</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="order-detail-card">
+      <h3>Products</h3>
+      <div class="order-product-list">
+        {% for item in order_items %}
+          <div class="order-product-row">
+            <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=200&q=80' }}" alt="{{ item.product_name }}">
+            <span>
+              <b>{{ item.product_name }}</b>
+              <small>{{ item.seller_name }} · {{ item.pack_size }} · {{ item.get_item_status_display }}</small>
+            </span>
+            <em>x{{ item.quantity }}</em>
+            <strong>Rs. {{ item.line_total }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="order-detail-card totals">
+      <h3>Total Calculation</h3>
+      <div class="cart-summary-list">
+        <div><span>Subtotal</span><strong>Rs. {{ order.subtotal }}</strong></div>
+        <div><span>Delivery Charge</span><strong>{% if order.shipping_fee %}Rs. {{ order.shipping_fee }}{% else %}Free{% endif %}</strong></div>
+        <div><span>Discount</span><strong>Rs. {{ order.discount_amount }}</strong></div>
+        <div class="total"><span>Total</span><strong>Rs. {{ order.total_amount }}</strong></div>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-copy-order]').forEach(function (button) {
+    button.addEventListener('click', async function () {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(button.dataset.copyOrder);
+        button.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+      }
+    });
+  });
+</script>
+{% endblock %}

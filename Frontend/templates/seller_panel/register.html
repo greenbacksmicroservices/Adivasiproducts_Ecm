@@ -1,0 +1,1740 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/seller_panel/seller.css' %}">
+  <style>
+    .seller-wizard-page {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(255, 122, 0, 0.16), transparent 28%),
+        radial-gradient(circle at 88% 10%, rgba(251, 191, 36, 0.14), transparent 28%),
+        linear-gradient(135deg, #fffaf4 0%, #ffffff 44%, #fff7ed 100%);
+      padding: clamp(18px, 3vw, 34px) 18px 58px;
+      color: #111827;
+      overflow-x: hidden;
+    }
+
+    .seller-wizard-shell {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+    }
+
+    .seller-wizard-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .seller-wizard-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: max-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #b45309;
+      border: 1px solid #fed7aa;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(251, 146, 60, 0.12);
+    }
+
+    .seller-wizard-hero h1 {
+      margin: 10px 0 6px;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.12;
+      color: #0f172a;
+      letter-spacing: 0;
+    }
+
+    .seller-wizard-hero p {
+      margin: 0;
+      max-width: 620px;
+      color: #5b6472;
+      font-size: 13.5px;
+      line-height: 1.48;
+      font-weight: 600;
+    }
+
+    .seller-wizard-status {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 13px;
+      border-radius: 16px;
+      background: rgba(17, 24, 39, 0.94);
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(17, 24, 39, 0.16);
+    }
+
+    .seller-wizard-status span {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .seller-wizard-status strong {
+      display: block;
+      font-size: 18px;
+      margin-top: 0;
+    }
+
+    .seller-progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.08);
+      overflow: hidden;
+      margin: 14px 0 22px;
+    }
+
+    .seller-progress-bar {
+      width: 10%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #111827, #ff7a00);
+      transition: width 0.28s ease;
+    }
+
+    .seller-wizard-layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .seller-step-nav {
+      position: sticky;
+      top: 92px;
+      padding: 16px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(255, 210, 154, 0.68);
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.1);
+      backdrop-filter: blur(18px);
+    }
+
+    .seller-step-nav button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 11px;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      color: #334155;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease;
+    }
+
+    .seller-step-nav button + button {
+      margin-top: 6px;
+    }
+
+    .seller-step-nav button span:first-child {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: #fff7ed;
+      color: #c2410c;
+      font-weight: 900;
+      border: 1px solid #fed7aa;
+    }
+
+    .seller-step-nav button strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .seller-step-nav button small {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .seller-step-nav button.is-active {
+      background: linear-gradient(135deg, #111827, #7c2d12 52%, #ff7a00);
+      color: #fff;
+      transform: translateX(4px);
+      box-shadow: 0 16px 30px rgba(255, 122, 0, 0.22);
+    }
+
+    .seller-step-nav button.is-active span:first-child {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.28);
+      color: #fff;
+    }
+
+    .seller-step-nav button.is-active small {
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .seller-wizard-card {
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 210, 154, 0.72);
+      box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .wizard-server-errors {
+      margin: 22px 24px 0;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fef2f2;
+      color: #991b1b;
+      font-weight: 800;
+      border: 1px solid #fecaca;
+    }
+
+    .wizard-server-errors strong,
+    .wizard-server-errors span {
+      display: block;
+    }
+
+    .wizard-server-errors span {
+      margin-top: 4px;
+      color: #b91c1c;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .wizard-step {
+      display: none;
+      padding: clamp(22px, 4vw, 36px);
+      animation: wizardFade 0.26s ease;
+    }
+
+    .wizard-step.is-active {
+      display: block;
+    }
+
+    .wizard-step-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+
+    .wizard-step-head h2 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 34px);
+      color: #111827;
+    }
+
+    .wizard-step-head p {
+      margin: 8px 0 0;
+      color: #64748b;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .wizard-step-badge {
+      flex: 0 0 auto;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(17, 24, 39, 0.16);
+    }
+
+    .wizard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .wizard-field {
+      min-width: 0;
+    }
+
+    .wizard-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .wizard-field label:first-child {
+      display: block;
+      margin: 0 0 8px;
+      color: #1f2937;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .wizard-field label:first-child span {
+      color: #ea580c;
+    }
+
+    .wizard-field input,
+    .wizard-field select,
+    .wizard-field textarea {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      background: #fff;
+      color: #111827;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .wizard-field textarea {
+      min-height: 118px;
+      resize: vertical;
+    }
+
+    .wizard-field input:focus,
+    .wizard-field select:focus,
+    .wizard-field textarea:focus {
+      border-color: #fb923c;
+      box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.16);
+      outline: none;
+    }
+
+    .email-otp-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .email-otp-row input {
+      min-width: 0;
+    }
+
+    .wizard-mini-btn {
+      min-height: 48px;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 16px;
+      padding: 0 16px;
+      background: #111827;
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .wizard-mini-btn.ghost {
+      background: #fff7ed;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+    }
+
+    .wizard-mini-btn[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .email-otp-panel {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid #fed7aa;
+      border-radius: 18px;
+      background: #fffaf4;
+    }
+
+    .email-otp-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 900;
+      color: #1f2937;
+    }
+
+    .email-verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      width: max-content;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #bbf7d0;
+      font-weight: 900;
+    }
+
+    .email-verified-badge[hidden],
+    .email-otp-panel[hidden] {
+      display: none;
+    }
+
+    .choice-radio-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .choice-radio-list div {
+      flex: 1 1 130px;
+    }
+
+    .choice-radio-list label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 14px;
+      border-radius: 16px;
+      border: 1px solid #fed7aa;
+      background: #fff7ed;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .choice-radio-list input {
+      width: auto;
+      min-height: auto;
+      box-shadow: none;
+    }
+
+    .wizard-check-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid #fed7aa;
+      background: #fff7ed;
+      color: #1f2937;
+      font-weight: 800;
+    }
+
+    .wizard-check-card input {
+      width: 18px;
+      min-height: 18px;
+      margin-top: 2px;
+      box-shadow: none;
+      accent-color: #f97316;
+    }
+
+    .field-help,
+    .file-preview,
+    .client-error {
+      display: block;
+      margin-top: 7px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .field-help,
+    .file-preview {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .client-error,
+    .errorlist {
+      color: #b91c1c;
+      font-weight: 800;
+    }
+
+    .errorlist {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0;
+      font-size: 13px;
+    }
+
+    .wizard-field.has-error input,
+    .wizard-field.has-error select,
+    .wizard-field.has-error textarea {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+
+    .extra-document-field {
+      padding: 16px;
+      border: 1px dashed #fdba74;
+      border-radius: 20px;
+      background: #fffaf4;
+    }
+
+    .extra-document-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .extra-document-head label {
+      margin: 0;
+    }
+
+    .extra-document-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .extra-document-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #fed7aa;
+    }
+
+    .extra-document-remove {
+      width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: #fee2e2;
+      color: #991b1b;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .extra-document-row.has-error input {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+
+    .policy-card {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #111827, #2b1b12);
+      color: #fff;
+      box-shadow: 0 20px 44px rgba(17, 24, 39, 0.18);
+    }
+
+    .policy-card h3 {
+      margin: 0 0 10px;
+    }
+
+    .policy-card p {
+      margin: 0;
+      color: rgba(255,255,255,0.76);
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .review-summary {
+      display: grid;
+      gap: 14px;
+    }
+
+    .review-card {
+      border: 1px solid #fed7aa;
+      border-radius: 20px;
+      background: #fffaf4;
+      overflow: hidden;
+    }
+
+    .review-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #fff7ed;
+      border-bottom: 1px solid #fed7aa;
+    }
+
+    .review-card-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .review-card-head button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #111827;
+      color: #fff;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .review-card dl {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+      margin: 0;
+      padding: 16px;
+    }
+
+    .review-card dt {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .review-card dd {
+      margin: 3px 0 0;
+      color: #111827;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    .wizard-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px clamp(22px, 4vw, 36px);
+      border-top: 1px solid rgba(254, 215, 170, 0.82);
+      background: rgba(255, 247, 237, 0.72);
+    }
+
+    .wizard-action-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .wizard-btn {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 20px;
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+    }
+
+    .wizard-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .wizard-btn.primary {
+      color: #fff;
+      background: linear-gradient(135deg, #111827, #7c2d12 45%, #ff7a00);
+      box-shadow: 0 16px 34px rgba(255, 122, 0, 0.28);
+    }
+
+    .wizard-btn.secondary {
+      color: #111827;
+      background: #fff;
+      border: 1px solid #fed7aa;
+    }
+
+    .wizard-btn.ghost {
+      color: #9a3412;
+      background: #fff7ed;
+    }
+
+    .wizard-btn[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .draft-toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 40;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 18px 38px rgba(17, 24, 39, 0.22);
+      font-weight: 900;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .draft-toast.is-error {
+      background: #991b1b;
+    }
+
+    .draft-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes wizardFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 980px) {
+      .seller-wizard-hero,
+      .seller-wizard-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .seller-step-nav {
+        position: relative;
+        top: auto;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 12px;
+        scrollbar-width: thin;
+      }
+
+      .seller-step-nav button {
+        min-width: 210px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .seller-wizard-page {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .wizard-grid,
+      .review-card dl {
+        grid-template-columns: 1fr;
+      }
+
+      .wizard-step-head,
+      .wizard-actions {
+        flex-direction: column;
+      }
+
+      .wizard-action-group,
+      .wizard-btn {
+        width: 100%;
+      }
+
+      .email-otp-row,
+      .extra-document-row {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .wizard-mini-btn,
+      .extra-document-remove {
+        width: 100%;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<section class="seller-wizard-page">
+  <div class="seller-wizard-shell">
+    <div class="seller-wizard-hero">
+      <div>
+        <span class="seller-wizard-eyebrow"><i class="fa-solid fa-file-signature"></i> Seller registration</span>
+        <h1>Create your seller account</h1>
+        <p>Complete the guided request. Your status stays Pending until admin approval, and dashboard access unlocks only after approval.</p>
+      </div>
+      <div class="seller-wizard-status">
+        <span>Current status</span>
+        <strong>Pending</strong>
+      </div>
+    </div>
+
+    <div class="seller-progress-track" aria-hidden="true">
+      <div class="seller-progress-bar" id="sellerProgressBar"></div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="seller-wizard-layout" id="sellerWizardForm" data-has-errors="{% if form.errors %}1{% else %}0{% endif %}" novalidate>
+      {% csrf_token %}
+      <nav class="seller-step-nav" aria-label="Seller registration steps">
+        <button type="button" data-go-step="1" class="is-active"><span>1</span><span><strong>Personal Details</strong><small>Owner account</small></span></button>
+        <button type="button" data-go-step="2"><span>2</span><span><strong>Store Details</strong><small>Shop identity</small></span></button>
+        <button type="button" data-go-step="3"><span>3</span><span><strong>Owner KYC</strong><small>Aadhaar and PAN</small></span></button>
+        <button type="button" data-go-step="4"><span>4</span><span><strong>GST & Tax</strong><small>Legal details</small></span></button>
+        <button type="button" data-go-step="5"><span>5</span><span><strong>Bank Details</strong><small>Settlement account</small></span></button>
+        <button type="button" data-go-step="6"><span>6</span><span><strong>Pickup Address</strong><small>Order pickup</small></span></button>
+        <button type="button" data-go-step="7"><span>7</span><span><strong>Product Category</strong><small>Catalog profile</small></span></button>
+        <button type="button" data-go-step="8"><span>8</span><span><strong>Documents Upload</strong><small>Proof files</small></span></button>
+        <button type="button" data-go-step="9"><span>9</span><span><strong>Agreement</strong><small>Seller terms</small></span></button>
+        <button type="button" data-go-step="10"><span>10</span><span><strong>Review</strong><small>Submit request</small></span></button>
+      </nav>
+
+      <article class="seller-wizard-card">
+        {% if form.errors %}
+          <div class="wizard-server-errors">
+            <strong>Please fix the highlighted fields before submitting.</strong>
+            <span>For security, uploaded files cannot be restored after an unsuccessful submit, so re-upload required documents before trying again.</span>
+            {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+          </div>
+        {% endif %}
+
+        <section class="wizard-step is-active" data-step="1" aria-labelledby="step-1-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-1-title">Step 1: Personal Details</h2>
+              <p>Your login will be created only after admin approval.</p>
+            </div>
+            <span class="wizard-step-badge">1 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="name"><label for="{{ form.name.id_for_label }}">{{ form.name.label }} <span>*</span></label>{{ form.name }}{{ form.name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="email" data-email-verification data-verified-email="{{ seller_verified_email|default:'' }}">
+              <label for="{{ form.email.id_for_label }}">{{ form.email.label }} <span>*</span></label>
+              <div class="email-otp-row">
+                {{ form.email }}
+                <button type="button" class="wizard-mini-btn" id="sellerSendOtpBtn" data-send-url="{% url 'seller-register-send-otp' %}">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  <span data-send-otp-label>Send OTP</span>
+                </button>
+              </div>
+              {{ form.email.errors }}
+              <small class="email-verified-badge" id="sellerEmailVerifiedBadge" hidden><i class="fa-solid fa-circle-check"></i> Email Verified</small>
+              <small class="field-help" id="sellerEmailOtpHint">Verify your email before going to Step 2.</small>
+              <small class="client-error"></small>
+              <div class="email-otp-panel" id="sellerOtpPanel" hidden>
+                <label for="sellerEmailOtpInput">Email OTP</label>
+                <div class="email-otp-row">
+                  <input type="text" id="sellerEmailOtpInput" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Enter 6 digit OTP">
+                  <button type="button" class="wizard-mini-btn" id="sellerVerifyOtpBtn" data-verify-url="{% url 'seller-register-verify-email-otp' %}">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Verify OTP</span>
+                  </button>
+                  <button type="button" class="wizard-mini-btn ghost" id="sellerResendOtpBtn">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span data-resend-otp-label>Resend OTP</span>
+                  </button>
+                </div>
+                <small class="client-error" id="sellerOtpError"></small>
+              </div>
+            </div>
+            <div class="wizard-field" data-field="phone"><label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} <span>*</span></label>{{ form.phone }}{{ form.phone.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="alternate_phone"><label for="{{ form.alternate_phone.id_for_label }}">{{ form.alternate_phone.label }}</label>{{ form.alternate_phone }}{{ form.alternate_phone.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="password"><label for="{{ form.password.id_for_label }}">{{ form.password.label }} <span>*</span></label>{{ form.password }}{{ form.password.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="confirm_password"><label for="{{ form.confirm_password.id_for_label }}">{{ form.confirm_password.label }} <span>*</span></label>{{ form.confirm_password }}{{ form.confirm_password.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="profile_photo"><label for="{{ form.profile_photo.id_for_label }}">{{ form.profile_photo.label }}</label>{{ form.profile_photo }}{{ form.profile_photo.errors }}<small class="field-help">Optional profile photo. JPG or PNG, max 5 MB.</small><small class="file-preview" data-file-preview="profile_photo"></small><small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="2" aria-labelledby="step-2-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-2-title">Step 2: Store Details</h2>
+              <p>Set how your store appears to customers after approval.</p>
+            </div>
+            <span class="wizard-step-badge">2 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="store_name"><label for="{{ form.store_name.id_for_label }}">{{ form.store_name.label }} <span>*</span></label>{{ form.store_name }}{{ form.store_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="store_display_name"><label for="{{ form.store_display_name.id_for_label }}">{{ form.store_display_name.label }} <span>*</span></label>{{ form.store_display_name }}{{ form.store_display_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="store_description"><label for="{{ form.store_description.id_for_label }}">{{ form.store_description.label }} <span>*</span></label>{{ form.store_description }}{{ form.store_description.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="business_type"><label for="{{ form.business_type.id_for_label }}">{{ form.business_type.label }} <span>*</span></label>{{ form.business_type }}{{ form.business_type.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="store_logo"><label for="{{ form.store_logo.id_for_label }}">{{ form.store_logo.label }}</label>{{ form.store_logo }}{{ form.store_logo.errors }}<small class="field-help">Optional. JPG or PNG, max 5 MB.</small><small class="file-preview" data-file-preview="store_logo"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="store_banner"><label for="{{ form.store_banner.id_for_label }}">{{ form.store_banner.label }}</label>{{ form.store_banner }}{{ form.store_banner.errors }}<small class="field-help">Optional. JPG or PNG, max 5 MB.</small><small class="file-preview" data-file-preview="store_banner"></small><small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="3" aria-labelledby="step-3-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-3-title">Step 3: Owner KYC</h2>
+              <p>Enter owner identity details. Upload KYC files in the Documents Upload step.</p>
+            </div>
+            <span class="wizard-step-badge">3 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="aadhaar_number"><label for="{{ form.aadhaar_number.id_for_label }}">{{ form.aadhaar_number.label }} <span>*</span></label>{{ form.aadhaar_number }}{{ form.aadhaar_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pan_number"><label for="{{ form.pan_number.id_for_label }}">{{ form.pan_number.label }} <span>*</span></label>{{ form.pan_number }}{{ form.pan_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="owner_dob"><label for="{{ form.owner_dob.id_for_label }}">{{ form.owner_dob.label }} <span>*</span></label>{{ form.owner_dob }}{{ form.owner_dob.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="owner_address"><label for="{{ form.owner_address.id_for_label }}">{{ form.owner_address.label }} <span>*</span></label>{{ form.owner_address }}{{ form.owner_address.errors }}<small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="4" aria-labelledby="step-4-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-4-title">Step 4: GST & Tax Details</h2>
+              <p>GST certificate is required only when GST is available.</p>
+            </div>
+            <span class="wizard-step-badge">4 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field full" data-field="gst_available"><label>{{ form.gst_available.label }} <span>*</span></label>{{ form.gst_available }}{{ form.gst_available.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="gst_number" data-gst-dependent><label for="{{ form.gst_number.id_for_label }}">{{ form.gst_number.label }}</label>{{ form.gst_number }}{{ form.gst_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="legal_business_name"><label for="{{ form.legal_business_name.id_for_label }}">{{ form.legal_business_name.label }} <span>*</span></label>{{ form.legal_business_name }}{{ form.legal_business_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="tax_pan_number"><label for="{{ form.tax_pan_number.id_for_label }}">{{ form.tax_pan_number.label }} <span>*</span></label>{{ form.tax_pan_number }}{{ form.tax_pan_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="gst_document" data-gst-dependent><label for="{{ form.gst_document.id_for_label }}">{{ form.gst_document.label }}</label>{{ form.gst_document }}{{ form.gst_document.errors }}<small class="field-help">Required if GST is Yes. JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="gst_document"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="business_registration_certificate"><label for="{{ form.business_registration_certificate.id_for_label }}">{{ form.business_registration_certificate.label }}</label>{{ form.business_registration_certificate }}{{ form.business_registration_certificate.errors }}<small class="field-help">Optional. JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="business_registration_certificate"></small><small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="5" aria-labelledby="step-5-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-5-title">Step 5: Bank Details</h2>
+              <p>This account will be used for seller payout after orders are verified.</p>
+            </div>
+            <span class="wizard-step-badge">5 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="bank_account_name"><label for="{{ form.bank_account_name.id_for_label }}">{{ form.bank_account_name.label }} <span>*</span></label>{{ form.bank_account_name }}{{ form.bank_account_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="bank_name"><label for="{{ form.bank_name.id_for_label }}">{{ form.bank_name.label }} <span>*</span></label>{{ form.bank_name }}{{ form.bank_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="bank_account_number"><label for="{{ form.bank_account_number.id_for_label }}">{{ form.bank_account_number.label }} <span>*</span></label>{{ form.bank_account_number }}{{ form.bank_account_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="confirm_bank_account_number"><label for="{{ form.confirm_bank_account_number.id_for_label }}">{{ form.confirm_bank_account_number.label }} <span>*</span></label>{{ form.confirm_bank_account_number }}{{ form.confirm_bank_account_number.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="bank_ifsc"><label for="{{ form.bank_ifsc.id_for_label }}">{{ form.bank_ifsc.label }} <span>*</span></label>{{ form.bank_ifsc }}{{ form.bank_ifsc.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="branch_name"><label for="{{ form.branch_name.id_for_label }}">{{ form.branch_name.label }} <span>*</span></label>{{ form.branch_name }}{{ form.branch_name.errors }}<small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="6" aria-labelledby="step-6-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-6-title">Step 6: Pickup Address</h2>
+              <p>Orders will be picked from this address after your seller account is active.</p>
+            </div>
+            <span class="wizard-step-badge">6 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="pickup_contact_name"><label for="{{ form.pickup_contact_name.id_for_label }}">{{ form.pickup_contact_name.label }} <span>*</span></label>{{ form.pickup_contact_name }}{{ form.pickup_contact_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pickup_phone"><label for="{{ form.pickup_phone.id_for_label }}">{{ form.pickup_phone.label }} <span>*</span></label>{{ form.pickup_phone }}{{ form.pickup_phone.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="pickup_address_line1"><label for="{{ form.pickup_address_line1.id_for_label }}">{{ form.pickup_address_line1.label }} <span>*</span></label>{{ form.pickup_address_line1 }}{{ form.pickup_address_line1.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="pickup_address_line2"><label for="{{ form.pickup_address_line2.id_for_label }}">{{ form.pickup_address_line2.label }}</label>{{ form.pickup_address_line2 }}{{ form.pickup_address_line2.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pickup_city"><label for="{{ form.pickup_city.id_for_label }}">{{ form.pickup_city.label }} <span>*</span></label>{{ form.pickup_city }}{{ form.pickup_city.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pickup_state"><label for="{{ form.pickup_state.id_for_label }}">{{ form.pickup_state.label }} <span>*</span></label>{{ form.pickup_state }}{{ form.pickup_state.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pickup_pincode"><label for="{{ form.pickup_pincode.id_for_label }}">{{ form.pickup_pincode.label }} <span>*</span></label>{{ form.pickup_pincode }}{{ form.pickup_pincode.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pickup_landmark"><label for="{{ form.pickup_landmark.id_for_label }}">{{ form.pickup_landmark.label }}</label>{{ form.pickup_landmark }}{{ form.pickup_landmark.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="pickup_same_as_owner"><label class="wizard-check-card">{{ form.pickup_same_as_owner }}<span>{{ form.pickup_same_as_owner.label }}</span></label>{{ form.pickup_same_as_owner.errors }}<small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="7" aria-labelledby="step-7-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-7-title">Step 7: Product Category</h2>
+              <p>Select the catalog profile admin should review first.</p>
+            </div>
+            <span class="wizard-step-badge">7 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="product_categories"><label for="{{ form.product_categories.id_for_label }}">{{ form.product_categories.label }} <span>*</span></label>{{ form.product_categories }}{{ form.product_categories.errors }}<small class="field-help">Hold Ctrl on desktop to select multiple categories.</small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="primary_category"><label for="{{ form.primary_category.id_for_label }}">{{ form.primary_category.label }} <span>*</span></label>{{ form.primary_category }}{{ form.primary_category.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="approx_products_count"><label for="{{ form.approx_products_count.id_for_label }}">{{ form.approx_products_count.label }} <span>*</span></label>{{ form.approx_products_count }}{{ form.approx_products_count.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field" data-field="brand_name"><label for="{{ form.brand_name.id_for_label }}">{{ form.brand_name.label }}</label>{{ form.brand_name }}{{ form.brand_name.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="sells_handmade"><label>{{ form.sells_handmade.label }} <span>*</span></label>{{ form.sells_handmade }}{{ form.sells_handmade.errors }}<small class="client-error"></small></div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="8" aria-labelledby="step-8-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-8-title">Step 8: Documents Upload</h2>
+              <p>Allowed file format: JPG, PNG, PDF. Max file size: 5 MB per file.</p>
+            </div>
+            <span class="wizard-step-badge">8 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field" data-field="aadhaar_front"><label for="{{ form.aadhaar_front.id_for_label }}">{{ form.aadhaar_front.label }} <span>*</span></label>{{ form.aadhaar_front }}{{ form.aadhaar_front.errors }}<small class="field-help">JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="aadhaar_front"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="aadhaar_back"><label for="{{ form.aadhaar_back.id_for_label }}">{{ form.aadhaar_back.label }}</label>{{ form.aadhaar_back }}{{ form.aadhaar_back.errors }}<small class="field-help">Optional. JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="aadhaar_back"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="pan_card"><label for="{{ form.pan_card.id_for_label }}">{{ form.pan_card.label }} <span>*</span></label>{{ form.pan_card }}{{ form.pan_card.errors }}<small class="field-help">JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="pan_card"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="cancelled_cheque"><label for="{{ form.cancelled_cheque.id_for_label }}">{{ form.cancelled_cheque.label }} <span>*</span></label>{{ form.cancelled_cheque }}{{ form.cancelled_cheque.errors }}<small class="field-help">JPG, PNG, or PDF. Max 5 MB.</small><small class="file-preview" data-file-preview="cancelled_cheque"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="shop_photo"><label for="{{ form.shop_photo.id_for_label }}">{{ form.shop_photo.label }} <span>*</span></label>{{ form.shop_photo }}{{ form.shop_photo.errors }}<small class="file-preview" data-file-preview="shop_photo"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="owner_photo"><label for="{{ form.owner_photo.id_for_label }}">{{ form.owner_photo.label }} <span>*</span></label>{{ form.owner_photo }}{{ form.owner_photo.errors }}<small class="file-preview" data-file-preview="owner_photo"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="business_proof"><label for="{{ form.business_proof.id_for_label }}">{{ form.business_proof.label }} <span>*</span></label>{{ form.business_proof }}{{ form.business_proof.errors }}<small class="file-preview" data-file-preview="business_proof"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="address_proof"><label for="{{ form.address_proof.id_for_label }}">{{ form.address_proof.label }} <span>*</span></label>{{ form.address_proof }}{{ form.address_proof.errors }}<small class="file-preview" data-file-preview="address_proof"></small><small class="client-error"></small></div>
+            <div class="wizard-field" data-field="signature_upload"><label for="{{ form.signature_upload.id_for_label }}">{{ form.signature_upload.label }} <span>*</span></label>{{ form.signature_upload }}{{ form.signature_upload.errors }}<small class="file-preview" data-file-preview="signature_upload"></small><small class="client-error"></small></div>
+            <div class="wizard-field full extra-document-field" data-field="extra_documents">
+              <div class="extra-document-head">
+                <label>{{ form.extra_documents.label }}</label>
+                <button type="button" class="wizard-mini-btn ghost" id="addExtraDocumentBtn"><i class="fa-solid fa-plus"></i> Add</button>
+              </div>
+              <div class="extra-document-list" id="extraDocumentsList"></div>
+              {{ form.extra_documents.errors }}
+              <small class="field-help">Optional. Add a document name and upload a JPG, PNG, or PDF up to 5 MB.</small>
+              <small class="client-error"></small>
+            </div>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="9" aria-labelledby="step-9-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-9-title">Step 9: Agreement</h2>
+              <p>Please confirm the seller request rules before submitting.</p>
+            </div>
+            <span class="wizard-step-badge">9 / 10</span>
+          </div>
+          <div class="wizard-grid">
+            <div class="wizard-field full" data-field="confirm_details"><label class="wizard-check-card">{{ form.confirm_details }}<span>{{ form.confirm_details.label }}</span></label>{{ form.confirm_details.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="terms_accepted"><label class="wizard-check-card">{{ form.terms_accepted }}<span>{{ form.terms_accepted.label }}</span></label>{{ form.terms_accepted.errors }}<small class="client-error"></small></div>
+            <div class="wizard-field full" data-field="approval_access_ack"><label class="wizard-check-card">{{ form.approval_access_ack }}<span>{{ form.approval_access_ack.label }}</span></label>{{ form.approval_access_ack.errors }}<small class="client-error"></small></div>
+          </div>
+          <div class="policy-card">
+            <h3>Seller policy summary</h3>
+            <p>All submitted details must be accurate. Lexvers may verify KYC, bank, tax, pickup, and product category details. Dashboard access remains disabled until admin approval.</p>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="10" aria-labelledby="step-10-title">
+          <div class="wizard-step-head">
+            <div>
+              <h2 id="step-10-title">Step 10: Review & Submit</h2>
+              <p>Review your details. Use Edit Step if anything needs correction.</p>
+            </div>
+            <span class="wizard-step-badge">10 / 10</span>
+          </div>
+          <div class="review-summary" id="sellerReviewSummary"></div>
+        </section>
+
+        <div class="wizard-actions">
+          <div class="wizard-action-group">
+            <button type="button" class="wizard-btn secondary" id="wizardPrevBtn"><i class="fa-solid fa-arrow-left"></i> Previous</button>
+          </div>
+          <div class="wizard-action-group">
+            <button type="button" class="wizard-btn primary" id="wizardNextBtn">Next <i class="fa-solid fa-arrow-right"></i></button>
+            <button type="submit" class="wizard-btn primary" id="wizardSubmitBtn" hidden><i class="fa-solid fa-paper-plane"></i> Submit for Approval</button>
+          </div>
+        </div>
+      </article>
+    </form>
+  </div>
+  <div class="draft-toast" id="draftToast">Draft saved on this browser.</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById('sellerWizardForm');
+    const steps = Array.from(document.querySelectorAll('.wizard-step'));
+    const navButtons = Array.from(document.querySelectorAll('[data-go-step]'));
+    const progressBar = document.getElementById('sellerProgressBar');
+    const prevBtn = document.getElementById('wizardPrevBtn');
+    const nextBtn = document.getElementById('wizardNextBtn');
+    const submitBtn = document.getElementById('wizardSubmitBtn');
+    const saveDraftBtn = document.getElementById('wizardSaveDraftBtn');
+    const draftToast = document.getElementById('draftToast');
+    const reviewSummary = document.getElementById('sellerReviewSummary');
+    const emailVerificationWrap = document.querySelector('[data-email-verification]');
+    const emailInput = form.elements.email;
+    const sendOtpBtn = document.getElementById('sellerSendOtpBtn');
+    const verifyOtpBtn = document.getElementById('sellerVerifyOtpBtn');
+    const resendOtpBtn = document.getElementById('sellerResendOtpBtn');
+    const resendOtpLabel = resendOtpBtn ? resendOtpBtn.querySelector('[data-resend-otp-label]') : null;
+    const otpPanel = document.getElementById('sellerOtpPanel');
+    const otpInput = document.getElementById('sellerEmailOtpInput');
+    const otpError = document.getElementById('sellerOtpError');
+    const emailVerifiedBadge = document.getElementById('sellerEmailVerifiedBadge');
+    const emailOtpHint = document.getElementById('sellerEmailOtpHint');
+    const extraDocumentsList = document.getElementById('extraDocumentsList');
+    const addExtraDocumentBtn = document.getElementById('addExtraDocumentBtn');
+    const draftKey = 'lexversSellerRegistrationDraft';
+    const maxFileSize = 5 * 1024 * 1024;
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+    const imageOnlyFields = ['profile_photo', 'store_logo', 'store_banner'];
+    const fieldPatterns = {
+      phone: { pattern: /^[6-9]\d{9}$/, message: 'Enter a valid 10 digit phone number.' },
+      alternate_phone: { pattern: /^[6-9]\d{9}$/, message: 'Enter a valid 10 digit alternate phone number.' },
+      pickup_phone: { pattern: /^[6-9]\d{9}$/, message: 'Enter a valid 10 digit pickup phone.' },
+      aadhaar_number: { pattern: /^\d{12}$/, message: 'Aadhaar number must be 12 digits.' },
+      pan_number: { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]$/, message: 'Enter a valid PAN number, for example ABCDE1234F.' },
+      tax_pan_number: { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]$/, message: 'Enter a valid tax PAN number, for example ABCDE1234F.' },
+      gst_number: { pattern: /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/, message: 'Enter a valid GST number.' },
+      bank_ifsc: { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: 'Enter a valid IFSC code.' },
+      bank_account_number: { pattern: /^\d{9,18}$/, message: 'Account number must be 9 to 18 digits.' },
+      confirm_bank_account_number: { pattern: /^\d{9,18}$/, message: 'Account number must be 9 to 18 digits.' },
+      pickup_pincode: { pattern: /^\d{6}$/, message: 'Pincode must be 6 digits.' }
+    };
+    let currentStep = 1;
+    let submitting = false;
+    let verifiedEmail = (emailVerificationWrap ? emailVerificationWrap.dataset.verifiedEmail : '').trim().toLowerCase();
+    let sellerEmailVerified = Boolean(verifiedEmail && emailInput && emailInput.value.trim().toLowerCase() === verifiedEmail);
+    let resendTimer = null;
+    let extraDocumentCounter = 0;
+
+    const stepLabels = {
+      1: 'Personal Details',
+      2: 'Store Details',
+      3: 'Owner KYC',
+      4: 'GST & Tax Details',
+      5: 'Bank Details',
+      6: 'Pickup Address',
+      7: 'Product Category',
+      8: 'Documents Upload',
+      9: 'Agreement'
+    };
+
+    const reviewFields = {
+      1: ['name', 'email', 'phone', 'alternate_phone'],
+      2: ['store_name', 'store_display_name', 'store_description', 'business_type'],
+      3: ['aadhaar_number', 'pan_number', 'owner_dob', 'owner_address'],
+      4: ['gst_available', 'gst_number', 'legal_business_name', 'tax_pan_number'],
+      5: ['bank_account_name', 'bank_name', 'bank_ifsc', 'branch_name'],
+      6: ['pickup_contact_name', 'pickup_phone', 'pickup_address_line1', 'pickup_address_line2', 'pickup_city', 'pickup_state', 'pickup_pincode', 'pickup_landmark'],
+      7: ['product_categories', 'primary_category', 'approx_products_count', 'brand_name', 'sells_handmade'],
+      8: ['aadhaar_front', 'aadhaar_back', 'pan_card', 'cancelled_cheque', 'shop_photo', 'owner_photo', 'business_proof', 'address_proof', 'signature_upload', 'extra_documents'],
+      9: ['confirm_details', 'terms_accepted', 'approval_access_ack']
+    };
+
+    function getField(name) {
+      return form.elements[name];
+    }
+
+    function fieldWrap(name) {
+      return form.querySelector('[data-field="' + name + '"]');
+    }
+
+    function setFieldError(field, message) {
+      const name = field.name;
+      const wrap = fieldWrap(name);
+      if (!wrap) return;
+      wrap.classList.toggle('has-error', Boolean(message));
+      const error = wrap.querySelector('.client-error');
+      if (error) error.textContent = message || '';
+    }
+
+    function fieldLabel(name) {
+      const wrap = fieldWrap(name);
+      const label = wrap ? wrap.querySelector('label') : null;
+      return label ? label.textContent.replace('*', '').trim() : name;
+    }
+
+    function normalizeEmail(value) {
+      return (value || '').trim().toLowerCase();
+    }
+
+    function showToast(message, type) {
+      if (!draftToast || !message) return;
+      draftToast.textContent = message;
+      draftToast.classList.toggle('is-error', type === 'error');
+      draftToast.classList.add('is-visible');
+      window.setTimeout(function () {
+        draftToast.classList.remove('is-visible');
+      }, 2600);
+    }
+
+    function csrfToken() {
+      const csrfField = form.querySelector('[name="csrfmiddlewaretoken"]');
+      return csrfField ? csrfField.value : '';
+    }
+
+    function setButtonLoading(button, loading, label) {
+      if (!button) return;
+      if (loading) {
+        button.dataset.originalHtml = button.dataset.originalHtml || button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + label;
+        return;
+      }
+      button.disabled = false;
+      if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+      }
+    }
+
+    async function postSellerOtp(url, data) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: data
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Unable to process OTP right now.');
+      }
+      return payload;
+    }
+
+    function isCurrentEmailVerified() {
+      return Boolean(sellerEmailVerified && emailInput && normalizeEmail(emailInput.value) === verifiedEmail);
+    }
+
+    function updateEmailVerificationUi() {
+      const verified = isCurrentEmailVerified();
+      if (emailVerifiedBadge) emailVerifiedBadge.hidden = !verified;
+      if (sendOtpBtn) sendOtpBtn.disabled = verified;
+      if (emailOtpHint) {
+        emailOtpHint.textContent = verified ? 'Email Verified' : 'Verify your email before going to Step 2.';
+      }
+      if (otpPanel && verified) otpPanel.hidden = true;
+      if (verified) setFieldError(emailInput, '');
+    }
+
+    function resetEmailVerificationIfNeeded() {
+      if (!emailInput) return;
+      if (normalizeEmail(emailInput.value) === verifiedEmail) {
+        updateEmailVerificationUi();
+        return;
+      }
+      sellerEmailVerified = false;
+      verifiedEmail = '';
+      if (otpInput) otpInput.value = '';
+      if (otpError) otpError.textContent = '';
+      updateEmailVerificationUi();
+    }
+
+    function startResendCountdown(seconds) {
+      if (!resendOtpBtn || !resendOtpLabel) return;
+      window.clearInterval(resendTimer);
+      let remaining = Math.max(0, Number(seconds) || 0);
+      const render = function () {
+        if (remaining > 0) {
+          resendOtpBtn.disabled = true;
+          resendOtpLabel.textContent = 'Resend in ' + remaining + 's';
+          remaining -= 1;
+          return;
+        }
+        resendOtpBtn.disabled = false;
+        resendOtpLabel.textContent = 'Resend OTP';
+        window.clearInterval(resendTimer);
+      };
+      render();
+      resendTimer = window.setInterval(render, 1000);
+    }
+
+    async function requestSellerOtp(button) {
+      const email = normalizeEmail(emailInput ? emailInput.value : '');
+      if (!emailInput || !email || !emailInput.validity.valid) {
+        setFieldError(emailInput, 'Enter a valid email address.');
+        showToast('Enter a valid email address.', 'error');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('csrfmiddlewaretoken', csrfToken());
+      setButtonLoading(button, true, 'Sending...');
+      if (otpError) otpError.textContent = '';
+      let cooldownSeconds = 0;
+      try {
+        const payload = await postSellerOtp(sendOtpBtn.dataset.sendUrl, formData);
+        cooldownSeconds = payload.cooldown_seconds || 60;
+        sellerEmailVerified = false;
+        verifiedEmail = '';
+        if (otpPanel) otpPanel.hidden = false;
+        if (otpInput) {
+          otpInput.value = '';
+          window.setTimeout(function () { otpInput.focus(); }, 80);
+        }
+        if (emailOtpHint) emailOtpHint.textContent = payload.message || 'OTP sent to your email.';
+        showToast(payload.message || 'OTP sent to your email.');
+      } catch (error) {
+        setFieldError(emailInput, error.message);
+        showToast(error.message, 'error');
+      } finally {
+        setButtonLoading(button, false);
+        if (cooldownSeconds) startResendCountdown(cooldownSeconds);
+        updateEmailVerificationUi();
+      }
+    }
+
+    async function verifySellerOtp() {
+      const email = normalizeEmail(emailInput ? emailInput.value : '');
+      const otp = (otpInput ? otpInput.value : '').replace(/\D/g, '');
+      if (otpInput) otpInput.value = otp;
+      if (!email) {
+        setFieldError(emailInput, 'Enter a valid email address.');
+        return;
+      }
+      if (otp.length !== 6) {
+        if (otpError) otpError.textContent = 'Enter the 6 digit OTP.';
+        showToast('Enter the 6 digit OTP.', 'error');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('otp', otp);
+      formData.append('csrfmiddlewaretoken', csrfToken());
+      setButtonLoading(verifyOtpBtn, true, 'Verifying...');
+      try {
+        const payload = await postSellerOtp(verifyOtpBtn.dataset.verifyUrl, formData);
+        sellerEmailVerified = true;
+        verifiedEmail = normalizeEmail(payload.email || email);
+        if (otpError) otpError.textContent = '';
+        if (otpPanel) otpPanel.hidden = true;
+        window.clearInterval(resendTimer);
+        updateEmailVerificationUi();
+        showToast(payload.message || 'Email verified successfully.');
+      } catch (error) {
+        if (otpError) otpError.textContent = error.message;
+        showToast(error.message, 'error');
+      } finally {
+        setButtonLoading(verifyOtpBtn, false);
+      }
+    }
+
+    function fileExtension(file) {
+      const parts = (file.name || '').split('.');
+      return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    function normalizedPatternValue(field) {
+      const raw = field.value || '';
+      if (['pan_number', 'tax_pan_number', 'gst_number', 'bank_ifsc'].includes(field.name)) {
+        field.value = raw.trim().toUpperCase();
+        return field.value;
+      }
+      if (['phone', 'alternate_phone', 'pickup_phone', 'aadhaar_number', 'bank_account_number', 'confirm_bank_account_number', 'pickup_pincode'].includes(field.name)) {
+        field.value = raw.replace(/\s+/g, '');
+        return field.value;
+      }
+      return raw.trim();
+    }
+
+    function validateSingleField(field) {
+      if (!field || field.disabled || field.closest('[hidden]')) return true;
+      if (field.type === 'hidden') return true;
+      let message = '';
+
+      if (field.required) {
+        if (field.type === 'checkbox' && !field.checked) message = 'This confirmation is required.';
+        else if (field.type === 'file' && !field.files.length) message = 'Please upload this document.';
+        else if (field.tagName === 'SELECT' && field.multiple && !Array.from(field.selectedOptions).length) message = 'Please select at least one option.';
+        else if (!field.value || !field.value.trim()) message = 'This field is required.';
+      }
+
+      if (!message && field.type === 'email' && field.value && !field.validity.valid) {
+        message = 'Enter a valid email address.';
+      }
+
+      if (!message && field.value && fieldPatterns[field.name]) {
+        const value = normalizedPatternValue(field);
+        if (value && !fieldPatterns[field.name].pattern.test(value)) {
+          message = fieldPatterns[field.name].message;
+        }
+      }
+
+      if (!message && field.name === 'password' && field.value && field.value.length < 8) {
+        message = 'Password must contain at least 8 characters.';
+      }
+
+      if (!message && field.name === 'approx_products_count' && field.value && Number(field.value) <= 0) {
+        message = 'Approx products count must be greater than zero.';
+      }
+
+      if (!message && field.type === 'file' && field.files.length) {
+        Array.from(field.files).forEach(function (file) {
+          const extension = fileExtension(file);
+          const allowed = imageOnlyFields.includes(field.name) ? allowedExtensions.filter(function (item) { return item !== 'pdf'; }) : allowedExtensions;
+          if (!allowed.includes(extension)) message = 'Allowed file format: ' + allowed.join(', ').toUpperCase() + '.';
+          if (file.size > maxFileSize) message = 'Maximum file size is 5 MB.';
+        });
+      }
+
+      setFieldError(field, message);
+      return !message;
+    }
+
+    function validateRadioGroup(name) {
+      const fields = Array.from(form.querySelectorAll('[name="' + name + '"]'));
+      if (!fields.length) return true;
+      if (fields.some(function (field) { return field.checked; })) {
+        setFieldError(fields[0], '');
+        return true;
+      }
+      setFieldError(fields[0], 'Please choose an option.');
+      return false;
+    }
+
+    function validateStep(stepNumber) {
+      const panel = steps.find(function (step) { return Number(step.dataset.step) === stepNumber; });
+      if (!panel) return true;
+      let isValid = true;
+      const fields = Array.from(panel.querySelectorAll('input, select, textarea'));
+      const checkedRadioNames = new Set();
+
+      fields.forEach(function (field) {
+        if (field.type === 'radio') {
+          if (!checkedRadioNames.has(field.name)) {
+            checkedRadioNames.add(field.name);
+            if (!validateRadioGroup(field.name)) isValid = false;
+          }
+          return;
+        }
+        if (!validateSingleField(field)) isValid = false;
+      });
+
+      if (stepNumber === 1) {
+        const password = getField('password');
+        const confirm = getField('confirm_password');
+        if (password && confirm && password.value && confirm.value && password.value !== confirm.value) {
+          setFieldError(confirm, 'Passwords do not match.');
+          isValid = false;
+        }
+        if (!isCurrentEmailVerified()) {
+          setFieldError(emailInput, 'Verify your email OTP before continuing.');
+          if (otpPanel && emailInput && emailInput.value.trim()) otpPanel.hidden = false;
+          isValid = false;
+        }
+      }
+
+      if (stepNumber === 5) {
+        const account = getField('bank_account_number');
+        const confirm = getField('confirm_bank_account_number');
+        if (account && confirm && account.value && confirm.value && account.value !== confirm.value) {
+          setFieldError(confirm, 'Account number and confirm account number must match.');
+          isValid = false;
+        }
+      }
+
+      if (stepNumber === 7) {
+        const categories = getField('product_categories');
+        const primary = getField('primary_category');
+        const selected = categories ? Array.from(categories.selectedOptions).map(function (option) { return option.value; }) : [];
+        if (primary && primary.value && !selected.includes(primary.value)) {
+          setFieldError(primary, 'Primary category must be selected above.');
+          isValid = false;
+        }
+      }
+
+      if (stepNumber === 8 && !validateExtraDocuments()) {
+        isValid = false;
+      }
+
+      const firstError = panel.querySelector('.has-error input, .has-error select, .has-error textarea');
+      if (firstError) firstError.focus({ preventScroll: false });
+      return isValid;
+    }
+
+    function showStep(stepNumber) {
+      currentStep = Math.max(1, Math.min(10, stepNumber));
+      steps.forEach(function (step) {
+        step.classList.toggle('is-active', Number(step.dataset.step) === currentStep);
+      });
+      navButtons.forEach(function (button) {
+        button.classList.toggle('is-active', Number(button.dataset.goStep) === currentStep);
+      });
+      progressBar.style.width = (currentStep * 10) + '%';
+      prevBtn.disabled = currentStep === 1;
+      nextBtn.hidden = currentStep === 10;
+      submitBtn.hidden = currentStep !== 10;
+      if (currentStep === 10) buildReviewSummary();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function selectedText(field) {
+      if (!field) return 'Not filled';
+      if (field instanceof RadioNodeList) {
+        const selected = Array.from(field).find(function (item) { return item.checked; });
+        return selected ? selected.parentElement.textContent.trim() : 'Not selected';
+      }
+      if (field.type === 'checkbox') return field.checked ? 'Confirmed' : 'Not confirmed';
+      if (field.type === 'file') return field.files.length ? Array.from(field.files).map(function (file) { return file.name; }).join(', ') : 'Not uploaded';
+      if (field.tagName === 'SELECT' && field.multiple) {
+        const values = Array.from(field.selectedOptions).map(function (option) { return option.textContent.trim(); });
+        return values.length ? values.join(', ') : 'Not selected';
+      }
+      if (field.tagName === 'SELECT') return field.selectedOptions[0] ? field.selectedOptions[0].textContent.trim() : 'Not selected';
+      return field.value && field.value.trim() ? field.value.trim() : 'Not filled';
+    }
+
+    function buildReviewSummary() {
+      reviewSummary.innerHTML = '';
+      Object.keys(reviewFields).forEach(function (stepKey) {
+        const card = document.createElement('article');
+        card.className = 'review-card';
+        const head = document.createElement('div');
+        head.className = 'review-card-head';
+        head.innerHTML = '<h3>Step ' + stepKey + ': ' + stepLabels[stepKey] + '</h3>';
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.textContent = 'Edit Step';
+        edit.addEventListener('click', function () { showStep(Number(stepKey)); });
+        head.appendChild(edit);
+        const dl = document.createElement('dl');
+        reviewFields[stepKey].forEach(function (name) {
+          const dt = document.createElement('dt');
+          const dd = document.createElement('dd');
+          dt.textContent = fieldLabel(name);
+          dd.textContent = name === 'extra_documents' ? selectedExtraDocumentsText() : selectedText(getField(name));
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        });
+        card.appendChild(head);
+        card.appendChild(dl);
+        reviewSummary.appendChild(card);
+      });
+    }
+
+    function saveDraft() {
+      const data = {};
+      Array.from(form.elements).forEach(function (field) {
+        if (!field.name || field.type === 'file' || field.type === 'password' || field.name === 'csrfmiddlewaretoken') return;
+        if (field.name.indexOf('extra_document_') === 0) return;
+        if (field.type === 'radio') {
+          if (field.checked) data[field.name] = field.value;
+          return;
+        }
+        if (field.type === 'checkbox') {
+          data[field.name] = field.checked;
+          return;
+        }
+        if (field.tagName === 'SELECT' && field.multiple) {
+          data[field.name] = Array.from(field.selectedOptions).map(function (option) { return option.value; });
+          return;
+        }
+        data[field.name] = field.value;
+      });
+      localStorage.setItem(draftKey, JSON.stringify(data));
+      showToast('Draft saved on this browser.');
+    }
+
+    function loadDraft() {
+      let data = {};
+      try {
+        data = JSON.parse(localStorage.getItem(draftKey) || '{}');
+      } catch (error) {
+        data = {};
+      }
+      Object.keys(data).forEach(function (name) {
+        const field = getField(name);
+        if (!field) return;
+        if (field instanceof RadioNodeList) {
+          Array.from(field).forEach(function (item) { item.checked = item.value === data[name]; });
+          return;
+        }
+        if (field.type === 'checkbox') {
+          field.checked = Boolean(data[name]);
+          return;
+        }
+        if (field.tagName === 'SELECT' && field.multiple && Array.isArray(data[name])) {
+          Array.from(field.options).forEach(function (option) { option.selected = data[name].includes(option.value); });
+          return;
+        }
+        if (field.type !== 'file' && field.type !== 'password') field.value = data[name];
+      });
+    }
+
+    function updateFilePreview(field) {
+      const preview = document.querySelector('[data-file-preview="' + field.name + '"]');
+      if (!preview) return;
+      if (!field.files.length) {
+        preview.textContent = '';
+        return;
+      }
+      preview.textContent = Array.from(field.files).map(function (file) {
+        return file.name + ' (' + Math.ceil(file.size / 1024) + ' KB)';
+      }).join(', ');
+    }
+
+    function updateExtraDocumentPreview(field) {
+      const row = field.closest('.extra-document-row');
+      const preview = row ? row.querySelector('[data-extra-document-preview]') : null;
+      if (!preview) return;
+      if (!field.files.length) {
+        preview.textContent = '';
+        return;
+      }
+      preview.textContent = Array.from(field.files).map(function (file) {
+        return file.name + ' (' + Math.ceil(file.size / 1024) + ' KB)';
+      }).join(', ');
+    }
+
+    function setExtraDocumentRowError(row, message) {
+      if (!row) return;
+      row.classList.toggle('has-error', Boolean(message));
+      const error = row.querySelector('[data-extra-document-error]');
+      if (error) error.textContent = message || '';
+    }
+
+    function addExtraDocumentRow() {
+      if (!extraDocumentsList) return;
+      extraDocumentCounter += 1;
+      const index = 'row_' + extraDocumentCounter;
+      const row = document.createElement('div');
+      row.className = 'extra-document-row';
+      row.dataset.extraDocumentRow = index;
+      row.innerHTML = [
+        '<input type="hidden" name="extra_document_indexes" value="' + index + '">',
+        '<div>',
+        '<input type="text" name="extra_document_name_' + index + '" placeholder="Document name" data-extra-document-name>',
+        '<small class="field-help">Example: FSSAI License, MSME Certificate</small>',
+        '</div>',
+        '<div>',
+        '<input type="file" name="extra_document_file_' + index + '" accept=".jpg,.jpeg,.png,.pdf" data-extra-document-file>',
+        '<small class="file-preview" data-extra-document-preview></small>',
+        '<small class="client-error" data-extra-document-error></small>',
+        '</div>',
+        '<button type="button" class="extra-document-remove" aria-label="Remove extra document"><i class="fa-solid fa-trash"></i></button>'
+      ].join('');
+      row.querySelector('.extra-document-remove').addEventListener('click', function () {
+        row.remove();
+      });
+      row.querySelector('[data-extra-document-file]').addEventListener('change', function (event) {
+        updateExtraDocumentPreview(event.target);
+        setExtraDocumentRowError(row, '');
+      });
+      row.querySelector('[data-extra-document-name]').addEventListener('input', function () {
+        setExtraDocumentRowError(row, '');
+      });
+      extraDocumentsList.appendChild(row);
+    }
+
+    function validateExtraDocuments() {
+      let isValid = true;
+      const rows = Array.from(document.querySelectorAll('[data-extra-document-row]'));
+      rows.forEach(function (row) {
+        const name = row.querySelector('[data-extra-document-name]');
+        const file = row.querySelector('[data-extra-document-file]');
+        const hasName = name && name.value.trim();
+        const hasFile = file && file.files.length;
+        let message = '';
+        if (hasFile && !hasName) message = 'Document name is required for this file.';
+        if (!message && hasName && !hasFile) message = 'Upload a file for this document.';
+        if (!message && hasFile) {
+          Array.from(file.files).forEach(function (uploadedFile) {
+            const extension = fileExtension(uploadedFile);
+            if (!allowedExtensions.includes(extension)) message = 'Allowed file format: JPG, JPEG, PNG, PDF.';
+            if (uploadedFile.size > maxFileSize) message = 'Maximum file size is 5 MB.';
+          });
+        }
+        setExtraDocumentRowError(row, message);
+        if (message) isValid = false;
+      });
+      return isValid;
+    }
+
+    function selectedExtraDocumentsText() {
+      const labels = [];
+      document.querySelectorAll('[data-extra-document-row]').forEach(function (row) {
+        const name = row.querySelector('[data-extra-document-name]');
+        const file = row.querySelector('[data-extra-document-file]');
+        if (name && name.value.trim() && file && file.files.length) {
+          labels.push(name.value.trim() + ': ' + Array.from(file.files).map(function (item) { return item.name; }).join(', '));
+        }
+      });
+      return labels.length ? labels.join('; ') : 'Not uploaded';
+    }
+
+    function toggleGstFields() {
+      const gstAvailable = getField('gst_available');
+      const enabled = gstAvailable && Array.from(gstAvailable).some(function (item) { return item.checked && item.value === 'yes'; });
+      document.querySelectorAll('[data-gst-dependent]').forEach(function (wrap) {
+        wrap.hidden = !enabled;
+        Array.from(wrap.querySelectorAll('input, select, textarea')).forEach(function (field) {
+          field.required = enabled && field.name !== 'business_registration_certificate';
+          if (!enabled) {
+            field.value = '';
+            setFieldError(field, '');
+          }
+        });
+      });
+    }
+
+    function syncOwnerAddress() {
+      const same = getField('pickup_same_as_owner');
+      const ownerAddress = getField('owner_address');
+      const pickupLine = getField('pickup_address_line1');
+      if (same && same.checked && ownerAddress && pickupLine) pickupLine.value = ownerAddress.value;
+    }
+
+    navButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        const targetStep = Number(button.dataset.goStep);
+        if (targetStep > currentStep) {
+          for (let step = currentStep; step < targetStep; step += 1) {
+            if (!validateStep(step)) {
+              showStep(step);
+              return;
+            }
+          }
+        }
+        showStep(targetStep);
+      });
+    });
+
+    prevBtn.addEventListener('click', function () { showStep(currentStep - 1); });
+    nextBtn.addEventListener('click', function () {
+      if (!validateStep(currentStep)) return;
+      showStep(currentStep + 1);
+    });
+    if (saveDraftBtn) saveDraftBtn.addEventListener('click', saveDraft);
+
+    form.addEventListener('change', function (event) {
+      if (event.target.matches('[data-extra-document-file]')) updateExtraDocumentPreview(event.target);
+      else if (event.target.type === 'file') updateFilePreview(event.target);
+      if (event.target.name === 'gst_available') toggleGstFields();
+      if (event.target.name === 'pickup_same_as_owner') syncOwnerAddress();
+      if (event.target.name === 'email') resetEmailVerificationIfNeeded();
+      if (event.target.name) setFieldError(event.target, '');
+    });
+
+    form.addEventListener('input', function (event) {
+      if (event.target.name) setFieldError(event.target, '');
+      if (event.target.name === 'email') resetEmailVerificationIfNeeded();
+      if (event.target === otpInput) otpInput.value = otpInput.value.replace(/\D/g, '').slice(0, 6);
+      if (event.target.name === 'owner_address') syncOwnerAddress();
+    });
+
+    form.addEventListener('submit', function (event) {
+      if (submitting) {
+        event.preventDefault();
+        return;
+      }
+      if (currentStep !== 10) {
+        event.preventDefault();
+        if (validateStep(currentStep)) showStep(currentStep + 1);
+        return;
+      }
+      for (let step = 1; step <= 9; step += 1) {
+        if (!validateStep(step)) {
+          event.preventDefault();
+          showStep(step);
+          return;
+        }
+      }
+      submitting = true;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+      localStorage.removeItem(draftKey);
+    });
+
+    if (sendOtpBtn) sendOtpBtn.addEventListener('click', function () { requestSellerOtp(sendOtpBtn); });
+    if (resendOtpBtn) resendOtpBtn.addEventListener('click', function () { requestSellerOtp(resendOtpBtn); });
+    if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', verifySellerOtp);
+    if (otpInput) {
+      otpInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          verifySellerOtp();
+        }
+      });
+    }
+    if (addExtraDocumentBtn) addExtraDocumentBtn.addEventListener('click', addExtraDocumentRow);
+
+    if (form.dataset.hasErrors !== '1') loadDraft();
+    addExtraDocumentRow();
+    toggleGstFields();
+    resetEmailVerificationIfNeeded();
+    updateEmailVerificationUi();
+    showStep(currentStep);
+
+    {% for field in form %}
+      {% if field.errors %}
+        (function () {
+          const field = getField('{{ field.name }}');
+          if (field) {
+            const element = field instanceof RadioNodeList ? field[0] : field;
+            const panel = element.closest('.wizard-step');
+            if (panel) showStep(Number(panel.dataset.step));
+          }
+        })();
+      {% endif %}
+    {% endfor %}
+    {% if form.extra_documents.errors %}
+      showStep(8);
+    {% endif %}
+  })();
+</script>
+{% endblock %}

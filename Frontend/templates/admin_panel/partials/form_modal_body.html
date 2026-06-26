@@ -1,0 +1,124 @@
+<div class="admin-form-modal-body" data-admin-form-modal-body>
+  <div class="admin-form-modal-head">
+    <div>
+      <h2 id="admin-form-modal-title">{{ title }}</h2>
+      <p>{{ subtitle }}</p>
+    </div>
+    <button type="button" class="stock-modal-close" data-admin-form-modal-close aria-label="Close form dialog">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+
+  {% if form.gallery_existing %}
+    <div class="admin-gallery-preview">
+      <div>
+        <h3>Current Product Gallery</h3>
+        <p>These photos will show inside the product detail page.</p>
+      </div>
+      <div class="admin-gallery-grid">
+        {% for photo in form.gallery_existing %}
+          <figure class="admin-gallery-card">
+            <img src="{{ photo.image_source }}" alt="{{ photo.alt_text|default:'Product photo' }}">
+            <figcaption>Photo {{ forloop.counter }}</figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" class="stack-form admin-modal-stack-form" enctype="multipart/form-data" action="{{ request.path }}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="non-field-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% if form.admin_fieldsets %}
+      {% for fieldset in form.admin_fieldsets %}
+        <section class="admin-form-section">
+          <div class="admin-form-section-head">
+            <h3>{{ fieldset.title }}</h3>
+            {% if fieldset.description %}<p>{{ fieldset.description }}</p>{% endif %}
+          </div>
+          <div class="admin-form-grid">
+            {% for field in fieldset.fields %}
+              <div class="admin-form-field {% if field.errors %}has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} checkbox-field{% endif %}">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                  <label class="admin-checkbox-row">{{ field }}<span>{{ field.label }}</span></label>
+                {% else %}
+                  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span>*</span>{% endif %}</label>
+                  {{ field }}
+                {% endif %}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      {% with excluded_fields=form.product_quantity_field_names|default:'' %}
+        {% for field in form %}
+          {% if field.name not in excluded_fields %}
+            <div class="admin-form-field {% if field.errors %}has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} checkbox-field{% endif %}">
+              {% if field.field.widget.input_type == 'checkbox' %}
+                <label class="admin-checkbox-row">{{ field }}<span>{{ field.label }}</span></label>
+              {% else %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span>*</span>{% endif %}</label>
+                {{ field }}
+              {% endif %}
+              {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% endwith %}
+    {% endif %}
+
+    {% if form.supports_extra_document_rows %}
+      <section class="admin-form-section admin-extra-documents" data-admin-extra-documents>
+        <div class="admin-form-section-head split">
+          <div>
+            <h3>Extra Documents</h3>
+            <p>Optional. Add multiple documents with a document name and JPG, PNG, or PDF file.</p>
+          </div>
+          <button type="button" class="btn-ghost" data-admin-add-extra-document>Add Document</button>
+        </div>
+        <div class="admin-extra-document-list" data-admin-extra-document-list></div>
+        {% if form.extra_documents.errors %}{{ form.extra_documents.errors }}{% endif %}
+      </section>
+    {% endif %}
+
+    {% if form.quantity_rows %}
+      <section class="quantity-form-panel">
+        <div class="quantity-form-head">
+          <h3>Quantity Options</h3>
+          <p>Add selectable packs such as 100Gm, 200Gm, 500Gm. Each option can have its own price, stock, SKU, and photo.</p>
+        </div>
+        <div class="quantity-form-grid">
+          {% for row in form.quantity_rows %}
+            <article class="quantity-form-card">
+              <h4>Option {{ row.index }}</h4>
+              {% if row.existing and row.existing.image_source %}
+                <img src="{{ row.existing.image_source }}" alt="{{ row.existing.label }}" class="quantity-form-photo">
+              {% endif %}
+              <label>{{ row.label.label }}{{ row.label }}{{ row.label.errors }}</label>
+              <label>{{ row.price.label }}{{ row.price }}{{ row.price.errors }}</label>
+              <label>{{ row.original_price.label }}{{ row.original_price }}{{ row.original_price.errors }}</label>
+              <label>{{ row.stock.label }}{{ row.stock }}{{ row.stock.errors }}</label>
+              <label>{{ row.sku.label }}{{ row.sku }}{{ row.sku.errors }}</label>
+              <label>{{ row.image.label }}{{ row.image }}{{ row.image.errors }}</label>
+              {% if row.remove %}
+                <label class="quantity-remove-row">{{ row.remove }} <span>{{ row.remove.label }}</span>{{ row.remove.errors }}</label>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="button-row">
+      <button type="submit" class="btn-inline" data-submit-label="Saving...">Save</button>
+      <button type="button" class="btn-ghost" data-admin-form-modal-close>Cancel</button>
+    </div>
+  </form>
+</div>

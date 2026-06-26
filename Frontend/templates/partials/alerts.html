@@ -1,0 +1,7 @@
+{% if messages %}
+  <section class="container flash-wrap" style="padding: 10px 40px;">
+    {% for message in messages %}
+      <div class="flash {{ message.tags }}" style="background: #e9f8ef; border: 1px solid #c9dfd4; color: #185a36; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;">{{ message }}</div>
+    {% endfor %}
+  </section>
+{% endif %}

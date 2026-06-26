@@ -1,0 +1,88 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ sub_category.name }}</h1>
+    <p>Sub category detail, parent category, products, and creation date.</p>
+  </div>
+  <div class="button-row">
+    <a href="{% url 'admin-subcategory-edit' sub_category.pk %}" class="btn-inline">Edit</a>
+    <a href="{% url 'admin-subcategories' %}" class="btn-ghost">Back</a>
+  </div>
+</section>
+
+<section class="admin-product-detail-grid">
+  <article class="admin-product-media">
+    <div class="admin-product-main-photo">
+      {% if sub_category.image_source %}
+        <img src="{{ sub_category.image_source }}" alt="{{ sub_category.name }}">
+      {% else %}
+        <span>No photo</span>
+      {% endif %}
+    </div>
+  </article>
+
+  <article class="settings-card">
+    <div class="settings-card-head">
+      <span class="settings-icon"><i class="fas fa-sitemap"></i></span>
+      <div>
+        <h2>Sub Category Summary</h2>
+        <p>{{ sub_category.category.name }}</p>
+      </div>
+    </div>
+    <div class="settings-meta">
+      <div><span>Sub Category Image</span><strong>{% if sub_category.image_source %}Uploaded{% else %}Not uploaded{% endif %}</strong></div>
+      <div><span>Parent Category</span><strong>{{ sub_category.category.name }}</strong></div>
+      <div><span>Total Products</span><strong>{{ product_total }}</strong></div>
+      <div><span>Created Date</span><strong>{{ sub_category.created_at|date:'d M Y' }}</strong></div>
+      <div><span>Status</span><strong>{% if sub_category.is_active %}Active{% else %}Hidden{% endif %}</strong></div>
+    </div>
+  </article>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head">
+    <div>
+      <h2>Product List</h2>
+      <p>Products connected to this sub category.</p>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Product ID</th>
+        <th>Image</th>
+        <th>Product Name</th>
+        <th>Seller</th>
+        <th>Company</th>
+        <th>Price</th>
+        <th>Stock</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in products %}
+        <tr>
+          <td>{{ item.product_id }}</td>
+          <td>
+            <span class="table-thumb">
+              {% if item.image_source %}
+                <img src="{{ item.image_source }}" alt="{{ item.name }}">
+              {% endif %}
+            </span>
+          </td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.owner_label }}</td>
+          <td>{{ item.brand_name|default:'Lexvers' }}</td>
+          <td>Rs. {{ item.price }}</td>
+          <td><span class="stock-pill {{ item.stock_state }}">{{ item.stock }}</span></td>
+          <td>{% if item.is_active %}<span class="table-state success">Active</span>{% else %}<span class="table-state danger">Hidden</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No products found for this sub category.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

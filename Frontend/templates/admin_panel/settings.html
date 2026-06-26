@@ -1,0 +1,448 @@
+{% extends 'layouts/admin_base.html' %}
+{% load static %}
+
+{% block extra_admin_head %}
+  <link rel="stylesheet" href="{% static 'css/admin_panel/admin_profile.css' %}">
+{% endblock %}
+
+{% block admin_content %}
+<section class="admin-profile-page" data-admin-profile-page data-initial-tab="{{ active_tab|default:'profile' }}">
+  <header class="profile-cover">
+    <div class="profile-cover-content">
+      <span class="profile-cover-kicker"><i class="fas fa-shield-halved"></i> My Profile</span>
+      <h1>{{ request.user.get_full_name|default:request.user.username }}</h1>
+      <p>{{ request.user.email|default:'Email not configured' }}</p>
+      <div class="profile-cover-pills">
+        <span>{% if request.user.is_superuser %}Superuser{% else %}Staff Admin{% endif %}</span>
+        <span>{% if request.user.is_active %}Active{% else %}Inactive{% endif %}</span>
+        <span>Joined {{ request.user.date_joined|date:'d M Y' }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="profile-layout">
+    <aside class="profile-rail">
+      <article class="profile-identity-card">
+        <div class="profile-photo-wrap">
+          {% if profile.profile_photo_source %}
+            <img src="{{ profile.profile_photo_source }}" alt="{{ request.user.get_full_name|default:request.user.username }} profile photo">
+          {% else %}
+            <span>{{ request.user.first_name|default:request.user.username|slice:':1'|upper }}</span>
+          {% endif %}
+          <button type="button" class="profile-photo-action" data-tab-open="account" data-click-field="{{ media_form.profile_photo.id_for_label }}" aria-label="Upload profile photo">
+            <i class="fas fa-camera"></i>
+          </button>
+        </div>
+        <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+        <p>{{ profile.phone|default:'Phone not added' }}</p>
+       
+        </button>
+      </article>
+
+      <article class="profile-doc-card">
+        <div class="profile-card-head">
+          <div>
+            <h3>Uploaded Documents</h3>
+            <p>{{ documents|length }} file{{ documents|length|pluralize }} stored</p>
+          </div>
+          <button type="button" class="profile-icon-action primary" data-tab-open="documents" data-click-field="{{ document_form.document.id_for_label }}" aria-label="Upload new document">
+            <i class="fas fa-upload"></i>
+          </button>
+        </div>
+
+        <div class="profile-doc-list compact">
+          {% for document in documents|slice:':4' %}
+            <div class="profile-doc-row">
+              <div class="profile-doc-main">
+                <span class="profile-doc-icon"><i class="fas fa-file-lines"></i></span>
+                <div>
+                  <strong>{{ document.name }}</strong>
+                  <small>{{ document.file_name }}</small>
+                </div>
+              </div>
+              <div class="profile-doc-actions">
+                <a href="{% url 'admin-document-download' document.pk %}" target="_blank" class="profile-icon-action" aria-label="View {{ document.name }}">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'admin-document-download' document.pk %}?download=1" class="profile-icon-action" aria-label="Download {{ document.name }}">
+                  <i class="fas fa-download"></i>
+                </a>
+                <form method="post" data-confirm-form data-confirm-message="Delete this important document?">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_document">
+                  <input type="hidden" name="document_id" value="{{ document.pk }}">
+                  <button type="submit" class="profile-icon-action danger" aria-label="Delete {{ document.name }}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% empty %}
+            <div class="profile-empty-state small">
+              <i class="fas fa-folder-open"></i>
+              <strong>No documents uploaded yet.</strong>
+              <span>Upload files from the Documents tab.</span>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="profile-secondary-action" data-tab-open="documents" data-click-field="{{ document_form.document.id_for_label }}">
+          <i class="fas fa-plus"></i>
+          Upload New
+        </button>
+      </article>
+    </aside>
+
+    <main class="profile-workspace">
+      <nav class="profile-tabs" aria-label="Profile settings tabs">
+        <button type="button" class="profile-tab" data-profile-tab="profile"><i class="fas fa-user"></i> Profile</button>
+        <button type="button" class="profile-tab" data-profile-tab="account"><i class="fas fa-gear"></i> Account Settings</button>
+        <button type="button" class="profile-tab" data-profile-tab="security"><i class="fas fa-lock"></i> Security</button>
+        <button type="button" class="profile-tab" data-profile-tab="notifications"><i class="fas fa-bell"></i> Notifications</button>
+        <button type="button" class="profile-tab" data-profile-tab="documents"><i class="fas fa-folder"></i> Documents</button>
+      </nav>
+
+      <section class="profile-panel is-active" data-profile-panel="profile">
+        <div class="profile-panel-head">
+          <div>
+            <span>Overview</span>
+            <h2>Admin details</h2>
+          </div>
+          <button type="button" class="profile-outline-action" data-tab-open="account">
+            <i class="fas fa-pen"></i>
+            Edit Profile
+          </button>
+        </div>
+
+        <div class="profile-detail-table">
+          <div class="profile-detail-row">
+            <span>Name</span>
+            <strong>{{ request.user.get_full_name|default:'Not set' }}</strong>
+            <button type="button" data-tab-open="account" data-focus-field="{{ profile_form.name.id_for_label }}" aria-label="Edit name"><i class="fas fa-pen"></i></button>
+          </div>
+          <div class="profile-detail-row">
+            <span>Email</span>
+            <strong>{{ request.user.email|default:'Not set' }}</strong>
+            <button type="button" data-tab-open="account" data-focus-field="{{ profile_form.email.id_for_label }}" aria-label="Edit email"><i class="fas fa-pen"></i></button>
+          </div>
+          <div class="profile-detail-row">
+            <span>Phone</span>
+            <strong>{{ profile.phone|default:'Not set' }}</strong>
+            <button type="button" data-tab-open="account" data-focus-field="{{ profile_form.phone.id_for_label }}" aria-label="Edit phone"><i class="fas fa-pen"></i></button>
+          </div>
+          <div class="profile-detail-row">
+            <span>Role</span>
+            <strong>{% if request.user.is_superuser %}Superuser{% else %}Staff Admin{% endif %}</strong>
+          </div>
+          <div class="profile-detail-row">
+            <span>Address</span>
+            <strong>Not configured</strong>
+          </div>
+          <div class="profile-detail-row">
+            <span>Date Joined</span>
+            <strong>{{ request.user.date_joined|date:'d M Y, h:i A' }}</strong>
+          </div>
+          <div class="profile-detail-row">
+            <span>Last Login</span>
+            <strong>{{ request.user.last_login|date:'d M Y, h:i A'|default:'Not available' }}</strong>
+          </div>
+          <div class="profile-detail-row">
+            <span>Status</span>
+            <strong class="profile-status {% if request.user.is_active %}active{% else %}inactive{% endif %}">
+              {% if request.user.is_active %}Active{% else %}Inactive{% endif %}
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="profile-panel" data-profile-panel="account">
+        <div class="profile-panel-head">
+          <div>
+            <span>Account</span>
+            <h2>Profile and media</h2>
+          </div>
+        </div>
+
+        <div class="profile-form-grid">
+          <form method="post" class="profile-form-card">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="profile">
+            <div class="profile-form-head">
+              <i class="fas fa-id-card"></i>
+              <div>
+                <h3>Profile Details</h3>
+                <p>Update your name, email, phone, and date of birth.</p>
+              </div>
+            </div>
+            {% if profile_form.non_field_errors %}<div class="profile-form-errors">{{ profile_form.non_field_errors }}</div>{% endif %}
+            {% for field in profile_form %}
+              <label class="profile-field" for="{{ field.id_for_label }}">
+                <span>{{ field.label }}{% if field.field.required %} <b>*</b>{% endif %}</span>
+                {{ field }}
+                {{ field.errors }}
+              </label>
+            {% endfor %}
+            <div class="profile-form-actions">
+              <button type="button" class="profile-secondary-action" data-tab-open="profile">Cancel</button>
+              <button type="submit" class="profile-primary-action" data-submit-label="Saving...">Save Changes</button>
+            </div>
+          </form>
+
+          <form method="post" enctype="multipart/form-data" class="profile-form-card">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="media">
+            <div class="profile-form-head">
+              <i class="fas fa-image"></i>
+              <div>
+                <h3>Profile Media</h3>
+                <p>Upload profile photo and admin logo assets.</p>
+              </div>
+            </div>
+            <div class="profile-media-preview">
+              <figure>
+                {% if profile.profile_photo_source %}
+                  <img src="{{ profile.profile_photo_source }}" alt="Profile photo preview" data-profile-preview="profile_photo">
+                {% else %}
+                  <span data-profile-preview-placeholder="profile_photo">No photo</span>
+                {% endif %}
+                <figcaption>Profile photo</figcaption>
+              </figure>
+              <figure>
+                {% if profile.logo_source %}
+                  <img src="{{ profile.logo_source }}" alt="Logo preview" data-profile-preview="logo">
+                {% else %}
+                  <span data-profile-preview-placeholder="logo">No logo</span>
+                {% endif %}
+                <figcaption>Admin logo</figcaption>
+              </figure>
+            </div>
+            {% if media_form.non_field_errors %}<div class="profile-form-errors">{{ media_form.non_field_errors }}</div>{% endif %}
+            {% for field in media_form %}
+              <label class="profile-field" for="{{ field.id_for_label }}">
+                <span>{{ field.label }}</span>
+                {{ field }}
+                {{ field.errors }}
+              </label>
+            {% endfor %}
+            
+            <div class="profile-form-actions">
+              <button type="submit" class="profile-primary-action" data-submit-label="Saving...">Save Media</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="profile-panel" data-profile-panel="security">
+        <div class="profile-panel-head">
+          <div>
+            <span>Security</span>
+            <h2>Password and login activity</h2>
+          </div>
+        </div>
+
+        <div class="profile-form-grid">
+          <form method="post" class="profile-form-card">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="password">
+            <div class="profile-form-head">
+              <i class="fas fa-key"></i>
+              <div>
+                <h3>Change Password</h3>
+                <p>Use a strong password to protect admin access.</p>
+              </div>
+            </div>
+            {% if password_form.non_field_errors %}<div class="profile-form-errors">{{ password_form.non_field_errors }}</div>{% endif %}
+            {% for field in password_form %}
+              <label class="profile-field" for="{{ field.id_for_label }}">
+                <span>{{ field.label }}{% if field.field.required %} <b>*</b>{% endif %}</span>
+                {{ field }}
+                {{ field.errors }}
+              </label>
+            {% endfor %}
+            <div class="profile-form-actions">
+              <button type="submit" class="profile-primary-action" data-submit-label="Updating...">Update Password</button>
+            </div>
+          </form>
+
+          <article class="profile-form-card">
+            <div class="profile-form-head">
+              <i class="fas fa-clock-rotate-left"></i>
+              <div>
+                <h3>Login Activity</h3>
+                <p>Current session details from this request.</p>
+              </div>
+            </div>
+            <div class="profile-security-list">
+              <div><span>Last Seen</span><strong>{{ profile.last_seen_at|date:'d M Y, h:i A'|default:'Not available' }}</strong></div>
+              <div><span>IP Address</span><strong>{{ current_session.ip_address }}</strong></div>
+              <div><span>Session Key</span><strong>{{ current_session.session_key }}</strong></div>
+              <div><span>Browser / Device</span><strong>{{ current_session.user_agent|truncatechars:80 }}</strong></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="profile-panel" data-profile-panel="notifications">
+        <div class="profile-panel-head">
+          <div>
+            <span>Notifications</span>
+            <h2>Admin notification preferences</h2>
+          </div>
+          <a href="{% url 'admin-section' 'notification-management' 'push-notifications' %}" class="profile-outline-action">
+            <i class="fas fa-paper-plane"></i>
+            Manage Notifications
+          </a>
+        </div>
+        <div class="profile-notification-grid">
+          <article>
+            <i class="fas fa-envelope"></i>
+            <span>Email destination</span>
+            <strong>{{ request.user.email|default:'Not configured' }}</strong>
+          </article>
+          <article>
+            <i class="fas fa-bell"></i>
+            <span>Admin bell</span>
+            <strong>Order alerts shown in header</strong>
+          </article>
+          <article>
+            <i class="fas fa-shield-halved"></i>
+            <span>Security messages</span>
+            <strong>Django messages enabled</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="profile-panel" data-profile-panel="documents">
+        <div class="profile-panel-head">
+          <div>
+            <span>Documents</span>
+            <h2>Uploaded documents</h2>
+          </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="profile-upload-strip">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="document">
+          {% if document_form.non_field_errors %}<div class="profile-form-errors">{{ document_form.non_field_errors }}</div>{% endif %}
+          {% for field in document_form %}
+            <label class="profile-field" for="{{ field.id_for_label }}">
+              <span>{{ field.label }}{% if field.field.required %} <b>*</b>{% endif %}</span>
+              {{ field }}
+              {{ field.errors }}
+            </label>
+          {% endfor %}
+          <button type="submit" class="profile-primary-action" data-submit-label="Uploading...">
+            <i class="fas fa-upload"></i>
+            Upload New
+          </button>
+        </form>
+
+        <div class="profile-doc-list full">
+          {% for document in documents %}
+            <div class="profile-doc-row">
+              <div class="profile-doc-main">
+                <span class="profile-doc-icon"><i class="fas fa-file-lines"></i></span>
+                <div>
+                  <strong>{{ document.name }}</strong>
+                  <small>{{ document.file_name }} - Uploaded {{ document.created_at|date:'d M Y' }}</small>
+                </div>
+              </div>
+              <div class="profile-doc-actions">
+                <a href="{% url 'admin-document-download' document.pk %}" target="_blank" class="profile-icon-action" aria-label="View {{ document.name }}">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'admin-document-download' document.pk %}?download=1" class="profile-icon-action" aria-label="Download {{ document.name }}">
+                  <i class="fas fa-download"></i>
+                </a>
+                <form method="post" data-confirm-form data-confirm-message="Delete this important document?">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_document">
+                  <input type="hidden" name="document_id" value="{{ document.pk }}">
+                  <button type="submit" class="profile-icon-action danger" aria-label="Delete {{ document.name }}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% empty %}
+            <div class="profile-empty-state">
+              <i class="fas fa-folder-open"></i>
+              <strong>No documents uploaded yet.</strong>
+              <span>Upload your first admin-only document using the form above.</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const page = document.querySelector('[data-admin-profile-page]');
+    if (!page) return;
+
+    const tabs = Array.from(page.querySelectorAll('[data-profile-tab]'));
+    const panels = Array.from(page.querySelectorAll('[data-profile-panel]'));
+
+    function activateTab(name) {
+      const target = name || 'profile';
+      tabs.forEach(function (tab) {
+        tab.classList.toggle('is-active', tab.dataset.profileTab === target);
+      });
+      panels.forEach(function (panel) {
+        panel.classList.toggle('is-active', panel.dataset.profilePanel === target);
+      });
+      if (window.history && window.history.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', target);
+        window.history.replaceState(null, '', url.toString());
+      }
+    }
+
+    function focusField(fieldId, clickField) {
+      const clickTarget = clickField ? document.getElementById(clickField) : null;
+      if (clickTarget) clickTarget.click();
+      window.setTimeout(function () {
+        const focusTarget = fieldId ? document.getElementById(fieldId) : null;
+        if (focusTarget) {
+          focusTarget.focus({ preventScroll: false });
+          focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 120);
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        activateTab(tab.dataset.profileTab);
+      });
+    });
+
+    page.querySelectorAll('[data-tab-open]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        activateTab(button.dataset.tabOpen);
+        focusField(button.dataset.focusField, button.dataset.clickField);
+      });
+    });
+
+    page.querySelectorAll('input[type="file"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        const fileName = input.files && input.files.length ? input.files[0].name : '';
+        if (fileName) input.dataset.selectedFile = fileName;
+      });
+    });
+
+    page.querySelectorAll('form').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        const submitButton = form.querySelector('button[type="submit"][data-submit-label]');
+        if (!submitButton) return;
+        submitButton.dataset.originalLabel = submitButton.innerHTML;
+        submitButton.innerHTML = submitButton.dataset.submitLabel;
+        submitButton.disabled = true;
+      });
+    });
+
+    activateTab(page.dataset.initialTab || 'profile');
+  });
+</script>
+{% endblock %}

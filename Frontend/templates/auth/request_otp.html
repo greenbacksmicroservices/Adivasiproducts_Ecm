@@ -1,0 +1,64 @@
+{% extends 'layouts/auth_base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/auth/otp.css' %}">
+  <style>
+    .site-header,
+    .site-footer,
+    .flash-wrap {
+      display: none !important;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<section class="otp-shell">
+  <article class="otp-card">
+    <div class="otp-icon"><i class="{{ icon_class|default:'fa-solid fa-envelope-open-text' }}"></i></div>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+
+    <form method="post" class="otp-form" data-loading-form>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="otp-alert error">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% if info_message %}
+        <div class="otp-alert">{{ info_message }}</div>
+      {% endif %}
+
+      <div>
+        <div class="otp-input-wrap">
+          {{ form.email }}
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        {{ form.email.errors }}
+      </div>
+
+      <button type="submit" class="otp-btn" data-loading-button>
+        <span class="otp-spinner"></span>
+        {{ button_label|default:'Send OTP' }}
+      </button>
+    </form>
+
+    <div class="otp-actions">
+      {% if secondary_url and secondary_label %}
+        <a href="{{ secondary_url }}" class="otp-link-btn ghost">{{ secondary_label }}</a>
+      {% endif %}
+      {% if back_url %}
+        <a href="{{ back_url }}" class="otp-link-btn secondary">Back</a>
+      {% endif %}
+    </div>
+  </article>
+</section>
+
+<div data-otp-toast-wrap></div>
+{% for message in messages %}
+  <span hidden data-otp-toast="{{ message }}" data-otp-toast-type="{% if 'error' in message.tags %}error{% else %}info{% endif %}"></span>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/auth/otp.js' %}"></script>
+{% endblock %}

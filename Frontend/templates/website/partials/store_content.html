@@ -1,0 +1,62 @@
+{% if is_top_deals %}
+  <section class="top-deals-section" id="products-anchor">
+    <div class="section-header top-deals-head">
+      <div>
+        <h2>Top Deals</h2>
+        <p>Category-wise fresh picks, with a quick More button for the full page.</p>
+      </div>
+      <span class="live-chip">Live: <b id="live-status">Connected</b></span>
+    </div>
+
+    {% include 'website/partials/recent_search_section.html' %}
+
+    <div class="deal-sections">
+      {% for section in home_sections %}
+        <section class="deal-row">
+          <div class="deal-row-head">
+            <div>
+              <h3>{{ section.category.name }}</h3>
+              <p>{{ section.category.description|default:'Handpicked products from this collection.' }}</p>
+            </div>
+            <a href="{% url 'store-category' section.category.slug %}?q={{ search_text|urlencode }}" class="more-link">
+              More <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="deal-row-grid">
+            {% for item in section.products %}
+              {% include 'products/partials/product_card.html' with item=item compact=True %}
+            {% endfor %}
+          </div>
+        </section>
+      {% empty %}
+        <div class="empty-products">
+          {% if search_text %}
+            <h3>No products found</h3>
+            <p>Try another search or browse Quick Shop categories.</p>
+          {% else %}
+            <h3>No products available yet</h3>
+            <p>Fresh products will appear here as soon as they are added.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% else %}
+  <section class="product-section" id="products-anchor">
+    <div class="section-header">
+      <div>
+        <h2>{{ current_category_label }} <span id="product-count">({{ products|length }} products)</span></h2>
+        {% if show_spice_filters %}
+          <p>{{ current_category_label }} Finder ke filter ke hisaab se products yahan update honge.</p>
+        {% else %}
+          <p>Available products with price, stock, and pack size.</p>
+        {% endif %}
+      </div>
+      <span class="live-chip">Live: <b id="live-status">Connected</b></span>
+    </div>
+    <div id="product-grid">
+      {% include 'products/partials/product_grid.html' with empty_products_message=empty_products_message %}
+    </div>
+  </section>
+{% endif %}

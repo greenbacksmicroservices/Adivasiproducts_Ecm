@@ -1,0 +1,82 @@
+{% extends 'layouts/auth_base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/auth/otp.css' %}">
+  <style>
+    .site-header,
+    .site-footer,
+    .flash-wrap {
+      display: none !important;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<section class="otp-shell">
+  <article class="otp-card" data-otp-card>
+    <div class="otp-icon"><i class="{{ icon_class|default:'fa-solid fa-shield-halved' }}"></i></div>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+    <div class="otp-email">{{ email }}</div>
+
+    <form method="post" action="{{ verify_url }}" class="otp-form" data-otp-form>
+      {% csrf_token %}
+      {% if error_message %}
+        <div class="otp-alert error">{{ error_message }}</div>
+      {% elif info_message %}
+        <div class="otp-alert">{{ info_message }}</div>
+      {% endif %}
+      {% if form.non_field_errors %}
+        <div class="otp-alert error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <input type="hidden" name="otp" data-otp-hidden value="{{ form.otp.value|default:'' }}">
+      <div class="otp-boxes" aria-label="Enter 6 digit OTP">
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" data-otp-box>
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+        <input class="otp-box" type="text" inputmode="numeric" maxlength="1" data-otp-box>
+      </div>
+      {{ form.otp.errors }}
+
+      <button type="submit" class="otp-btn" data-loading-button>
+        <span class="otp-spinner"></span>
+        {{ submit_label|default:'Verify OTP' }}
+      </button>
+    </form>
+
+    <div class="otp-resend-row">
+      <div class="otp-hint" id="otp-resend-hint"></div>
+      <form method="post" action="{{ resend_url }}" data-resend-form>
+        {% csrf_token %}
+        <button
+          type="submit"
+          class="otp-btn ghost"
+          data-resend-button
+          data-hint-target="#otp-resend-hint"
+          data-cooldown="{{ cooldown_seconds|default:0 }}"
+          data-original-text="Resend OTP"
+        >Resend OTP</button>
+      </form>
+    </div>
+
+    {% if back_url %}
+      <div class="otp-actions">
+        <a href="{{ back_url }}" class="otp-link-btn secondary">Back</a>
+      </div>
+    {% endif %}
+  </article>
+</section>
+
+<div data-otp-toast-wrap></div>
+{% for message in messages %}
+  <span hidden data-otp-toast="{{ message }}" data-otp-toast-type="{% if 'error' in message.tags %}error{% else %}info{% endif %}"></span>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/auth/otp.js' %}"></script>
+{% endblock %}

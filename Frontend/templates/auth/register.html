@@ -1,0 +1,397 @@
+{% extends 'layouts/auth_base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  .site-header,
+  .site-footer,
+  .flash-wrap {
+    display: none !important;
+  }
+
+  body {
+    background: #e0f2fe;
+    margin: 0;
+  }
+
+  main {
+    min-height: 100vh;
+  }
+
+  .login-screen {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    overflow: hidden;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    position: relative;
+  }
+
+  /* Falling Animation Container */
+  .falling-elements {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .falling-item {
+    position: absolute;
+    top: -10%;
+    font-size: 2.5rem;
+    animation: fall linear infinite;
+    opacity: 0.6;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    user-select: none;
+  }
+
+  @keyframes fall {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(115vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  /* Various positions and delays for random falling effect */
+  .falling-item:nth-child(1) { left: 5%; animation-duration: 15s; animation-delay: 0s; font-size: 3rem; }
+  .falling-item:nth-child(2) { left: 15%; animation-duration: 18s; animation-delay: -5s; font-size: 2rem; }
+  .falling-item:nth-child(3) { left: 25%; animation-duration: 12s; animation-delay: -2s; font-size: 3.5rem; }
+  .falling-item:nth-child(4) { left: 35%; animation-duration: 20s; animation-delay: -8s; font-size: 2.2rem; }
+  .falling-item:nth-child(5) { left: 45%; animation-duration: 14s; animation-delay: -3s; font-size: 3rem; }
+  .falling-item:nth-child(6) { left: 55%; animation-duration: 16s; animation-delay: -1s; font-size: 2.5rem; }
+  .falling-item:nth-child(7) { left: 65%; animation-duration: 22s; animation-delay: -10s; font-size: 3.2rem; }
+  .falling-item:nth-child(8) { left: 75%; animation-duration: 13s; animation-delay: -4s; font-size: 2.8rem; }
+  .falling-item:nth-child(9) { left: 85%; animation-duration: 19s; animation-delay: -7s; font-size: 2rem; }
+  .falling-item:nth-child(10) { left: 95%; animation-duration: 17s; animation-delay: -6s; font-size: 3.5rem; }
+  .falling-item:nth-child(11) { left: 10%; animation-duration: 21s; animation-delay: -12s; font-size: 2.6rem; }
+  .falling-item:nth-child(12) { left: 80%; animation-duration: 15s; animation-delay: -9s; font-size: 3.1rem; }
+
+
+  .login-panel {
+    width: min(450px, calc(100% - 36px));
+    padding: 42px 36px 34px;
+    border: 1.5px solid rgba(255, 255, 255, 0.8);
+    border-radius: 18px;
+    /* Light frosted glass */
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 8px 32px rgba(31, 38, 135, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    animation: loginFloat 0.75s ease both;
+    z-index: 5;
+    margin: 40px 0;
+  }
+
+  .login-panel h1 {
+    margin: 0 0 10px;
+    color: #1e293b;
+    font-size: 31px;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: -0.5px;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);
+    animation: slideUpFade 0.6s 0.1s both;
+  }
+
+  .auth-sub {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #475569;
+    font-weight: 500;
+    animation: slideUpFade 0.6s 0.2s both;
+  }
+
+  .login-form {
+    display: grid;
+    gap: 17px;
+  }
+
+  .login-form > div {
+    animation: slideUpFade 0.6s both;
+  }
+
+  /* Stagger animations for inputs */
+  .login-form > div:nth-child(2) { animation-delay: 0.3s; }
+  .login-form > div:nth-child(3) { animation-delay: 0.4s; }
+  .login-form > div:nth-child(4) { animation-delay: 0.5s; }
+  .login-form > div:nth-child(5) { animation-delay: 0.6s; }
+  .login-form > div:nth-child(6) { animation-delay: 0.7s; }
+  .login-form > div:nth-child(7) { animation-delay: 0.8s; }
+  .login-form > .login-submit { animation: slideUpFade 0.6s 0.9s both; }
+
+  .login-input-wrap {
+    position: relative;
+  }
+
+  .login-input-wrap i {
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    color: #64748b;
+    font-size: 15px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: color 0.3s ease;
+  }
+
+  .login-input-wrap .form-input {
+    width: 100%;
+    height: 47px;
+    padding: 0 46px 0 18px;
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.6);
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  .login-input-wrap input[type="file"].form-input {
+    padding: 10px 46px 10px 18px;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  .login-input-wrap input[type="file"]::file-selector-button {
+      border: none;
+      background: rgba(14, 165, 233, 0.15);
+      padding: 0 12px;
+      border-radius: 10px;
+      color: #0284c7;
+      cursor: pointer;
+      margin-right: 10px;
+      font-weight: 600;
+      transition: background 0.2s ease;
+  }
+
+  .login-input-wrap input[type="file"]::file-selector-button:hover {
+      background: rgba(14, 165, 233, 0.25);
+  }
+
+  .login-input-wrap .form-input::placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  .login-input-wrap .form-input:focus {
+    border-color: #38bdf8;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transform: scale(1.02);
+  }
+
+  .login-input-wrap .form-input:focus + i {
+    color: #0284c7;
+  }
+
+  .login-submit {
+    width: 100%;
+    height: 47px;
+    margin-top: 10px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(2, 132, 199, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .login-submit:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 14px 28px rgba(2, 132, 199, 0.3);
+  }
+
+  .login-register {
+    margin: 20px 0 0;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    animation: slideUpFade 0.6s 1s both;
+  }
+
+  .login-register a {
+    color: #0284c7;
+    text-decoration: none;
+    font-weight: 800;
+    position: relative;
+  }
+
+  .login-register a::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    transform: scaleX(0);
+    height: 2px;
+    bottom: -2px;
+    left: 0;
+    background-color: #0284c7;
+    transform-origin: bottom right;
+    transition: transform 0.25s ease-out;
+  }
+
+  .login-register a:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+  }
+
+  .login-errors,
+  .login-form .errorlist {
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 600;
+    list-style: none;
+  }
+
+  @keyframes loginFloat {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .login-screen {
+      padding: 0;
+    }
+
+    .login-panel {
+      width: min(340px, calc(100% - 28px));
+      margin: 40px 0;
+    }
+  }
+</style>
+
+<section class="login-screen">
+  
+  <div class="falling-elements">
+    <div class="falling-item">🌶️</div>
+    <div class="falling-item">🥻</div>
+    <div class="falling-item">🥘</div>
+    <div class="falling-item">🧵</div>
+    <div class="falling-item">🏺</div>
+    <div class="falling-item">🪔</div>
+    <div class="falling-item">🧺</div>
+    <div class="falling-item">🌿</div>
+    <div class="falling-item">🫚</div>
+    <div class="falling-item">🪻</div>
+    <div class="falling-item">🌿</div>
+    <div class="falling-item">🍛</div>
+    <div class="falling-item">👗</div>
+    <div class="falling-item">🧄</div>
+    <div class="falling-item">🍲</div>
+  </div>
+
+  <div class="login-panel">
+    <h1>Register</h1>
+    <p class="auth-sub">Join Lexvers in less than a minute.</p>
+    <form method="post" class="login-form" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="login-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.first_name }}
+          <i class="fa-solid fa-user"></i>
+        </div>
+        {{ form.first_name.errors }}
+      </div>
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.email }}
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        {{ form.email.errors }}
+      </div>
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.phone }}
+          <i class="fa-solid fa-phone"></i>
+        </div>
+        {{ form.phone.errors }}
+      </div>
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.photo }}
+          <i class="fa-solid fa-image"></i>
+        </div>
+        {{ form.photo.errors }}
+      </div>
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.password1 }}
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        {{ form.password1.errors }}
+      </div>
+
+      <div>
+        <div class="login-input-wrap">
+          {{ form.password2 }}
+          <i class="fa-solid fa-lock-open"></i>
+        </div>
+        {{ form.password2.errors }}
+      </div>
+
+      <button type="submit" class="login-submit">Send OTP</button>
+    </form>
+
+    <p class="login-register">
+      Already have an account? <a href="{% url 'login' %}">Login</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

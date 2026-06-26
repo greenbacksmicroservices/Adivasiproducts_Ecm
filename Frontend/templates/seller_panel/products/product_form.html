@@ -1,0 +1,30 @@
+{% extends 'layouts/seller_base.html' %}
+
+{% block seller_content %}
+  <div class="seller-page-heading">
+    <a href="{{ back_url|default:'#' }}" class="seller-small-link"><i class="fas fa-arrow-left"></i> Dashboard</a>
+    <div>
+      <h2>{{ title }}</h2>
+      {% if product %}
+        <p>{{ product.product_id }} | {{ product.get_approval_status_display }}</p>
+      {% else %}
+        <p>Create a polished product listing for the seller catalog.</p>
+      {% endif %}
+    </div>
+    {% if product %}
+      <a href="{% url 'seller-product-preview' product.pk %}" class="seller-small-link view"><i class="fas fa-eye"></i> View</a>
+    {% endif %}
+  </div>
+
+  <article class="seller-workspace seller-form-workspace">
+    <form method="post" enctype="multipart/form-data" class="seller-product-form seller-structured-form">
+      {% csrf_token %}
+      {% include 'seller_panel/partials/product_form_fields.html' with form=form %}
+
+      <div class="seller-form-actions">
+        <button type="submit" class="seller-btn"><i class="fas fa-floppy-disk"></i> {{ submit_label }}</button>
+        <a href="{{ back_url|default:'#' }}" class="seller-btn secondary">Cancel</a>
+      </div>
+    </form>
+  </article>
+{% endblock %}

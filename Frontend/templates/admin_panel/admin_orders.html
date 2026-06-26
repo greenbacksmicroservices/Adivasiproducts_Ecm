@@ -1,0 +1,101 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>Order Management</h1>
+    <p>Search, filter, review, and update all customer orders in one place.</p>
+  </div>
+  <div class="button-row">
+    <button type="button" class="btn-inline" data-admin-open-notifications>Notifications</button>
+  </div>
+</section>
+
+<section class="summary-grid">
+  <article class="summary-card c-blue"><i class="fas fa-bell"></i><span>New Orders</span><strong>{{ summary.new }}</strong></article>
+  <article class="summary-card c-orange"><i class="fas fa-box"></i><span>Packed</span><strong>{{ summary.packed }}</strong></article>
+  <article class="summary-card c-purple"><i class="fas fa-truck-fast"></i><span>Shipped</span><strong>{{ summary.shipped }}</strong></article>
+  <article class="summary-card c-green"><i class="fas fa-indian-rupee-sign"></i><span>Delivered Revenue</span><strong>Rs. {{ summary.revenue }}</strong></article>
+  <article class="summary-card c-red"><i class="fas fa-ban"></i><span>Cancelled</span><strong>{{ summary.cancelled }}</strong></article>
+  <article class="summary-card c-blue"><i class="fas fa-eye"></i><span>Unseen</span><strong data-admin-unread>{{ summary.unseen }}</strong></article>
+</section>
+
+<section class="panel-table-wrap">
+  <form method="get" class="order-filter-bar">
+    <input class="form-input" type="search" name="q" value="{{ filters.q }}" placeholder="Order ID, customer, phone, product, seller">
+    <select class="form-input" name="status">
+      <option value="">All status</option>
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-input" name="payment_status">
+      <option value="">Payment</option>
+      {% for value,label in payment_status_choices %}
+        <option value="{{ value }}" {% if filters.payment_status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-input" name="seller">
+      <option value="">All sellers</option>
+      {% for seller in sellers %}
+        <option value="{{ seller.pk }}" {% if filters.seller == seller.pk|stringformat:'s' %}selected{% endif %}>{{ seller.store_name }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-input" type="date" name="date_from" value="{{ filters.date_from }}">
+    <input class="form-input" type="date" name="date_to" value="{{ filters.date_to }}">
+    <button class="btn-inline" type="submit"><i class="fas fa-filter"></i> Filter</button>
+    <a class="btn-ghost" href="{% url 'admin-orders' %}">Reset</a>
+  </form>
+
+  <div class="panel-table-head"><div><h2>All Orders</h2><p>Unseen rows are highlighted until viewed.</p></div></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Order ID</th><th>Customer</th><th>Phone</th><th>Address</th><th>Products</th><th>Seller</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+        <tr class="{% if not order.is_seen_by_admin %}admin-unseen-row{% endif %}">
+          <td><strong>{{ order.order_number }}</strong>{% if not order.is_seen_by_admin %}<span class="table-state info">New</span>{% endif %}</td>
+          <td>{{ order.customer_name }}</td>
+          <td>{{ order.customer_phone }}</td>
+          <td>{{ order.address_short }}</td>
+          <td>{{ order.item_count }}</td>
+          <td>
+            {% for item in order.items.all|slice:':2' %}
+              <span class="table-muted-line">{{ item.seller_name|default:'Admin catalog' }}</span>
+            {% endfor %}
+          </td>
+          <td>Rs. {{ order.total_amount }}</td>
+          <td><span class="table-state {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span></td>
+          <td><span class="table-state {{ order.status_tone }}">{{ order.get_status_display }}</span></td>
+          <td>{{ order.created_at|date:'d M Y' }}</td>
+          <td><a href="{% url 'admin-order-detail' order.pk %}" class="overview-action view"><i class="fas fa-eye"></i> View</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="11">No orders found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  (function () {
+    const badge = document.querySelector('[data-admin-unread]');
+    async function poll() {
+      try {
+        const response = await fetch("{% url 'admin-order-notifications' %}", { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (badge) badge.textContent = payload.unread_count;
+      } catch (error) {
+        return;
+      }
+    }
+    window.setInterval(poll, 10000);
+  })();
+</script>
+{% endblock %}

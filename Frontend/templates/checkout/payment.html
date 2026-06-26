@@ -1,0 +1,191 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="order-flow-page">
+  <div class="order-flow-shell">
+    <header class="order-flow-head">
+      <div>
+        <a href="{% url 'checkout-address' %}" class="order-back-link"><i class="fa-solid fa-arrow-left"></i> Address</a>
+        <h1>Payment Details</h1>
+        <p>Payment method select karo aur secure order place karo.</p>
+      </div>
+      <aside>
+        <span>Total Payable</span>
+        <strong>Rs. {{ cart_totals.total }}</strong>
+      </aside>
+    </header>
+
+    <div class="checkout-grid compact">
+      <section class="checkout-card">
+        <div class="checkout-card-title">
+          <span><i class="fa-solid fa-wallet"></i></span>
+          <div>
+            <h2>Payment Method</h2>
+            <p>Choose the option that works best for this order.</p>
+          </div>
+        </div>
+        <form method="post"
+              action="{% url 'checkout-place-order' %}"
+              class="payment-options"
+              data-place-order-form
+              data-razorpay-ready="{% if razorpay_ready and razorpay_order.id %}true{% else %}false{% endif %}"
+              data-razorpay-key="{{ razorpay_key_id }}"
+              data-razorpay-order-id="{{ razorpay_order.id|default:'' }}"
+              data-razorpay-amount="{{ razorpay_order.amount|default:'0' }}">
+          {% csrf_token %}
+          <input type="hidden" name="razorpay_order_id" value="{{ razorpay_order.id|default:'' }}" data-razorpay-order-input>
+          <input type="hidden" name="razorpay_payment_id" value="" data-razorpay-payment-input>
+          <input type="hidden" name="razorpay_signature" value="" data-razorpay-signature-input>
+          <label class="payment-option">
+            <input type="radio" name="payment_method" value="online" {% if not razorpay_ready or razorpay_order.id %}checked{% endif %} {% if razorpay_ready and not razorpay_order.id %}disabled{% endif %}>
+            <span><i class="fa-solid fa-credit-card"></i><b>Online Payment</b><small>{% if razorpay_ready and razorpay_order.id %}Razorpay ready{% elif razorpay_ready %}Gateway unavailable right now{% else %}Demo payment will be used{% endif %}</small></span>
+          </label>
+          <label class="payment-option">
+            <input type="radio" name="payment_method" value="cod" {% if razorpay_ready and not razorpay_order.id %}checked{% endif %}>
+            <span><i class="fa-solid fa-money-bill-wave"></i><b>Cash on Delivery</b><small>Payment status remains pending until collection.</small></span>
+          </label>
+          {% if not razorpay_order.id %}
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="demo">
+              <span><i class="fa-solid fa-flask"></i><b>Demo Payment</b><small>Test mode. Order will be marked paid.</small></span>
+            </label>
+          {% endif %}
+
+          <div class="payment-test-note">
+            <i class="fa-solid fa-shield-halved"></i>
+            <p>Secret keys are read from <b>RAZORPAY_KEY_ID</b> and <b>RAZORPAY_KEY_SECRET</b>. No secret is hardcoded.</p>
+          </div>
+
+          <button type="submit" class="order-primary-btn" data-place-order-btn>
+            <i class="fa-solid fa-lock"></i>
+            Place Secure Order
+          </button>
+        </form>
+      </section>
+
+      <aside class="checkout-card order-review-card">
+        <div class="checkout-card-title">
+          <span><i class="fa-solid fa-bag-shopping"></i></span>
+          <div>
+            <h2>Order Review</h2>
+            <p>{{ cart_totals.item_count }} item{% if cart_totals.item_count != 1 %}s{% endif %}</p>
+          </div>
+        </div>
+        <div class="review-address">
+          <b>{{ address.full_name }}</b>
+          <span>{{ address.phone }}{% if address.alternate_phone %}, {{ address.alternate_phone }}{% endif %}</span>
+          <p>{{ address.shipping_address }}</p>
+        </div>
+        <div class="checkout-summary-items">
+          {% for item in cart.items.all %}
+            <div class="checkout-summary-item">
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product.name }}">
+              <span>
+                <b>{{ item.product.name }}</b>
+                <small>{{ item.display_pack }} x {{ item.quantity }}</small>
+              </span>
+              <strong>Rs. {{ item.line_total }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+        <form method="post" action="{% url 'checkout-payment' %}" class="checkout-coupon-form">
+          {% csrf_token %}
+          {% if cart_totals.coupon and cart_totals.discount %}
+            <input type="hidden" name="coupon_action" value="remove">
+            <div>
+              <b>{{ cart_totals.coupon.code }}</b>
+              <small>Coupon applied. Discount Rs. {{ cart_totals.discount }}</small>
+            </div>
+            <button type="submit" class="order-secondary-btn">Remove</button>
+          {% else %}
+            <input type="hidden" name="coupon_action" value="apply">
+            <input type="text" name="coupon_code" placeholder="Coupon code" value="{{ cart_totals.coupon_code }}" class="form-input">
+            <button type="submit" class="order-secondary-btn">Apply</button>
+          {% endif %}
+        </form>
+        <div class="cart-summary-list">
+          <div><span>Subtotal</span><strong>Rs. {{ cart_totals.subtotal }}</strong></div>
+          <div><span>Delivery</span><strong>{% if cart_totals.delivery_charge %}Rs. {{ cart_totals.delivery_charge }}{% else %}Free{% endif %}</strong></div>
+          <div><span>Discount</span><strong>Rs. {{ cart_totals.discount }}</strong></div>
+          <div class="total"><span>Total</span><strong>Rs. {{ cart_totals.total }}</strong></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if razorpay_ready and razorpay_order.id %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+{% endif %}
+<script>
+  (function () {
+    const form = document.querySelector('[data-place-order-form]');
+    const button = document.querySelector('[data-place-order-btn]');
+    if (!form || !button) return;
+
+    const defaultButtonHtml = button.innerHTML;
+    const setLoading = (message) => {
+      button.disabled = true;
+      button.innerHTML = '<span class="order-spinner"></span> ' + message;
+    };
+    const resetButton = () => {
+      button.disabled = false;
+      button.innerHTML = defaultButtonHtml;
+    };
+
+    let razorpaySubmitted = false;
+    form.addEventListener('submit', function (event) {
+      const selectedMethod = form.querySelector('input[name="payment_method"]:checked')?.value || 'cod';
+      const razorpayReady = form.dataset.razorpayReady === 'true';
+
+      if (selectedMethod === 'online' && razorpayReady && !razorpaySubmitted) {
+        event.preventDefault();
+        if (!window.Razorpay) {
+          alert('Payment gateway could not load. Please try again or choose COD.');
+          resetButton();
+          return;
+        }
+
+        setLoading('Opening payment...');
+        const checkout = new Razorpay({
+          key: form.dataset.razorpayKey,
+          amount: Number(form.dataset.razorpayAmount || 0),
+          currency: 'INR',
+          name: 'Lexvers',
+          description: 'Order payment',
+          order_id: form.dataset.razorpayOrderId,
+          prefill: {
+            name: '{{ address.full_name|escapejs }}',
+            email: '{{ address.email|default:""|escapejs }}',
+            contact: '{{ address.phone|escapejs }}'
+          },
+          theme: { color: '#2563eb' },
+          handler: function (response) {
+            form.querySelector('[data-razorpay-payment-input]').value = response.razorpay_payment_id || '';
+            form.querySelector('[data-razorpay-order-input]').value = response.razorpay_order_id || form.dataset.razorpayOrderId;
+            form.querySelector('[data-razorpay-signature-input]').value = response.razorpay_signature || '';
+            razorpaySubmitted = true;
+            setLoading('Verifying payment...');
+            form.submit();
+          },
+          modal: {
+            ondismiss: resetButton
+          }
+        });
+
+        checkout.on('payment.failed', function (response) {
+          const message = response.error && response.error.description ? response.error.description : 'Payment failed. Please try again.';
+          alert(message);
+          resetButton();
+        });
+        checkout.open();
+        return;
+      }
+
+      setLoading('Placing order...');
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,224 @@
+<script>
+  (function () {
+    if (window.LexversCart) {
+      window.LexversCart.bindButtons();
+      window.LexversCart.render();
+      return;
+    }
+
+    const CART_KEY = 'lexvers_cart_v1';
+    const cartDrawer = document.getElementById('cart-drawer');
+    const cartOverlay = document.getElementById('cart-overlay');
+    const cartItemsShell = document.getElementById('cart-items');
+    const cartSubtotalValue = document.getElementById('cart-subtotal-value');
+    const cartDeliveryValue = document.getElementById('cart-delivery-value');
+    const cartTotalValue = document.getElementById('cart-total-value');
+    const cartToast = document.getElementById('cart-toast');
+    const openCartBtn = document.getElementById('open-cart-btn');
+    const closeCartBtn = document.getElementById('close-cart-btn');
+    const clearCartBtn = document.getElementById('clear-cart-btn');
+    let cart = loadCart();
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function itemImage(item) {
+      return item.selectedVariantImage || item.variant_image || item.product_image || item.image || 'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=300&q=80';
+    }
+
+    function loadCart() {
+      try {
+        return JSON.parse(localStorage.getItem(CART_KEY) || '{}');
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function saveCart() {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    }
+
+    function cartTotalCount() {
+      return Object.values(cart).reduce((total, item) => total + item.qty, 0);
+    }
+
+    function cartGrandTotal() {
+      return Object.values(cart).reduce((total, item) => total + (item.price * item.qty), 0);
+    }
+
+    function cartDeliveryCharge(subtotal) {
+      return subtotal > 0 && subtotal < 499.90 ? 80 : 0;
+    }
+
+    function showToast(message) {
+      if (!cartToast) return;
+      cartToast.textContent = message;
+      cartToast.classList.add('show');
+      window.setTimeout(() => cartToast.classList.remove('show'), 1700);
+    }
+
+    function render() {
+      const count = cartTotalCount();
+      document.querySelectorAll('[data-cart-count]').forEach((badge) => {
+        badge.textContent = String(count);
+      });
+
+      const items = Object.values(cart);
+      if (!items.length) {
+        if (cartItemsShell) {
+          cartItemsShell.innerHTML = '<p class="empty-cart">Cart is empty. Add products to continue.</p>';
+        }
+        if (cartSubtotalValue) cartSubtotalValue.textContent = 'Rs. 0.00';
+        if (cartDeliveryValue) cartDeliveryValue.textContent = 'Rs. 0.00';
+        if (cartTotalValue) cartTotalValue.textContent = 'Rs. 0.00';
+        return;
+      }
+
+      const rows = items.map((item) => `
+        <article class="cart-item">
+          <img src="${escapeHtml(itemImage(item))}" alt="${escapeHtml(item.name)}">
+          <div class="cart-item-meta">
+            <h4>${escapeHtml(item.name)}</h4>
+            <p>${escapeHtml(item.brand)} | ${escapeHtml(item.pack)}</p>
+            <strong>Rs. ${(item.price * item.qty).toFixed(2)}</strong>
+            <div class="qty-tools">
+              <button type="button" data-cart-action="minus" data-id="${item.id}">-</button>
+              <span>${item.qty}</span>
+              <button type="button" data-cart-action="plus" data-id="${item.id}">+</button>
+              <button type="button" data-cart-action="remove" data-id="${item.id}" class="remove-btn">Remove</button>
+            </div>
+          </div>
+        </article>
+      `).join('');
+
+      if (cartItemsShell) cartItemsShell.innerHTML = rows;
+      const subtotal = cartGrandTotal();
+      const delivery = cartDeliveryCharge(subtotal);
+      if (cartSubtotalValue) cartSubtotalValue.textContent = `Rs. ${subtotal.toFixed(2)}`;
+      if (cartDeliveryValue) cartDeliveryValue.textContent = delivery === 0 ? 'Free' : `Rs. ${delivery.toFixed(2)}`;
+      if (cartTotalValue) cartTotalValue.textContent = `Rs. ${(subtotal + delivery).toFixed(2)}`;
+    }
+
+    function open() {
+      if (cartDrawer) cartDrawer.classList.add('open');
+      if (cartOverlay) cartOverlay.classList.add('show');
+    }
+
+    function close() {
+      if (cartDrawer) cartDrawer.classList.remove('open');
+      if (cartOverlay) cartOverlay.classList.remove('show');
+    }
+
+    function addFromButton(button) {
+      const id = button.dataset.itemId;
+      const productId = button.dataset.productId || id;
+      const quantityOptionId = button.dataset.quantityOptionId || '';
+      const selectedVariantImage = button.dataset.itemVariantImage || '';
+      const image = button.dataset.itemImage || selectedVariantImage || '';
+      const stock = Number.parseInt(button.dataset.itemStock || '0', 10);
+      if (!id || stock < 1) return;
+
+      const existing = cart[id];
+      if (existing && existing.qty >= stock) {
+        showToast('Maximum available stock already added.');
+        return;
+      }
+
+      if (existing) {
+        existing.qty += 1;
+        existing.price = Number.parseFloat(button.dataset.itemPrice || existing.price || '0');
+        existing.image = image || existing.image || '';
+        existing.product_image = image || existing.product_image || '';
+        existing.variant_image = selectedVariantImage || existing.variant_image || '';
+        existing.selectedVariantImage = selectedVariantImage || existing.selectedVariantImage || '';
+        existing.imageKey = button.dataset.itemImageKey || existing.imageKey || quantityOptionId || id;
+        existing.stock = stock;
+        existing.pack = button.dataset.itemPack || existing.pack || 'Standard pack';
+      } else {
+        cart[id] = {
+          id,
+          productId,
+          quantityOptionId,
+          name: button.dataset.itemName || 'Product',
+          price: Number.parseFloat(button.dataset.itemPrice || '0'),
+          image,
+          product_image: image,
+          variant_image: selectedVariantImage,
+          selectedVariantImage,
+          imageKey: button.dataset.itemImageKey || quantityOptionId || id,
+          stock,
+          brand: button.dataset.itemBrand || 'Lexvers',
+          pack: button.dataset.itemPack || 'Standard pack',
+          qty: 1,
+        };
+      }
+
+      saveCart();
+      render();
+      showToast('Added to cart');
+      open();
+    }
+
+    function bindButtons() {
+      document.querySelectorAll('[data-cart-add]').forEach((button) => {
+        button.onclick = function () {
+          addFromButton(button);
+        };
+      });
+    }
+
+    if (openCartBtn) openCartBtn.addEventListener('click', open);
+    if (closeCartBtn) closeCartBtn.addEventListener('click', close);
+    if (cartOverlay) cartOverlay.addEventListener('click', close);
+
+    if (clearCartBtn) {
+      clearCartBtn.addEventListener('click', () => {
+        cart = {};
+        saveCart();
+        render();
+      });
+    }
+
+    if (cartItemsShell) {
+      cartItemsShell.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+
+        const action = target.dataset.cartAction;
+        const id = target.dataset.id;
+        if (!action || !id || !cart[id]) return;
+
+        if (action === 'minus') {
+          cart[id].qty -= 1;
+          if (cart[id].qty < 1) delete cart[id];
+        }
+
+        if (action === 'plus' && cart[id].qty < cart[id].stock) {
+          cart[id].qty += 1;
+        }
+
+        if (action === 'remove') {
+          delete cart[id];
+        }
+
+        saveCart();
+        render();
+      });
+    }
+
+    window.LexversCart = {
+      bindButtons,
+      render,
+      open,
+    };
+
+    bindButtons();
+    render();
+  })();
+</script>

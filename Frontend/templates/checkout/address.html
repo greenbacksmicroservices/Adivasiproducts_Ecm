@@ -1,0 +1,254 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="order-flow-page">
+  <div class="order-flow-shell">
+    <header class="order-flow-head checkout-address-head">
+      <div>
+        <a href="{% url 'my-cart' %}" class="order-back-link"><i class="fa-solid fa-arrow-left"></i> Cart</a>
+        <h1>Delivery Address</h1>
+        <p>Saved address choose karo, ya bottom se new address add karo.</p>
+      </div>
+      <aside>
+        <span>{{ cart_totals.item_count }} items</span>
+        <strong>Rs. {{ cart_totals.total }}</strong>
+      </aside>
+    </header>
+
+    <div class="checkout-grid checkout-address-grid">
+      <div class="checkout-address-stack">
+        <section class="checkout-card checkout-address-card">
+          <div class="checkout-card-title">
+            <span><i class="fa-solid fa-location-dot"></i></span>
+            <div>
+              <h2>Saved Addresses</h2>
+              <p>Choose where this order should be delivered.</p>
+            </div>
+          </div>
+
+          <form method="post" class="address-select-list" data-address-select-form>
+            {% csrf_token %}
+            {% for address in addresses %}
+              <label class="checkout-address-option {% if selected_address_id == address.pk %}selected{% elif not selected_address_id and address.is_default %}selected{% endif %}">
+                <input type="radio" name="selected_address" value="{{ address.pk }}" data-address-radio {% if selected_address_id == address.pk %}checked{% elif not selected_address_id and address.is_default %}checked{% endif %}>
+                <i class="fa-solid fa-house address-option-icon"></i>
+                <span>
+                  <b>{{ address.full_name }}</b>
+                  <em>{{ address.get_address_type_display }}{% if address.is_default %} - Default{% endif %}</em>
+                  <small>{{ address.phone }}{% if address.alternate_phone %}, {{ address.alternate_phone }}{% endif %}</small>
+                  <small>{{ address.full_address }}</small>
+                </span>
+                <button type="button" class="checkout-address-edit" data-checkout-edit-address="{{ address.pk }}">
+                  <i class="fa-solid fa-pen"></i> Edit
+                </button>
+              </label>
+            {% empty %}
+              <div class="checkout-empty-address">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <h3>No saved address yet</h3>
+                <p>Add a delivery address to continue your order.</p>
+              </div>
+            {% endfor %}
+
+            {% if addresses %}
+              <button type="submit" class="order-primary-btn compact" data-use-address-btn {% if not saved_address_ready %}disabled{% endif %}>
+                <i class="fa-solid fa-check"></i> Use Selected Address
+              </button>
+            {% endif %}
+          </form>
+          {{ addresses_json|json_script:"checkout-address-json" }}
+        </section>
+
+        <button
+          type="button"
+          class="address-add-toggle"
+          data-address-form-toggle
+          aria-expanded="{% if not addresses or address_form.errors %}true{% else %}false{% endif %}"
+        >
+          <span><i class="fa-solid fa-plus"></i> Add New Address</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+
+        <section
+          class="checkout-card checkout-address-card checkout-form-card"
+          data-address-form-panel
+          {% if addresses and not address_form.errors %}hidden{% endif %}
+        >
+          <div class="checkout-card-title">
+            <span><i class="fa-solid fa-plus" data-address-form-icon></i></span>
+            <div>
+              <h2 data-address-form-title>{% if editing_address_id %}Edit Address{% else %}Add New Address{% endif %}</h2>
+              <p data-address-form-subtitle>{% if editing_address_id %}Save changes to this address without leaving checkout.{% else %}Ye address save hoga aur next order me Saved Addresses me dikhega.{% endif %}</p>
+            </div>
+          </div>
+
+          <form method="post" class="checkout-form checkout-address-form" data-checkout-address-form>
+            {% csrf_token %}
+            <input type="hidden" name="form_action" value="address_form">
+            <input type="hidden" name="address_id" value="{{ editing_address_id }}" data-address-id-input>
+            {{ address_form.non_field_errors }}
+            <label class="address-type-field">{{ address_form.address_type.label }}{{ address_form.address_type }}{{ address_form.address_type.errors }}</label>
+            <label>{{ address_form.label.label }}{{ address_form.label }}{{ address_form.label.errors }}</label>
+            <label>{{ address_form.full_name.label }}{{ address_form.full_name }}{{ address_form.full_name.errors }}</label>
+            <label>{{ address_form.phone.label }}{{ address_form.phone }}{{ address_form.phone.errors }}</label>
+            <label>{{ address_form.alternate_phone.label }}{{ address_form.alternate_phone }}{{ address_form.alternate_phone.errors }}</label>
+            <label>{{ address_form.email.label }}{{ address_form.email }}{{ address_form.email.errors }}</label>
+            <label class="full">{{ address_form.house.label }}{{ address_form.house }}{{ address_form.house.errors }}</label>
+            <label class="full">{{ address_form.area.label }}{{ address_form.area }}{{ address_form.area.errors }}</label>
+            <label class="full">{{ address_form.landmark.label }}{{ address_form.landmark }}{{ address_form.landmark.errors }}</label>
+            <label>{{ address_form.city.label }}{{ address_form.city }}{{ address_form.city.errors }}</label>
+            <label>{{ address_form.district.label }}{{ address_form.district }}{{ address_form.district.errors }}</label>
+            <label>{{ address_form.state.label }}{{ address_form.state }}{{ address_form.state.errors }}</label>
+            <label>{{ address_form.pincode.label }}{{ address_form.pincode }}{{ address_form.pincode.errors }}</label>
+            <label>{{ address_form.country.label }}{{ address_form.country }}{{ address_form.country.errors }}</label>
+            <label class="checkout-check-row">{{ address_form.is_default }} <span>Make default address</span></label>
+            <button type="button" class="order-secondary-btn checkout-cancel-edit" data-address-cancel {% if not editing_address_id %}hidden{% endif %}>Cancel edit</button>
+            <button type="submit" class="order-primary-btn" data-address-submit-label><i class="fa-solid fa-floppy-disk"></i> {% if editing_address_id %}Save Changes & Continue to Payment{% else %}Save & Continue to Payment{% endif %}</button>
+          </form>
+        </section>
+      </div>
+
+      <aside class="checkout-card checkout-summary-card">
+        <div class="checkout-card-title">
+          <span><i class="fa-solid fa-bag-shopping"></i></span>
+          <div>
+            <h2>Cart Summary</h2>
+            <p>{{ cart_totals.item_count }} item{% if cart_totals.item_count != 1 %}s{% endif %}</p>
+          </div>
+        </div>
+
+        <div class="checkout-summary-items">
+          {% for item in cart.items.all %}
+            <div class="checkout-summary-item">
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product.name }}">
+              <span>
+                <b>{{ item.product.name }}</b>
+                <small>{{ item.display_pack }} x {{ item.quantity }}</small>
+              </span>
+              <strong>Rs. {{ item.line_total }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="cart-summary-list compact-summary-list">
+          <div><span>Subtotal</span><strong>Rs. {{ cart_totals.subtotal }}</strong></div>
+          <div><span>Delivery</span><strong>{% if cart_totals.delivery_charge %}Rs. {{ cart_totals.delivery_charge }}{% else %}Free{% endif %}</strong></div>
+          <div><span>Discount</span><strong>Rs. {{ cart_totals.discount }}</strong></div>
+          <div class="total"><span>Total</span><strong>Rs. {{ cart_totals.total }}</strong></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.querySelector('[data-address-select-form]');
+    if (!form) return;
+
+    const radios = form.querySelectorAll('[data-address-radio]');
+    const button = form.querySelector('[data-use-address-btn]');
+
+    function syncSelectedAddress() {
+      const hasSelection = Array.from(radios).some((radio) => radio.checked);
+      if (button) button.disabled = !hasSelection;
+      form.querySelectorAll('.checkout-address-option').forEach((option) => {
+        const radio = option.querySelector('[data-address-radio]');
+        option.classList.toggle('selected', Boolean(radio && radio.checked));
+      });
+    }
+
+    radios.forEach((radio) => {
+      radio.addEventListener('change', syncSelectedAddress);
+    });
+    syncSelectedAddress();
+  })();
+
+  (function () {
+    const toggle = document.querySelector('[data-address-form-toggle]');
+    const panel = document.querySelector('[data-address-form-panel]');
+    if (!toggle || !panel) return;
+
+    function setOpen(open, shouldScroll) {
+      panel.hidden = !open;
+      panel.classList.toggle('is-open', open);
+      toggle.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open && shouldScroll) {
+        window.setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      }
+    }
+
+    setOpen(toggle.getAttribute('aria-expanded') === 'true', false);
+    toggle.addEventListener('click', function () {
+      setOpen(panel.hidden, true);
+    });
+
+    const form = document.querySelector('[data-checkout-address-form]');
+    const dataNode = document.getElementById('checkout-address-json');
+    if (!form || !dataNode) return;
+
+    let addresses = [];
+    try {
+      addresses = JSON.parse(dataNode.textContent || '[]');
+    } catch (error) {
+      addresses = [];
+    }
+
+    const addressInput = form.querySelector('[data-address-id-input]');
+    const title = document.querySelector('[data-address-form-title]');
+    const subtitle = document.querySelector('[data-address-form-subtitle]');
+    const icon = document.querySelector('[data-address-form-icon]');
+    const submit = form.querySelector('[data-address-submit-label]');
+    const cancel = form.querySelector('[data-address-cancel]');
+    const toggleLabel = toggle.querySelector('span');
+
+    function setField(name, value) {
+      const field = form.elements[name];
+      if (!field) return;
+      if (field.type === 'checkbox') {
+        field.checked = Boolean(value);
+        return;
+      }
+      field.value = value == null ? '' : value;
+    }
+
+    function setMode(isEdit) {
+      if (title) title.textContent = isEdit ? 'Edit Address' : 'Add New Address';
+      if (subtitle) subtitle.textContent = isEdit ? 'Save changes to this address without leaving checkout.' : 'Ye address save hoga aur next order me Saved Addresses me dikhega.';
+      if (icon) icon.className = isEdit ? 'fa-solid fa-pen' : 'fa-solid fa-plus';
+      if (submit) submit.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + (isEdit ? 'Save Changes & Continue to Payment' : 'Save & Continue to Payment');
+      if (toggleLabel) toggleLabel.innerHTML = '<i class="fa-solid ' + (isEdit ? 'fa-pen' : 'fa-plus') + '"></i> ' + (isEdit ? 'Edit Address' : 'Add New Address');
+      if (cancel) cancel.hidden = !isEdit;
+    }
+
+    function resetForm() {
+      form.reset();
+      if (addressInput) addressInput.value = '';
+      setMode(false);
+    }
+
+    document.querySelectorAll('[data-checkout-edit-address]').forEach((button) => {
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const address = addresses.find((item) => String(item.id) === String(button.dataset.checkoutEditAddress));
+        if (!address) return;
+        if (addressInput) addressInput.value = address.id;
+        ['address_type', 'label', 'full_name', 'phone', 'alternate_phone', 'email', 'house', 'area', 'landmark', 'city', 'district', 'state', 'pincode', 'country', 'is_default'].forEach((name) => {
+          setField(name, address[name]);
+        });
+        setMode(true);
+        setOpen(true, true);
+      });
+    });
+
+    if (cancel) {
+      cancel.addEventListener('click', resetForm);
+    }
+    setMode(Boolean(addressInput && addressInput.value));
+  })();
+</script>
+{% endblock %}

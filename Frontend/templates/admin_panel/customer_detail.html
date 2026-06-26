@@ -1,0 +1,88 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ customer.first_name|default:customer.username }}</h1>
+    <p>Full customer profile, saved addresses, saved products, and order history.</p>
+  </div>
+  <div class="button-row">
+    <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-customer-edit' customer.pk %}" data-form-title="Edit Customer">Edit Customer</button>
+    <a href="{% url 'admin-customers' %}" class="btn-ghost">Back</a>
+  </div>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Registration Details</h2><p>Details collected during register/create account.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Name</th><td>{{ customer.first_name|default:'Not provided' }}</td><th>Username</th><td>{{ customer.username }}</td></tr>
+      <tr><th>Email</th><td>{{ customer.email|default:'Not provided' }}</td><th>Language</th><td>{{ profile.get_language_display }}</td></tr>
+      <tr><th>Joined</th><td>{{ customer.date_joined|date:'d M Y, h:i A' }}</td><th>Last Login</th><td>{{ customer.last_login|date:'d M Y, h:i A'|default:'Never' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Shopping History</h2><p>Orders placed from the customer cart.</p></div></div>
+  <table>
+    <thead><tr><th>Order ID</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+        <tr>
+          <td>{{ order.order_number }}</td>
+          <td>{{ order.item_count }}</td>
+          <td>Rs. {{ order.total_amount }}</td>
+          <td><span class="table-state {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span></td>
+          <td><span class="table-state {{ order.status_tone }}">{{ order.get_status_display }}</span></td>
+          <td>{{ order.created_at|date:'d M Y' }}</td>
+          <td class="action-row"><a href="{% url 'admin-order-detail' order.pk %}">View</a><a href="{% url 'admin-order-edit' order.pk %}">Edit</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No orders yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Saved Products</h2><p>Products saved by this customer.</p></div></div>
+  <table>
+    <thead><tr><th>Product</th><th>Category</th><th>Company</th><th>Price</th><th>Stock</th><th>Saved</th></tr></thead>
+    <tbody>
+      {% for saved in saved_products %}
+        <tr>
+          <td>{{ saved.product.name }}</td>
+          <td>{{ saved.product.category.name|default:'General' }}</td>
+          <td>{{ saved.product.brand_name }}</td>
+          <td>Rs. {{ saved.product.price }}</td>
+          <td>{{ saved.product.stock }}</td>
+          <td>{{ saved.created_at|date:'d M Y' }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">No saved products.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Saved Addresses</h2><p>Delivery addresses from the customer panel.</p></div></div>
+  <table>
+    <thead><tr><th>Label</th><th>Name</th><th>Phone</th><th>Address</th><th>Default</th></tr></thead>
+    <tbody>
+      {% for address in addresses %}
+        <tr>
+          <td>{{ address.label }}</td>
+          <td>{{ address.full_name }}</td>
+          <td>{{ address.phone }}</td>
+          <td>{{ address.address_line }}, {{ address.city }}, {{ address.state }} - {{ address.pincode }}</td>
+          <td>{% if address.is_default %}<span class="table-state success">Yes</span>{% else %}<span class="table-state info">No</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No address saved.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

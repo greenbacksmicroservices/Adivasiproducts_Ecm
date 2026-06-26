@@ -1,0 +1,32 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/seller_panel/seller.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="seller-status-page">
+  <article class="seller-status-card">
+    <span class="seller-kicker"><i class="fa-solid fa-clock"></i> Pending Approval</span>
+    <h1>Your seller account request has been submitted successfully.</h1>
+    <p>Please wait for admin approval. Dashboard access will be enabled only after approval.</p>
+
+    <div class="seller-status-meta">
+      <span><b>Request ID</b>{{ application.request_code }}</span>
+      <span><b>Name</b>{{ application.name }}</span>
+      <span><b>Email</b>{{ application.email }}</span>
+      <span><b>Email Verified</b>{% if application.email_verified %}Yes{% else %}No{% endif %}</span>
+      <span><b>Status</b>{{ application.get_status_display }}</span>
+    </div>
+
+    <div class="seller-actions">
+      <a href="{% url 'seller-login' %}" class="seller-btn">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Seller Login
+      </a>
+      <a href="{% url 'home' %}" class="seller-btn secondary">Back to Website</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,79 @@
+<div class="saved-products-list">
+  {% for saved in saved_products %}
+    {% with item=saved.product %}
+      <article class="saved-row-card">
+        <a href="{% url 'product-detail' item.slug %}" class="saved-row-media">
+          {% if item.image_source %}
+            <img src="{{ item.image_source }}" alt="{{ item.name }}">
+          {% else %}
+            <img src="https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=320&q=80" alt="{{ item.name }}">
+          {% endif %}
+        </a>
+
+        <div class="saved-row-body">
+          <div class="saved-row-head">
+            <a href="{% url 'product-detail' item.slug %}" class="saved-row-title">{{ item.name }}</a>
+            <button
+              class="saved-row-heart"
+              type="button"
+              aria-label="Remove {{ item.name }} from saved"
+              data-saved-remove-url="{% url 'toggle-saved-product' item.id %}"
+            >
+              <i class="fa-solid fa-heart"></i>
+            </button>
+          </div>
+
+          <p class="saved-row-copy">{{ item.short_description|default:'Premium product from Lexvers.' }}</p>
+
+          <div class="saved-row-meta">
+            <span>{{ item.brand_name|default:'Lexvers' }}</span>
+            <span>{{ item.pack_display|default:'Standard pack' }}</span>
+            <span class="stock-state {{ item.stock_state }}">Stock: {{ item.stock }}</span>
+          </div>
+
+          <div class="saved-row-price">
+            <strong>Rs. {{ item.price }}</strong>
+            {% if item.original_price %}<del>Rs. {{ item.original_price }}</del>{% endif %}
+            {% if item.discount_percent > 0 %}<b>{{ item.discount_percent }}% OFF</b>{% endif %}
+          </div>
+
+          <div class="saved-row-actions">
+            <button
+              class="add-btn saved-add-btn"
+              type="button"
+              data-cart-add="1"
+              data-item-id="{{ item.id }}"
+              data-item-name="{{ item.name }}"
+              data-item-price="{{ item.price }}"
+              data-item-image="{{ item.image_source }}"
+              data-item-stock="{{ item.stock }}"
+              data-item-brand="{{ item.brand_name }}"
+              data-item-pack="{{ item.pack_display }}"
+              {% if item.stock < 1 %}disabled{% endif %}
+            >
+              {% if item.stock < 1 %}Out of Stock{% else %}Add to Cart{% endif %}
+            </button>
+            <button
+              type="button"
+              class="saved-share-btn"
+              data-saved-share="1"
+              data-saved-share-title="{{ item.name }}"
+              data-saved-share-text="{{ item.short_description }}"
+              data-saved-share-url="{% url 'product-detail' item.slug %}"
+            >
+              <i class="fa-solid fa-share-nodes"></i>
+              Share
+            </button>
+          </div>
+        </div>
+      </article>
+    {% endwith %}
+  {% empty %}
+    <div class="customer-empty">
+      <i class="fa-regular fa-heart"></i>
+      <h3>No saved products yet</h3>
+      <p>Product card ke heart button par click karte hi item yahan aa jayega.</p>
+      <a href="{% url 'home' %}" class="customer-primary-link">Browse products</a>
+    </div>
+  {% endfor %}
+</div>

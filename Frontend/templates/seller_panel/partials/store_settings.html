@@ -1,0 +1,54 @@
+<article class="seller-workspace">
+  <div class="seller-card-head">
+    <h2>Shop Profile / Store Settings</h2>
+    <span class="seller-chip {% if seller_profile.status == 'approved' %}success{% else %}warning{% endif %}">
+      {% if seller_profile %}{{ seller_profile.get_status_display }}{% else %}Admin view{% endif %}
+    </span>
+  </div>
+  {% if seller_profile %}
+    <form method="post" action="{% url 'seller-profile-photo-update' %}" enctype="multipart/form-data" class="seller-profile-photo-form">
+      {% csrf_token %}
+      <div class="seller-profile-photo-preview">
+        <img
+          src="{% if seller_avatar_url %}{{ seller_avatar_url }}{% endif %}"
+          alt="{{ seller_display_name|default:'Seller' }}"
+          data-seller-photo-preview
+          onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
+          {% if not seller_avatar_url %}hidden{% endif %}
+        >
+        <span data-seller-avatar-initial {% if seller_avatar_url %}hidden{% endif %}>{{ seller_avatar_initial|default:'S' }}</span>
+      </div>
+      <div class="seller-profile-photo-copy">
+        <h3>Profile Photo</h3>
+        <p>JPG, JPEG, PNG, or WEBP. Maximum 2 MB.</p>
+      </div>
+      <label class="seller-upload-trigger">
+        <i class="fas fa-camera"></i>
+        {% if seller_avatar_url %}Change Profile Photo{% else %}Upload Profile Photo{% endif %}
+        <input type="file" name="profile_photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-seller-profile-photo-input required>
+      </label>
+      <button type="submit" class="seller-small-btn edit"><i class="fas fa-cloud-arrow-up"></i> Save Photo</button>
+    </form>
+
+    <div class="seller-settings-grid compact seller-read-grid">
+      <span><b>Business email</b>{{ seller_profile.email }}</span>
+      <span><b>Current status</b>{{ seller_profile.get_status_display }}</span>
+    </div>
+    <form method="post" action="{% url 'seller-settings-update' 'store' %}" class="seller-product-form">
+      {% csrf_token %}
+      {{ seller_store_form.non_field_errors }}
+      {% for field in seller_store_form %}
+        <label class="{% if field.name == 'business_address' or field.name == 'pickup_address' %}full{% endif %}">
+          <span>{{ field.label }}</span>
+          {{ field }}
+          {{ field.errors }}
+        </label>
+      {% endfor %}
+      <div class="seller-form-actions">
+        <button type="submit" class="seller-btn"><i class="fas fa-floppy-disk"></i> Save Settings</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="seller-empty">Approved seller profile connect hone ke baad settings update available hoga.</p>
+  {% endif %}
+</article>

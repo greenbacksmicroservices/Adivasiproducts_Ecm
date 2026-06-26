@@ -1,0 +1,1069 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lexvers Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{% static 'css/admin_panel/admin.css' %}">
+  {% block extra_admin_head %}{% endblock %}
+</head>
+<body class="admin-shell">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="sidebar-surface">
+        <a href="{% url 'admin-dashboard' %}" class="admin-brand">
+          <span class="admin-brand-plaque">
+            <span class="admin-brand-logo-container">
+              <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Lexvers Admin Panel" class="admin-brand-logo">
+            </span>
+            <span class="admin-brand-copy">
+              <strong>Admin Panel</strong>
+              <small>Lexvers marketplace</small>
+            </span>
+          </span>
+        </a>
+
+        <section class="sidebar-user">
+          <div class="sidebar-avatar">
+            {% if current_avatar_url %}
+              <img src="{{ current_avatar_url }}" alt="{{ request.user.first_name|default:request.user.username }}" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+              <span hidden>{{ current_avatar_initial }}</span>
+            {% else %}
+              <span>{{ current_avatar_initial }}</span>
+            {% endif %}
+          </div>
+          <h2>{{ request.user.first_name|default:request.user.username }}</h2>
+          <p>{{ request.user.email|default:'admin@info.com' }}</p>
+        </section>
+
+        <nav class="sidebar-nav" aria-label="Admin navigation">
+          {% for group in admin_sidebar %}
+            {% if group.children %}
+              <div class="sidebar-group sidebar-group-dropdown {% if nav_group == group.key %}is-open{% endif %}" data-sidebar-group>
+                <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == group.key %}true{% else %}false{% endif %}">
+                  <span class="nav-link-main">
+                    <i class="{{ group.icon }}"></i>
+                    <span class="nav-link-copy">
+                      <span>{{ group.label }}</span>
+                      <small>{{ group.subtitle }}</small>
+                    </span>
+                  </span>
+                  <span class="sidebar-group-tail">
+                    <span class="sidebar-group-count">{{ group.children|length }}</span>
+                    <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+                  </span>
+                </button>
+                <div class="sidebar-submenu" data-sidebar-panel>
+                  {% for child in group.children %}
+                    <a class="sidebar-sub-link {% if nav_group == group.key and section == child.section %}active{% endif %}" href="{{ child.href }}">
+                      <span class="sidebar-sub-main"><i class="{{ child.icon }}"></i><span>{{ child.label }}</span></span>
+                      {% if child.badge != None %}
+                        <span class="nav-badge">{{ child.badge }}</span>
+                      {% endif %}
+                    </a>
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <div class="sidebar-group">
+                <a class="sidebar-direct-link {% if nav_group == group.key %}active{% endif %}" href="{{ group.href }}">
+                  <span class="nav-link-main">
+                    <i class="{{ group.icon }}"></i>
+                    <span class="nav-link-copy">
+                      <span>{{ group.label }}</span>
+                      <small>{{ group.subtitle }}</small>
+                    </span>
+                  </span>
+                  {% if group.badge != None %}
+                    <span class="nav-badge">{{ group.badge }}</span>
+                  {% endif %}
+                </a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </nav>
+
+        <nav class="sidebar-nav legacy-sidebar-nav" aria-label="Legacy admin navigation">
+          <div class="sidebar-group">
+            <span class="sidebar-group-title">Main</span>
+            <a class="sidebar-direct-link {% if nav_group == 'dashboard' %}active{% endif %}" href="{% url 'admin-dashboard' %}">
+              <span class="nav-link-main">
+                <i class="fas fa-desktop"></i>
+                <span class="nav-link-copy">
+                  <span>Dashboard</span>
+                  <small>Store overview</small>
+                </span>
+              </span>
+            </a>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'catalog' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'catalog' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-boxes-stacked"></i>
+                <span class="nav-link-copy">
+                  <span>Catalog</span>
+                  <small>Products and storefront structure</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">4</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'catalog' and section == 'products' %}active{% endif %}" href="{% url 'admin-items' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-box-open"></i><span>Products</span></span>
+                <span class="nav-badge">{{ admin_nav.products }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'catalog' and section == 'categories' %}active{% endif %}" href="{% url 'admin-categories' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-tags"></i><span>Categories</span></span>
+                <span class="nav-badge">{{ admin_nav.categories }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'catalog' and section == 'collections' %}active{% endif %}" href="{% url 'admin-collections' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-layer-group"></i><span>Collections</span></span>
+                <span class="nav-badge">{{ admin_nav.collections }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'catalog' and section == 'banners' %}active{% endif %}" href="{% url 'admin-banners' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-images"></i><span>Banners</span></span>
+                <span class="nav-badge">{{ admin_nav.banners }}</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'orders' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'orders' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-bag-shopping"></i>
+                <span class="nav-link-copy">
+                  <span>Orders</span>
+                  <small>Fulfillment and return flow</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">3</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'orders' and section == 'orders' %}active{% endif %}" href="{% url 'admin-orders' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-receipt"></i><span>All Orders</span></span>
+                <span class="nav-badge">{{ admin_nav.orders }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'orders' and section == 'returns' %}active{% endif %}" href="{% url 'admin-returns' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-arrow-rotate-left"></i><span>Returns</span></span>
+                <span class="nav-badge">{{ admin_nav.returns }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'orders' and section == 'shipping' %}active{% endif %}" href="{% url 'admin-shipping' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-truck-fast"></i><span>Shipping</span></span>
+                <span class="nav-badge">{{ admin_nav.shipping }}</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'people' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'people' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-users"></i>
+                <span class="nav-link-copy">
+                  <span>People</span>
+                  <small>Customers and artisans</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">2</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'people' and section == 'customers' %}active{% endif %}" href="{% url 'admin-customers' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-user-group"></i><span>Customers</span></span>
+                <span class="nav-badge">{{ admin_nav.customers }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'people' and section == 'sellers' %}active{% endif %}" href="{% url 'admin-sellers' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-store"></i><span>Sellers / Artisans</span></span>
+                <span class="nav-badge">{{ admin_nav.sellers }}</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'reports' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'reports' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-chart-line"></i>
+                <span class="nav-link-copy">
+                  <span>Reports</span>
+                  <small>Business and stock reports</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">3</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'reports' and section == 'sales' %}active{% endif %}" href="{% url 'admin-report-sales' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-sack-dollar"></i><span>Sales</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'reports' and section == 'inventory' %}active{% endif %}" href="{% url 'admin-report-inventory' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-warehouse"></i><span>Inventory</span></span>
+                <span class="nav-badge">{{ admin_nav.inventory }}</span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'reports' and section == 'customer-report' %}active{% endif %}" href="{% url 'admin-report-customers' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-user-chart"></i><span>Customers</span></span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'website' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'website' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-pen-ruler"></i>
+                <span class="nav-link-copy">
+                  <span>Website Edit</span>
+                  <small>Public website content</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">4</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'website' and section == 'website-home' %}active{% endif %}" href="{% url 'admin-website-edit' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-house"></i><span>Home Page</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'website' and section == 'website-about' %}active{% endif %}" href="{% url 'admin-website-about' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-circle-info"></i><span>About Us</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'website' and section == 'website-contact' %}active{% endif %}" href="{% url 'admin-website-contact' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-address-book"></i><span>Contact Page</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'website' and section == 'website-terms' %}active{% endif %}" href="{% url 'admin-website-terms' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-file-lines"></i><span>Terms &amp; Privacy</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'website' and section == 'website-wish' %}active{% endif %}" href="{% url 'admin-website-wish' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-heart"></i><span>Website Wish</span></span>
+              </a>
+            </div>
+          </div>
+
+          <div class="sidebar-group sidebar-group-dropdown {% if nav_group == 'settings' %}is-open{% endif %}" data-sidebar-group>
+            <button type="button" class="sidebar-group-trigger" data-sidebar-trigger aria-expanded="{% if nav_group == 'settings' %}true{% else %}false{% endif %}">
+              <span class="nav-link-main">
+                <i class="fas fa-gear"></i>
+                <span class="nav-link-copy">
+                  <span>Settings</span>
+                  <small>Admin and operational setup</small>
+                </span>
+              </span>
+              <span class="sidebar-group-tail">
+                <span class="sidebar-group-count">3</span>
+                <span class="sidebar-chevron"><i class="fas fa-chevron-down"></i></span>
+              </span>
+            </button>
+            <div class="sidebar-submenu" data-sidebar-panel>
+              <a class="sidebar-sub-link {% if nav_group == 'settings' and section == 'settings-profile' %}active{% endif %}" href="{% url 'admin-settings' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-id-badge"></i><span>Profile Settings</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'settings' and section == 'settings-payment' %}active{% endif %}" href="{% url 'admin-settings-payment' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-credit-card"></i><span>Payment Settings</span></span>
+              </a>
+              <a class="sidebar-sub-link {% if nav_group == 'settings' and section == 'settings-shipping' %}active{% endif %}" href="{% url 'admin-settings-shipping' %}">
+                <span class="sidebar-sub-main"><i class="fas fa-truck"></i><span>Shipping Settings</span></span>
+              </a>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <div class="header-left">
+          <button type="button" class="header-tool sidebar-toggle" aria-label="Toggle sidebar" aria-pressed="false" data-admin-sidebar-toggle>
+            <i class="fas fa-bars"></i>
+          </button>
+          <button type="button" class="back-btn" aria-label="Go back" onclick="window.history.back()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+        </div>
+
+        <div class="header-right">
+          <button type="button" class="header-tool" aria-label="Toggle dark mode" aria-pressed="false" data-admin-theme-toggle>
+            <i class="fas fa-moon"></i>
+          </button>
+          <div class="admin-notification-menu" data-admin-notification-menu>
+            <button
+              type="button"
+              class="header-tool header-tool-alert"
+              aria-label="Notifications"
+              aria-expanded="false"
+              data-admin-notification-trigger
+              data-admin-notification-endpoint="{% url 'admin-order-notifications' %}"
+            >
+              <i class="fas fa-bell"></i>
+              <span class="notification-dot" data-admin-notification-badge hidden></span>
+            </button>
+            <div class="admin-notification-dropdown" role="menu">
+              <div class="admin-notification-head">
+                <h2>Notifications</h2>
+                <span data-admin-notification-count hidden>0 new</span>
+              </div>
+              <div class="admin-notification-list" data-admin-notification-list>
+                <p class="admin-notification-empty">Checking notifications...</p>
+              </div>
+              <div class="admin-notification-footer">
+                <button type="button" data-admin-notification-read-all>Read all</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="header-menu" data-profile-menu>
+            <button
+              type="button"
+              class="header-profile"
+              aria-expanded="false"
+              aria-haspopup="true"
+              data-profile-trigger
+            >
+              <span class="header-avatar">
+                {% if current_avatar_url %}
+                  <img src="{{ current_avatar_url }}" alt="{{ request.user.first_name|default:request.user.username }}" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                  <span hidden>{{ current_avatar_initial }}</span>
+                {% else %}
+                  <span>{{ current_avatar_initial }}</span>
+                {% endif %}
+              </span>
+              <span class="header-profile-copy">
+                <strong>{{ request.user.email|default:request.user.username }}</strong>
+                <small>Administrator</small>
+              </span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+
+            <div class="header-dropdown" data-profile-panel>
+              <div class="header-dropdown-user">
+                <span class="header-dropdown-avatar">
+                  {% if current_avatar_url %}
+                    <img src="{{ current_avatar_url }}" alt="{{ request.user.first_name|default:request.user.username }}" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                    <span hidden>{{ current_avatar_initial }}</span>
+                  {% else %}
+                    <span>{{ current_avatar_initial }}</span>
+                  {% endif %}
+                </span>
+                <div class="header-dropdown-copy">
+                  <strong>{{ request.user.first_name|default:request.user.username }}</strong>
+                  <small>{{ request.user.email|default:'admin@info.com' }}</small>
+                </div>
+              </div>
+              <div class="header-dropdown-actions">
+                <a href="{% url 'admin-settings' %}" class="header-dropdown-link">
+                  <i class="fas fa-user"></i>
+                  <span>My Profile</span>
+                </a>
+                <a href="{% url 'admin-settings' %}" class="header-dropdown-link">
+                  <i class="fas fa-gear"></i>
+                  <span>Settings</span>
+                </a>
+                <a href="{% url 'home' %}" class="header-dropdown-link">
+                  <i class="fas fa-store"></i>
+                  <span>View Store</span>
+                </a>
+                <a href="{% url 'logout' %}" class="header-dropdown-link danger">
+                  <i class="fas fa-right-from-bracket"></i>
+                  <span>Logout</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="admin-content dashboard-body">
+        {% if messages %}
+          <div class="message-stack" data-admin-toast-stack>
+            {% for message in messages %}
+              <div class="alert admin-toast {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="status">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block admin_content %}{% endblock %}
+      </section>
+    </main>
+  </div>
+
+  <div class="admin-form-modal" data-admin-form-modal aria-hidden="true" hidden>
+    <div class="admin-form-modal-backdrop" data-admin-form-modal-close></div>
+    <div class="admin-form-modal-shell" role="dialog" aria-modal="true" aria-labelledby="admin-form-modal-title">
+      <div class="admin-form-modal-loading" data-admin-form-modal-loading hidden>
+        <span class="admin-submit-spinner"></span>
+        <span>Loading form...</span>
+      </div>
+      <div data-admin-form-modal-content></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const profileMenu = document.querySelector('[data-profile-menu]');
+      const sidebarGroups = document.querySelectorAll('[data-sidebar-group]');
+      const adminLayout = document.querySelector('.admin-layout');
+      const sidebarToggle = document.querySelector('[data-admin-sidebar-toggle]');
+      const themeToggle = document.querySelector('[data-admin-theme-toggle]');
+      const notificationMenu = document.querySelector('[data-admin-notification-menu]');
+      const notificationTrigger = document.querySelector('[data-admin-notification-trigger]');
+      const notificationEndpoint = notificationTrigger ? notificationTrigger.dataset.adminNotificationEndpoint : '';
+      const notificationList = notificationMenu ? notificationMenu.querySelector('[data-admin-notification-list]') : null;
+      const notificationBadge = notificationMenu ? notificationMenu.querySelector('[data-admin-notification-badge]') : null;
+      const notificationCount = notificationMenu ? notificationMenu.querySelector('[data-admin-notification-count]') : null;
+      const readAllButton = notificationMenu ? notificationMenu.querySelector('[data-admin-notification-read-all]') : null;
+      const savedSidebar = localStorage.getItem('lexvers_admin_sidebar') || 'open';
+      const savedTheme = localStorage.getItem('lexvers_admin_theme') || 'light';
+      let activeFlyoutGroup = null;
+
+      function syncAdminTheme() {
+        const isDark = document.body.classList.contains('admin-dark');
+        if (!themeToggle) {
+          return;
+        }
+        themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      }
+
+      function setAdminNotificationMenuOpen(isOpen) {
+        if (!notificationMenu || !notificationTrigger) {
+          return;
+        }
+        notificationMenu.classList.toggle('is-open', isOpen);
+        notificationTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+
+      function updateAdminNotificationCount(count) {
+        const safeCount = Number(count || 0);
+        if (notificationBadge) {
+          notificationBadge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+          notificationBadge.hidden = safeCount === 0;
+        }
+        if (notificationCount) {
+          notificationCount.textContent = safeCount + ' new';
+          notificationCount.hidden = safeCount === 0;
+        }
+        if (readAllButton) {
+          readAllButton.disabled = safeCount === 0;
+        }
+      }
+
+      function renderAdminNotifications(payload) {
+        if (!payload || !notificationList) {
+          return;
+        }
+        updateAdminNotificationCount(payload.unread_count);
+        notificationList.innerHTML = '';
+        const notifications = payload.notifications || [];
+        if (!notifications.length) {
+          const empty = document.createElement('p');
+          empty.className = 'admin-notification-empty';
+          empty.textContent = 'No new notifications';
+          notificationList.appendChild(empty);
+          return;
+        }
+        notifications.forEach(function (notification) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'admin-notification-item';
+          item.dataset.adminNotificationId = notification.id;
+          item.dataset.adminNotificationUrl = notification.url || '';
+
+          const icon = document.createElement('i');
+          icon.className = 'fas fa-circle-info';
+
+          const copy = document.createElement('span');
+          const title = document.createElement('b');
+          title.textContent = notification.title || 'Notification';
+          const message = document.createElement('small');
+          message.textContent = notification.message || notification.order_id || '';
+          const time = document.createElement('em');
+          time.textContent = notification.created_at || '';
+
+          copy.append(title, message, time);
+          item.append(icon, copy);
+          notificationList.appendChild(item);
+        });
+      }
+
+      function isCollapsedDesktop() {
+        return adminLayout && adminLayout.classList.contains('is-sidebar-collapsed') && window.matchMedia('(min-width: 1025px)').matches;
+      }
+
+      function closeSidebarFlyouts() {
+        sidebarGroups.forEach(function (group) {
+          group.classList.remove('is-flyout-open');
+          const trigger = group.querySelector('[data-sidebar-trigger]');
+          if (trigger && isCollapsedDesktop()) {
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+        activeFlyoutGroup = null;
+      }
+
+      function positionSidebarFlyout(group) {
+        const trigger = group.querySelector('[data-sidebar-trigger]');
+        const panel = group.querySelector('[data-sidebar-panel]');
+        if (!trigger || !panel) {
+          return;
+        }
+        const rect = trigger.getBoundingClientRect();
+        const panelHeight = Math.min(panel.scrollHeight || 260, window.innerHeight - 24);
+        const top = Math.max(12, Math.min(rect.top, window.innerHeight - panelHeight - 12));
+        const left = Math.min(rect.right + 12, window.innerWidth - 280);
+        group.style.setProperty('--sidebar-flyout-top', `${top}px`);
+        group.style.setProperty('--sidebar-flyout-left', `${Math.max(left, 96)}px`);
+      }
+
+      function openSidebarFlyout(group) {
+        closeSidebarFlyouts();
+        positionSidebarFlyout(group);
+        group.classList.add('is-flyout-open');
+        const trigger = group.querySelector('[data-sidebar-trigger]');
+        if (trigger) {
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+        activeFlyoutGroup = group;
+      }
+
+      function bindSubmitLoading(scope) {
+        (scope || document).querySelectorAll('form').forEach(function (form) {
+          if (form.dataset.submitLoadingBound === 'true') {
+            return;
+          }
+          form.dataset.submitLoadingBound = 'true';
+          form.addEventListener('submit', function () {
+            const button = form.querySelector('button[type="submit"]');
+            if (!button || button.disabled) {
+              return;
+            }
+            button.dataset.originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="admin-submit-spinner"></span> ' + (button.dataset.submitLabel || 'Saving...');
+          });
+        });
+      }
+
+      function buildConfirmDialog() {
+        const dialog = document.createElement('div');
+        dialog.className = 'admin-confirm-dialog';
+        dialog.setAttribute('data-admin-confirm-dialog', '');
+        dialog.setAttribute('aria-hidden', 'true');
+        dialog.innerHTML = [
+          '<div class="admin-confirm-backdrop" data-admin-confirm-cancel></div>',
+          '<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title">',
+          '<h2 id="admin-confirm-title">Confirm action</h2>',
+          '<p data-admin-confirm-message>Are you sure?</p>',
+          '<div class="button-row">',
+          '<button type="button" class="btn-danger" data-admin-confirm-ok>Confirm</button>',
+          '<button type="button" class="btn-ghost" data-admin-confirm-cancel>Cancel</button>',
+          '</div>',
+          '</div>',
+        ].join('');
+        document.body.appendChild(dialog);
+        return dialog;
+      }
+
+      const confirmDialog = buildConfirmDialog();
+      let pendingConfirmForm = null;
+
+      function closeConfirmDialog() {
+        confirmDialog.classList.remove('is-open');
+        confirmDialog.setAttribute('aria-hidden', 'true');
+        pendingConfirmForm = null;
+      }
+
+      document.addEventListener('submit', function (event) {
+        const form = event.target.closest('form');
+        if (!form || form.dataset.confirmAccepted === 'true') {
+          return;
+        }
+        const submitter = event.submitter;
+        const destructiveButton = submitter && submitter.classList && submitter.classList.contains('delete');
+        if (!form.matches('[data-confirm-form]') && !destructiveButton) {
+          return;
+        }
+        event.preventDefault();
+        pendingConfirmForm = form;
+        const message = form.dataset.confirmMessage || (submitter ? `${submitter.textContent.trim()} this record?` : 'Confirm this action?');
+        const messageNode = confirmDialog.querySelector('[data-admin-confirm-message]');
+        if (messageNode) {
+          messageNode.textContent = message;
+        }
+        confirmDialog.classList.add('is-open');
+        confirmDialog.setAttribute('aria-hidden', 'false');
+      });
+
+      confirmDialog.addEventListener('click', function (event) {
+        if (event.target.closest('[data-admin-confirm-cancel]')) {
+          closeConfirmDialog();
+          return;
+        }
+        if (event.target.closest('[data-admin-confirm-ok]') && pendingConfirmForm) {
+          pendingConfirmForm.dataset.confirmAccepted = 'true';
+          pendingConfirmForm.submit();
+        }
+      });
+
+      async function fetchAdminNotifications(params) {
+        if (!notificationEndpoint) {
+          return null;
+        }
+        const url = new URL(notificationEndpoint, window.location.origin);
+        Object.keys(params || {}).forEach(function (key) {
+          if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+            url.searchParams.set(key, params[key]);
+          }
+        });
+        try {
+          const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          if (!response.ok) {
+            return null;
+          }
+          const payload = await response.json();
+          renderAdminNotifications(payload);
+          return payload;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      if (savedSidebar === 'collapsed' && adminLayout) {
+        adminLayout.classList.add('is-sidebar-collapsed');
+        if (sidebarToggle) {
+          sidebarToggle.setAttribute('aria-pressed', 'true');
+        }
+      }
+
+      document.body.classList.toggle('admin-dark', savedTheme === 'dark');
+      syncAdminTheme();
+
+      if (sidebarToggle && adminLayout) {
+        sidebarToggle.addEventListener('click', function () {
+          const isCollapsed = adminLayout.classList.toggle('is-sidebar-collapsed');
+          sidebarToggle.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
+          localStorage.setItem('lexvers_admin_sidebar', isCollapsed ? 'collapsed' : 'open');
+          closeSidebarFlyouts();
+        });
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+          const isDark = document.body.classList.toggle('admin-dark');
+          localStorage.setItem('lexvers_admin_theme', isDark ? 'dark' : 'light');
+          syncAdminTheme();
+        });
+      }
+
+      if (notificationTrigger) {
+        notificationTrigger.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const isOpen = notificationMenu && notificationMenu.classList.contains('is-open');
+          setAdminNotificationMenuOpen(!isOpen);
+          if (!isOpen) {
+            fetchAdminNotifications();
+          }
+          if (profileMenu) {
+            profileMenu.classList.remove('is-open');
+          }
+        });
+      }
+
+      if (readAllButton) {
+        readAllButton.addEventListener('click', function (event) {
+          event.preventDefault();
+          fetchAdminNotifications({ mark_read: '1' });
+        });
+      }
+
+      if (notificationList) {
+        notificationList.addEventListener('click', async function (event) {
+          const item = event.target.closest('[data-admin-notification-id]');
+          if (!item) {
+            return;
+          }
+          event.preventDefault();
+          const targetUrl = item.dataset.adminNotificationUrl;
+          await fetchAdminNotifications({ read_id: item.dataset.adminNotificationId });
+          setAdminNotificationMenuOpen(false);
+          if (targetUrl) {
+            window.location.href = targetUrl;
+          }
+        });
+      }
+
+      document.querySelectorAll('[data-admin-open-notifications]').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          setAdminNotificationMenuOpen(true);
+          fetchAdminNotifications();
+          if (profileMenu) {
+            profileMenu.classList.remove('is-open');
+          }
+        });
+      });
+
+      sidebarGroups.forEach(function (group) {
+        const trigger = group.querySelector('[data-sidebar-trigger]');
+        if (!trigger) {
+          return;
+        }
+
+        trigger.addEventListener('click', function (event) {
+          if (isCollapsedDesktop()) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (group.classList.contains('is-flyout-open')) {
+              closeSidebarFlyouts();
+            } else {
+              openSidebarFlyout(group);
+            }
+            return;
+          }
+          const isOpen = group.classList.toggle('is-open');
+          trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        group.addEventListener('mouseenter', function () {
+          if (isCollapsedDesktop()) {
+            openSidebarFlyout(group);
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-sidebar-panel] a').forEach(function (link) {
+        link.addEventListener('click', closeSidebarFlyouts);
+      });
+
+      if (profileMenu) {
+        const profileTrigger = profileMenu.querySelector('[data-profile-trigger]');
+
+        profileTrigger.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const isOpen = profileMenu.classList.toggle('is-open');
+          profileTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        document.addEventListener('click', function (event) {
+          if (activeFlyoutGroup && !activeFlyoutGroup.contains(event.target)) {
+            closeSidebarFlyouts();
+          }
+          if (!profileMenu.contains(event.target)) {
+            profileMenu.classList.remove('is-open');
+            profileTrigger.setAttribute('aria-expanded', 'false');
+          }
+          if (notificationMenu && !notificationMenu.contains(event.target)) {
+            setAdminNotificationMenuOpen(false);
+          }
+        });
+
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            profileMenu.classList.remove('is-open');
+            profileTrigger.setAttribute('aria-expanded', 'false');
+            setAdminNotificationMenuOpen(false);
+            closeSidebarFlyouts();
+            closeConfirmDialog();
+            closeAdminFormModal();
+          }
+        });
+      }
+
+      window.addEventListener('resize', closeSidebarFlyouts);
+      window.addEventListener('scroll', closeSidebarFlyouts, true);
+      bindSubmitLoading(document);
+
+      const adminFormModal = document.querySelector('[data-admin-form-modal]');
+      const adminFormModalContent = document.querySelector('[data-admin-form-modal-content]');
+      const adminFormModalLoading = document.querySelector('[data-admin-form-modal-loading]');
+
+      function showAdminToast(message, tone) {
+        let stack = document.querySelector('[data-admin-toast-stack]');
+        if (!stack) {
+          stack = document.createElement('div');
+          stack.className = 'message-stack';
+          stack.dataset.adminToastStack = '';
+          const content = document.querySelector('.admin-content');
+          if (content) {
+            content.prepend(stack);
+          }
+        }
+        const toast = document.createElement('div');
+        toast.className = 'alert admin-toast' + (tone ? ' alert-' + tone : '');
+        toast.setAttribute('role', 'status');
+        toast.textContent = message;
+        stack.appendChild(toast);
+        window.setTimeout(function () {
+          toast.remove();
+        }, 4200);
+      }
+
+      function closeAdminFormModal() {
+        if (!adminFormModal) {
+          return;
+        }
+        adminFormModal.classList.remove('is-open');
+        adminFormModal.setAttribute('aria-hidden', 'true');
+        adminFormModal.hidden = true;
+        if (adminFormModalLoading) {
+          adminFormModalLoading.hidden = true;
+        }
+        if (adminFormModalContent) {
+          adminFormModalContent.innerHTML = '';
+        }
+      }
+
+      function bindAdminFormModalSubcategorySync(scope) {
+        const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
+        (scope || document).querySelectorAll('form').forEach(function (form) {
+          const category = form.querySelector('[data-category-select]');
+          const subCategory = form.querySelector('[data-subcategory-select]');
+          if (!category || !subCategory) {
+            return;
+          }
+          async function refreshSubCategories() {
+            const selectedCategory = category.value;
+            if (!selectedCategory) {
+              subCategory.innerHTML = '<option value="">---------</option>';
+              return;
+            }
+            try {
+              const response = await fetch(subCategoryOptionsUrl + '?category_id=' + encodeURIComponent(selectedCategory));
+              if (!response.ok) {
+                return;
+              }
+              const payload = await response.json();
+              const currentValue = subCategory.value;
+              subCategory.innerHTML = '<option value="">---------</option>';
+              (payload.options || []).forEach(function (item) {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                if (String(item.id) === currentValue) {
+                  option.selected = true;
+                }
+                subCategory.appendChild(option);
+              });
+            } catch (error) {
+              return;
+            }
+          }
+          category.addEventListener('change', refreshSubCategories);
+        });
+      }
+
+      function bindAdminExtraDocuments(scope) {
+        (scope || document).querySelectorAll('[data-admin-extra-documents]').forEach(function (panel) {
+          if (panel.dataset.adminExtraDocumentsBound === 'true') {
+            return;
+          }
+          panel.dataset.adminExtraDocumentsBound = 'true';
+          const list = panel.querySelector('[data-admin-extra-document-list]');
+          const addButton = panel.querySelector('[data-admin-add-extra-document]');
+          let index = 0;
+
+          function addRow() {
+            if (!list) {
+              return;
+            }
+            index += 1;
+            const key = 'admin_' + Date.now() + '_' + index;
+            const row = document.createElement('div');
+            row.className = 'admin-extra-document-row';
+            row.dataset.adminExtraDocumentRow = key;
+            row.innerHTML = [
+              '<input type="hidden" name="extra_document_indexes" value="' + key + '">',
+              '<div class="admin-form-field">',
+              '<label>Document name <span>*</span></label>',
+              '<input type="text" name="extra_document_name_' + key + '" class="form-input" placeholder="Example: FSSAI License">',
+              '</div>',
+              '<div class="admin-form-field">',
+              '<label>Document file <span>*</span></label>',
+              '<input type="file" name="extra_document_file_' + key + '" class="form-input" accept=".jpg,.jpeg,.png,.pdf">',
+              '</div>',
+              '<button type="button" class="btn-ghost" data-admin-remove-extra-document>Remove</button>',
+            ].join('');
+            row.querySelector('[data-admin-remove-extra-document]').addEventListener('click', function () {
+              row.remove();
+            });
+            list.appendChild(row);
+          }
+
+          if (addButton) {
+            addButton.addEventListener('click', addRow);
+          }
+          addRow();
+        });
+      }
+
+      function bindLoadedAdminForm(scope) {
+        bindSubmitLoading(scope);
+        bindAdminFormModalSubcategorySync(scope);
+        bindAdminExtraDocuments(scope);
+      }
+
+      async function openAdminFormModal(trigger) {
+        if (!adminFormModal || !adminFormModalContent) {
+          window.location.href = trigger.dataset.formUrl || trigger.getAttribute('href');
+          return;
+        }
+        const formUrl = trigger.dataset.formUrl || trigger.getAttribute('href');
+        if (!formUrl) {
+          return;
+        }
+        const url = new URL(formUrl, window.location.origin);
+        url.searchParams.set('partial', 'form');
+        adminFormModal.hidden = false;
+        adminFormModal.classList.add('is-open');
+        adminFormModal.setAttribute('aria-hidden', 'false');
+        if (adminFormModalLoading) {
+          adminFormModalLoading.hidden = false;
+        }
+        adminFormModalContent.innerHTML = '';
+        try {
+          const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          if (!response.ok) {
+            throw new Error('Form could not be loaded.');
+          }
+          const responseHtml = await response.text();
+          if (!responseHtml.includes('data-admin-form-modal-body')) {
+            throw new Error('The server did not return a form partial.');
+          }
+          adminFormModalContent.innerHTML = responseHtml;
+          bindLoadedAdminForm(adminFormModalContent);
+          const titleNode = adminFormModalContent.querySelector('#admin-form-modal-title');
+          if (titleNode && trigger.dataset.formTitle) {
+            titleNode.textContent = trigger.dataset.formTitle;
+          }
+        } catch (error) {
+          if (adminFormModalContent) {
+            adminFormModalContent.innerHTML = '<div class="admin-form-load-error">Could not load this form. Please refresh and try again.</div>';
+          }
+          showAdminToast('Could not open this form. Please try again.', 'error');
+          return;
+        } finally {
+          if (adminFormModalLoading) {
+            adminFormModalLoading.hidden = true;
+          }
+        }
+      }
+
+      function bindAdminFormTriggers(scope) {
+        (scope || document).querySelectorAll('[data-admin-form-trigger]').forEach(function (trigger) {
+          if (trigger.dataset.adminFormBound === 'true') {
+            return;
+          }
+          trigger.dataset.adminFormBound = 'true';
+          trigger.addEventListener('click', function (event) {
+            event.preventDefault();
+            openAdminFormModal(trigger);
+          });
+        });
+      }
+
+      window.bindAdminFormTriggers = bindAdminFormTriggers;
+      bindAdminFormTriggers(document);
+
+      if (adminFormModal) {
+        adminFormModal.addEventListener('click', function (event) {
+          if (event.target.closest('[data-admin-form-modal-close]')) {
+            closeAdminFormModal();
+          }
+        });
+        adminFormModal.addEventListener('submit', async function (event) {
+          const form = event.target.closest('form');
+          if (!form || !adminFormModal.contains(form)) {
+            return;
+          }
+          event.preventDefault();
+          const submitButton = form.querySelector('button[type="submit"]');
+          if (submitButton && !submitButton.disabled) {
+            submitButton.dataset.originalHtml = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="admin-submit-spinner"></span> Saving...';
+          }
+          try {
+            const response = await fetch(form.action || window.location.href, {
+              method: 'POST',
+              body: new FormData(form),
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              redirect: 'follow',
+            });
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const payload = await response.json();
+              if (!response.ok || payload.success === false) {
+                throw new Error(payload.message || 'Save failed.');
+              }
+              closeAdminFormModal();
+              showAdminToast(payload.message || 'Saved successfully.', 'success');
+              if (typeof window.refreshAdminLiveTable === 'function') {
+                window.refreshAdminLiveTable();
+              } else if (payload.redirect_url) {
+                window.location.href = payload.redirect_url;
+              }
+              return;
+            }
+            const responseHtml = contentType.includes('text/html') ? await response.text() : '';
+            if (responseHtml && adminFormModalContent && responseHtml.includes('data-admin-form-modal-body')) {
+              adminFormModalContent.innerHTML = responseHtml;
+              bindLoadedAdminForm(adminFormModalContent);
+              showAdminToast('Please fix the highlighted form errors.', 'error');
+              return;
+            }
+            closeAdminFormModal();
+            showAdminToast('Saved successfully.', 'success');
+            if (typeof window.refreshAdminLiveTable === 'function') {
+              window.refreshAdminLiveTable();
+            } else {
+              window.location.href = response.url || window.location.href;
+            }
+          } catch (error) {
+            showAdminToast('Save failed. Please try again.', 'error');
+          } finally {
+            if (submitButton) {
+              submitButton.disabled = false;
+              if (submitButton.dataset.originalHtml) {
+                submitButton.innerHTML = submitButton.dataset.originalHtml;
+              }
+            }
+          }
+        });
+      }
+
+      fetchAdminNotifications();
+      if (notificationEndpoint) {
+        window.setInterval(function () {
+          fetchAdminNotifications();
+        }, 5000);
+      }
+    });
+  </script>
+  {% block admin_scripts %}{% endblock %}
+</body>
+</html>

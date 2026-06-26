@@ -1,0 +1,51 @@
+{% extends 'layouts/seller_base.html' %}
+
+{% block seller_content %}
+  <div class="seller-page-heading">
+    <a href="{% url 'seller-dashboard' %}?section=orders&title=Orders" class="seller-small-link"><i class="fas fa-arrow-left"></i> Orders</a>
+    <div>
+      <h2>Invoice {{ order.order_number }}</h2>
+      <p>{{ order.customer_name }} | {{ order.created_at|date:'d M Y' }}</p>
+    </div>
+    <button type="button" class="seller-small-btn view" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+  </div>
+
+  <article class="seller-workspace seller-invoice-card">
+    <div class="seller-settings-grid compact seller-read-grid">
+      <span><b>Customer</b>{{ order.customer_name }}</span>
+      <span><b>Payment</b>{{ order.get_payment_status_display }}</span>
+      <span><b>Status</b>{{ order.get_status_display }}</span>
+      <span><b>Shipping</b>{{ order.shipping_address|default:'Address not added' }}</span>
+    </div>
+
+    <div class="seller-table-panel seller-invoice-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Unit</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in order.items.all %}
+            <tr>
+              <td>{{ item.product_name }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>Rs. {{ item.unit_price }}</td>
+              <td>Rs. {{ item.line_total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="seller-invoice-total">
+      <span>Subtotal <b>Rs. {{ order.subtotal }}</b></span>
+      <span>Shipping <b>{% if order.shipping_fee %}Rs. {{ order.shipping_fee }}{% else %}Free{% endif %}</b></span>
+      <span>Discount <b>Rs. {{ order.discount_amount }}</b></span>
+      <strong>Total <b>Rs. {{ order.total_amount }}</b></strong>
+    </div>
+  </article>
+{% endblock %}

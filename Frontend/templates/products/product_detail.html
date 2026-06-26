@@ -1,0 +1,444 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<section class="product-detail-page">
+  {% if product.category %}
+    <div class="detail-return-bar">
+      <a href="{% url 'store-category' product.category.slug %}" class="detail-back-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Category
+      </a>
+    </div>
+  {% endif %}
+
+  <nav class="detail-breadcrumb">
+    <a href="{% url 'home' %}">Home</a>
+    {% if product.category %}
+      <span>/</span>
+      <a href="{% url 'store-category' product.category.slug %}">{{ product.category.name }}</a>
+    {% endif %}
+    <span>/</span>
+    <strong>{{ product.name }}</strong>
+  </nav>
+
+  <section class="detail-hero">
+    <div class="detail-media">
+      <div class="detail-main-frame">
+        <img src="{{ primary_image }}" alt="{{ product.name }}" id="detail-main-image">
+        <span
+          class="detail-offer"
+          id="detail-offer-badge"
+          {% if selected_quantity_option and selected_quantity_option.discount_percent < 1 or not selected_quantity_option and product.effective_discount_percent < 1 %}hidden{% endif %}
+        >
+          {% if selected_quantity_option %}{{ selected_quantity_option.discount_percent }}{% else %}{{ product.effective_discount_percent }}{% endif %}% OFF
+        </span>
+      </div>
+
+      {% if gallery_images %}
+        <div class="detail-thumbs" aria-label="Product photos" data-detail-thumbs>
+          {% for image in gallery_images %}
+            <button
+              type="button"
+              class="detail-thumb {% if forloop.first %}active{% endif %}"
+              data-gallery-src="{{ image.src }}"
+              data-gallery-alt="{{ image.alt }}"
+              data-gallery-key="{{ image.image_key }}"
+              aria-label="Show photo {{ forloop.counter }} of {{ product.name }}"
+            >
+              <img src="{{ image.src }}" alt="{{ image.alt }}">
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="detail-panel">
+      <span class="detail-category">{{ product.category.name|default:'General' }}</span>
+      <h1>{{ product.name }}</h1>
+      <p class="detail-short">{{ product.short_description }}</p>
+
+      <div class="detail-price-row">
+        <strong id="detail-price">Rs. {% if selected_quantity_option %}{{ selected_quantity_option.price }}{% else %}{{ product.effective_price }}{% endif %}</strong>
+        {% if selected_quantity_option and selected_quantity_option.original_price %}
+          <del id="detail-original-price">Rs. {{ selected_quantity_option.original_price }}</del>
+        {% elif product.effective_original_price %}
+          <del id="detail-original-price">Rs. {{ product.effective_original_price }}</del>
+        {% else %}
+          <del id="detail-original-price" hidden></del>
+        {% endif %}
+      </div>
+
+      {% if quantity_options %}
+        <div class="detail-quantity-picker" data-quantity-picker>
+          <div class="detail-quantity-head">
+            <span>Selected Quantity:</span>
+            <strong id="selected-quantity-label">{{ selected_quantity_option.label }}</strong>
+          </div>
+          <div class="detail-quantity-options">
+            {% for option in quantity_options %}
+              <button
+                type="button"
+                class="detail-quantity-option {% if forloop.first %}active{% endif %}"
+                data-option-id="{{ option.id }}"
+                data-option-label="{{ option.label }}"
+                data-option-price="{{ option.price }}"
+                data-option-original-price="{{ option.original_price }}"
+                data-option-stock="{{ option.stock }}"
+                data-option-sku="{{ option.sku }}"
+                data-option-image="{{ option.image }}"
+                data-option-variant-image="{{ option.variant_image }}"
+                data-option-image-key="{{ option.image_key }}"
+                data-option-discount="{{ option.discount_percent }}"
+                {% if option.stock < 1 %}disabled{% endif %}
+              >
+                <b>{{ option.label }}</b>
+                <span>Rs. {{ option.price }}</span>
+                {% if option.stock < 1 %}
+                  <small>Out</small>
+                {% else %}
+                  <small>{{ option.stock }} left</small>
+                {% endif %}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="detail-meta-grid">
+        <span><b>Company</b>{{ product.brand_name|default:'Lexvers' }}</span>
+        <span><b>Pack</b><em id="detail-pack">{% if selected_quantity_option %}{{ selected_quantity_option.label }}{% else %}{{ product.pack_display|default:'Standard pack' }}{% endif %}</em></span>
+        <span><b>Stock</b><em id="detail-stock">{% if selected_quantity_option %}{{ selected_quantity_option.stock }}{% else %}{{ product.stock }}{% endif %} units</em></span>
+        <span><b>Level</b>{{ product.get_spice_level_display|default:'Standard' }}</span>
+        <span><b>Seller</b>{{ product.owner_label }}</span>
+        <span><b>SKU</b><em id="detail-sku">{% if selected_quantity_option.sku %}{{ selected_quantity_option.sku }}{% else %}{{ product.sku_code|default:'Not set' }}{% endif %}</em></span>
+      </div>
+
+      <div class="detail-actions">
+        <button
+          class="add-btn detail-add-btn"
+          type="button"
+          data-cart-add="1"
+          data-product-id="{{ product.id }}"
+          data-quantity-option-id="{% if selected_quantity_option %}{{ selected_quantity_option.id }}{% endif %}"
+          data-item-id="{% if selected_quantity_option %}{{ product.id }}:{{ selected_quantity_option.id }}{% else %}{{ product.id }}{% endif %}"
+          data-item-name="{{ product.name }}"
+          data-item-price="{% if selected_quantity_option %}{{ selected_quantity_option.price }}{% else %}{{ product.effective_price }}{% endif %}"
+          data-item-image="{{ primary_image }}"
+          data-item-variant-image="{% if selected_quantity_option %}{{ selected_quantity_option.variant_image }}{% endif %}"
+          data-item-image-key="{% if selected_quantity_option %}{{ selected_quantity_option.image_key }}{% endif %}"
+          data-item-stock="{% if selected_quantity_option %}{{ selected_quantity_option.stock }}{% else %}{{ product.stock }}{% endif %}"
+          data-item-brand="{{ product.brand_name }}"
+          data-item-pack="{% if selected_quantity_option %}{{ selected_quantity_option.label }}{% else %}{{ product.pack_display }}{% endif %}"
+          {% if selected_quantity_option and selected_quantity_option.stock < 1 or not selected_quantity_option and product.stock < 1 %}disabled{% endif %}
+        >
+          {% if selected_quantity_option and selected_quantity_option.stock < 1 or not selected_quantity_option and product.stock < 1 %}Out of Stock{% else %}Add to Cart{% endif %}
+        </button>
+        <button
+          class="detail-share-btn"
+          type="button"
+          data-share-title="{{ product.name }}"
+          data-share-text="{{ product.short_description }}"
+          data-share-url="{{ request.build_absolute_uri }}"
+        >
+          <i class="fa-solid fa-share-nodes"></i>
+          Share
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="detail-info-grid detail-info-stack">
+    <article class="detail-info-panel">
+      <h2>Full Details</h2>
+      <p>{{ product.description|default:product.short_description }}</p>
+      <div class="detail-spec-list">
+        <span>Category: {{ product.category.name|default:'General' }}{% if product.sub_category %} / {{ product.sub_category }}{% endif %}</span>
+        <span>Stock: {{ product.initial_stock }} initial, {{ product.stock }} available now.</span>
+        <span>Specifications: {{ product.specifications|default:'Not added yet.' }}</span>
+        <span>Shipping weight: {{ product.shipping_weight|default:'Not set' }}</span>
+        <span>Return: {% if product.return_available %}Available{% else %}Not available{% endif %}</span>
+        <span>Warranty: {{ product.warranty_details|default:'Not added' }}</span>
+      </div>
+    </article>
+
+    <article class="detail-info-panel review-panel">
+      <div class="review-head">
+        <div>
+          <h2>Reviews</h2>
+          <p>Customer reviews are shown after admin approval.</p>
+        </div>
+        <span class="rating-pill">
+          <i class="fa-solid fa-star"></i>
+          {% if review_count %}{{ review_average|floatformat:1 }}{% else %}No ratings{% endif %}
+        </span>
+      </div>
+
+      <form class="review-form" method="post">
+        {% csrf_token %}
+        <input type="text" name="customer_name" placeholder="Your name" value="{% if request.user.is_authenticated %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}" required>
+        <select name="rating" required>
+          <option value="5">5 stars</option>
+          <option value="4">4 stars</option>
+          <option value="3">3 stars</option>
+          <option value="2">2 stars</option>
+          <option value="1">1 star</option>
+        </select>
+        <textarea name="comment" placeholder="Write your review" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+
+      <div class="review-list">
+        {% for review in approved_reviews %}
+          <article class="review-card">
+            <div>
+              <strong>{{ review.reviewer_label }}</strong>
+              <span>{% for star in '12345' %}{% if forloop.counter <= review.rating %}<i class="fa-solid fa-star"></i>{% endif %}{% endfor %}</span>
+            </div>
+            <p>{{ review.comment }}</p>
+          </article>
+        {% empty %}
+          <article class="review-card">
+            <p>No approved reviews yet.</p>
+          </article>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  {% if related_products %}
+    <section class="product-section related-section">
+      <div class="section-header">
+        <div>
+          <h2>Related Products</h2>
+          <p>More from {{ product.category.name|default:'this category' }}.</p>
+        </div>
+      </div>
+      <div class="product-grid">
+        {% for item in related_products %}
+          {% include 'products/partials/product_card.html' with item=item compact=True %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+</section>
+
+{% include 'cart/partials/cart_drawer.html' %}
+{% endblock %}
+
+{% block scripts %}
+{% include 'cart/partials/cart_script.html' %}
+{{ quantity_gallery_images|json_script:"quantity-gallery-data" }}
+<script>
+  (function () {
+    const mainImage = document.getElementById('detail-main-image');
+    const thumbsContainer = document.querySelector('[data-detail-thumbs]');
+    if (!mainImage || !thumbsContainer) return;
+
+    thumbsContainer.addEventListener('click', function (event) {
+      const thumb = event.target.closest('[data-gallery-src]');
+      if (!thumb || !thumbsContainer.contains(thumb)) return;
+
+      mainImage.style.opacity = '0';
+      window.setTimeout(() => {
+        mainImage.src = thumb.dataset.gallerySrc || mainImage.src;
+        mainImage.alt = thumb.dataset.galleryAlt || mainImage.alt;
+        mainImage.style.opacity = '1';
+      }, 120);
+      thumbsContainer.querySelectorAll('.detail-thumb').forEach((item) => item.classList.toggle('active', item === thumb));
+    });
+  })();
+
+  (function () {
+    const shareButton = document.querySelector('[data-share-url]');
+    if (!shareButton) return;
+
+    shareButton.addEventListener('click', async function () {
+      const payload = {
+        title: shareButton.dataset.shareTitle || document.title,
+        text: shareButton.dataset.shareText || '',
+        url: shareButton.dataset.shareUrl || window.location.href,
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(payload);
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(payload.url);
+          shareButton.classList.add('copied');
+          shareButton.innerHTML = '<i class="fa-solid fa-check"></i> Link copied';
+          window.setTimeout(() => {
+            shareButton.classList.remove('copied');
+            shareButton.innerHTML = '<i class="fa-solid fa-share-nodes"></i> Share';
+          }, 1600);
+        }
+      } catch (error) {
+        return;
+      }
+    });
+  })();
+
+  (function () {
+    const optionButtons = document.querySelectorAll('[data-option-id]');
+    if (!optionButtons.length) return;
+
+    const productId = '{{ product.id }}';
+    const storageKey = `lexvers_selected_quantity_${productId}`;
+    const mainImage = document.getElementById('detail-main-image');
+    const mainFrame = mainImage ? mainImage.closest('.detail-main-frame') : null;
+    const priceLabel = document.getElementById('detail-price');
+    const originalPriceLabel = document.getElementById('detail-original-price');
+    const selectedQuantityLabel = document.getElementById('selected-quantity-label');
+    const packLabel = document.getElementById('detail-pack');
+    const stockLabel = document.getElementById('detail-stock');
+    const skuLabel = document.getElementById('detail-sku');
+    const offerBadge = document.getElementById('detail-offer-badge');
+    const addButton = document.querySelector('.detail-add-btn');
+    const thumbsContainer = document.querySelector('[data-detail-thumbs]');
+    const galleryDataNode = document.getElementById('quantity-gallery-data');
+    let optionGalleries = {};
+
+    try {
+      optionGalleries = galleryDataNode ? JSON.parse(galleryDataNode.textContent || '{}') : {};
+    } catch (error) {
+      optionGalleries = {};
+    }
+
+    function setText(node, text) {
+      if (node) node.textContent = text;
+    }
+
+    function imageWithKey(imageUrl, key) {
+      if (!imageUrl || !key) return imageUrl || '';
+      const separator = imageUrl.includes('?') ? '&' : '?';
+      return `${imageUrl}${separator}lv_variant=${encodeURIComponent(key)}`;
+    }
+
+    function renderThumbnails(gallery) {
+      if (!thumbsContainer) return;
+      const images = Array.isArray(gallery) ? gallery.filter((image) => image && image.src) : [];
+      thumbsContainer.hidden = images.length < 1;
+      thumbsContainer.replaceChildren(...images.map((image, index) => {
+        const button = document.createElement('button');
+        const resolvedSrc = imageWithKey(image.src || '', image.image_key || image.key || '');
+        const alt = image.alt || '{{ product.name|escapejs }}';
+
+        button.type = 'button';
+        button.className = `detail-thumb${index === 0 ? ' active' : ''}`;
+        button.dataset.gallerySrc = resolvedSrc;
+        button.dataset.galleryAlt = alt;
+        button.setAttribute('aria-label', `Show photo ${index + 1} of {{ product.name|escapejs }}`);
+
+        const img = document.createElement('img');
+        img.src = resolvedSrc;
+        img.alt = alt;
+        button.appendChild(img);
+        return button;
+      }));
+    }
+
+    function galleryForButton(button, label) {
+      const optionGallery = optionGalleries[String(button.dataset.optionId || '')];
+      if (Array.isArray(optionGallery) && optionGallery.length) return optionGallery;
+      if (button.dataset.optionImage) {
+        return [{
+          src: button.dataset.optionImage,
+          alt: '{{ product.name|escapejs }} ' + label,
+          image_key: button.dataset.optionImageKey || button.dataset.optionId || '',
+        }];
+      }
+      return optionGalleries.default || [];
+    }
+
+    function setMainImage(imageUrl, label, imageKey, altText) {
+      if (!mainImage || !imageUrl) return;
+      const resolvedImage = imageWithKey(imageUrl, imageKey);
+      mainFrame?.classList.add('is-switching');
+      window.setTimeout(() => {
+        mainImage.src = resolvedImage;
+        mainImage.alt = altText || ('{{ product.name|escapejs }} ' + label);
+        mainFrame?.classList.remove('is-switching');
+      }, 120);
+    }
+
+    function updateCartPayload(button) {
+      if (!addButton) return;
+      const stock = Number.parseInt(button.dataset.optionStock || '0', 10);
+      addButton.dataset.productId = productId;
+      addButton.dataset.quantityOptionId = button.dataset.optionId || '';
+      addButton.dataset.itemId = `${productId}:${button.dataset.optionId || ''}`;
+      addButton.dataset.itemPrice = button.dataset.optionPrice || '0';
+      addButton.dataset.itemImage = imageWithKey(button.dataset.optionImage || addButton.dataset.itemImage || '', button.dataset.optionImageKey || button.dataset.optionId || '');
+      addButton.dataset.itemVariantImage = button.dataset.optionVariantImage || '';
+      addButton.dataset.itemImageKey = button.dataset.optionImageKey || button.dataset.optionId || '';
+      addButton.dataset.itemStock = String(stock);
+      addButton.dataset.itemPack = button.dataset.optionLabel || 'Standard pack';
+      addButton.disabled = stock < 1;
+      addButton.textContent = stock < 1 ? 'Out of Stock' : 'Add to Cart';
+    }
+
+    function updateOffer(button) {
+      if (!offerBadge) return;
+      const discount = Number.parseInt(button.dataset.optionDiscount || '0', 10);
+      offerBadge.hidden = discount < 1;
+      offerBadge.textContent = `${discount}% OFF`;
+    }
+
+    function selectOption(button, persistSelection) {
+        if (button.disabled) return;
+        const label = button.dataset.optionLabel || 'Selected pack';
+        const price = button.dataset.optionPrice || '0.00';
+        const originalPrice = button.dataset.optionOriginalPrice || '';
+        const stock = button.dataset.optionStock || '0';
+        const sku = button.dataset.optionSku || 'Not set';
+
+        optionButtons.forEach((item) => item.classList.toggle('active', item === button));
+        setText(selectedQuantityLabel, label);
+        setText(priceLabel, `Rs. ${price}`);
+        setText(packLabel, label);
+        setText(stockLabel, `${stock} units`);
+        setText(skuLabel, sku || 'Not set');
+
+        if (originalPriceLabel) {
+          originalPriceLabel.hidden = !originalPrice;
+          originalPriceLabel.textContent = originalPrice ? `Rs. ${originalPrice}` : '';
+        }
+
+        const gallery = galleryForButton(button, label);
+        const activeImage = gallery[0] || {
+          src: button.dataset.optionImage,
+          alt: '{{ product.name|escapejs }} ' + label,
+          image_key: button.dataset.optionImageKey || button.dataset.optionId || '',
+        };
+
+        renderThumbnails(gallery);
+        setMainImage(activeImage.src, label, activeImage.image_key || button.dataset.optionImageKey || button.dataset.optionId, activeImage.alt);
+        updateOffer(button);
+        updateCartPayload(button);
+        if (persistSelection) {
+          try {
+            localStorage.setItem(storageKey, button.dataset.optionId || '');
+          } catch (error) {
+            return;
+          }
+        }
+    }
+
+    optionButtons.forEach((button) => {
+      button.addEventListener('click', function () {
+        selectOption(button, true);
+      });
+    });
+
+    try {
+      const savedOptionId = localStorage.getItem(storageKey);
+      const savedButton = savedOptionId
+        ? Array.from(optionButtons).find((button) => button.dataset.optionId === savedOptionId && !button.disabled)
+        : null;
+      if (savedButton) selectOption(savedButton, false);
+    } catch (error) {
+      return;
+    }
+  })();
+
+</script>
+{% endblock %}

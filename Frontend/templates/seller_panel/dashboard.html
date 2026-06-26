@@ -1,0 +1,1106 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seller Panel | Lexvers</title>
+  <link rel="icon" type="image/png" href="{% static 'images/shared/Pannel_logo.png' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/seller_panel/seller.css' %}">
+</head>
+<body class="seller-panel-body">
+  <section class="seller-dashboard-shell" data-live-seller-dashboard-url="{% url 'seller-live-dashboard' %}" data-seller-dashboard-url="{% url 'seller-dashboard' %}">
+    {% include 'seller_panel/partials/seller_sidebar.html' %}
+
+    <main class="seller-main">
+      {% include 'seller_panel/partials/seller_header.html' %}
+
+      <section class="seller-dashboard-content">
+        {% if messages %}
+          <div class="seller-message-stack">
+            {% for message in messages %}
+              <div class="seller-alert">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <section class="seller-section active" data-section="dashboard">
+          <div class="seller-modern-stats">
+            {% for card in seller_dashboard_cards %}
+              <button
+                type="button"
+                class="seller-modern-stat {{ card.tone }}"
+                data-seller-section-jump="{{ card.target }}"
+                data-title="{{ card.title }}"
+              >
+                <span class="seller-stat-icon"><i class="{{ card.icon }}"></i></span>
+                <div>
+                  <p>{{ card.label }}</p>
+                  <strong data-seller-card-value="{{ card.key }}">{{ card.value }}</strong>
+                  <small>{{ card.note }}</small>
+                </div>
+                <i class="fas fa-arrow-right seller-stat-arrow"></i>
+              </button>
+            {% endfor %}
+          </div>
+
+          <div class="seller-modern-grid">
+            <article class="seller-modern-card seller-main-analytics">
+              <div class="seller-modern-head">
+                <div>
+                  <h2>Seller Sales Management</h2>
+                  <p>Inventory value, product activity, and sales readiness.</p>
+                </div>
+                <div class="seller-modern-tools">
+                  <button type="button">Last 30 days <i class="fas fa-chevron-down"></i></button>
+                  <button type="button"><i class="fas fa-download"></i> Export Data</button>
+                </div>
+              </div>
+
+              <div class="seller-analytics-summary">
+                <span><small>Revenue</small><b data-seller-card-value="product_revenue">{{ seller_snapshot.product_revenue }}</b><em>{{ seller_snapshot.sale_percent }}%</em></span>
+                <span><small>Avg. Selling Price</small><b data-seller-live-text="average_price">{{ seller_snapshot.average_price }}</b><em>{{ seller_snapshot.active_percent }}%</em></span>
+                <span><small>Inventory Value</small><b data-seller-live-text="stock_value">{{ seller_snapshot.stock_value }}</b><em class="down">{{ seller_snapshot.stock_alerts }} alerts</em></span>
+              </div>
+
+              <div class="seller-line-chart">
+                <svg viewBox="0 0 720 260" role="img" aria-label="Sales line graph">
+                  <defs>
+                    <linearGradient id="sellerLineFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#5377ff" stop-opacity="0.22"></stop>
+                      <stop offset="100%" stop-color="#5377ff" stop-opacity="0"></stop>
+                    </linearGradient>
+                  </defs>
+                  <path data-seller-line-area d="{{ seller_line_chart.area_path }}" fill="url(#sellerLineFill)"></path>
+                  <path data-seller-line-path d="{{ seller_line_chart.line_path }}" fill="none" stroke="#5377ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <line data-seller-line-marker x1="{{ seller_line_chart.focus_x }}" y1="40" x2="{{ seller_line_chart.focus_x }}" y2="230" stroke="#9aaefc" stroke-width="2"></line>
+                  <circle data-seller-line-dot cx="{{ seller_line_chart.focus_x }}" cy="{{ seller_line_chart.focus_y }}" r="8" fill="#5377ff" stroke="#fff" stroke-width="4"></circle>
+                </svg>
+                <div class="seller-chart-tooltip" data-seller-chart-tooltip>{{ seller_line_chart.focus_value }}<br><small>{{ seller_line_chart.focus_label }}</small></div>
+              </div>
+            </article>
+
+            <aside class="seller-side-stack">
+              <article class="seller-modern-card">
+                <div class="seller-modern-head compact">
+                  <h2>Data Progress</h2>
+                  <span>Weekly</span>
+                </div>
+                <div class="seller-progress-bars">
+                  {% for bar in seller_progress_bars %}
+                    <span>
+                      <i style="height: {{ bar.height }}%;" data-seller-progress-bar="{{ forloop.counter0 }}"></i>
+                      <b>{{ bar.label }}</b>
+                    </span>
+                  {% endfor %}
+                </div>
+              </article>
+
+              <article class="seller-modern-card">
+                <div class="seller-modern-head compact">
+                  <h2>Product Sale</h2>
+                  <span>Live</span>
+                </div>
+                <div class="seller-donut">
+                  <div class="seller-donut-ring" style="--seller-donut-progress: {{ seller_snapshot.sale_percent }}%;">
+                    <strong data-seller-live-text="sale_percent">{{ seller_snapshot.sale_percent }}%</strong>
+                    <small>Stock sold</small>
+                  </div>
+                </div>
+                <div class="seller-donut-meta">
+                  <span><b data-seller-live-text="total_products">{{ seller_snapshot.total_products }}</b>Total product</span>
+                  <span><b data-seller-live-text="stock_alerts">{{ seller_snapshot.stock_alerts }}</b>Stock alerts</span>
+                  <span><b data-seller-live-text="active_products">{{ seller_snapshot.active_products }}</b>Active</span>
+                </div>
+              </article>
+            </aside>
+          </div>
+
+          <div class="seller-bottom-grid">
+            <article class="seller-balance-card">
+              <span><i class="fas fa-wallet"></i></span>
+              <strong data-seller-live-text="total_earnings">{{ seller_snapshot.total_earnings }}</strong>
+              <small>Product revenue</small>
+              <em>{{ seller_snapshot.sale_percent }}%</em>
+            </article>
+            <article class="seller-balance-card">
+              <span><i class="fas fa-receipt"></i></span>
+              <strong data-seller-live-text="pending_payout">{{ seller_snapshot.pending_payout }}</strong>
+              <small>Pending payout</small>
+              <em>Ready</em>
+            </article>
+            <article class="seller-balance-card">
+              <span><i class="fas fa-boxes-stacked"></i></span>
+              <strong data-seller-live-text="total_stock">{{ seller_snapshot.total_stock }}</strong>
+              <small>Stock units</small>
+              <em>{{ seller_snapshot.stock_health_percent }}%</em>
+            </article>
+            <article class="seller-modern-card seller-mini-report">
+              <h2>Category Stock</h2>
+              <div class="seller-mini-bars">
+                {% for bar in seller_category_bars %}
+                  <i style="height: {{ bar.height }}%;" title="{{ bar.label }}: {{ bar.value }}"></i>
+                {% endfor %}
+              </div>
+            </article>
+            <article class="seller-modern-card seller-mini-report">
+              <h2>Active Catalog</h2>
+              <div class="seller-small-donut" style="--seller-small-donut-progress: {{ seller_snapshot.active_percent }}%;">
+                <strong data-seller-live-text="active_percent">{{ seller_snapshot.active_percent }}%</strong><small>Approved products</small>
+              </div>
+            </article>
+            <article class="seller-modern-card seller-mini-report">
+              <h2>Health Lines</h2>
+              <div class="seller-spend-lines">
+                {% for line in seller_status_lines %}
+                  <span style="--line-width: {{ line.percent }}%;" title="{{ line.label }}: {{ line.value }}"></span>
+                {% endfor %}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="products">
+          <div class="seller-metrics">
+            <article class="seller-metric"><span>Active Products</span><strong data-seller-live-text="active_products">{{ seller_snapshot.active_products }}</strong></article>
+            <article class="seller-metric"><span>Approval Queue</span><strong data-seller-live-text="pending_products">{{ seller_snapshot.pending_products }}</strong></article>
+            <article class="seller-metric"><span>Rejected</span><strong data-seller-live-text="rejected_products">{{ seller_snapshot.rejected_products }}</strong></article>
+            <article class="seller-metric"><span>Stock Value</span><strong data-seller-live-text="stock_value">{{ seller_snapshot.stock_value }}</strong></article>
+          </div>
+          <div data-seller-live-fragment="products_overview">
+            {% include 'seller_panel/partials/products_table.html' with products=seller_products show_stock_form=True %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="products-1">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Add Product</h2>
+              <span class="seller-chip success">Live sync</span>
+            </div>
+            <form method="post" action="{% url 'seller-product-create' %}" enctype="multipart/form-data" class="seller-product-form seller-structured-form">
+              {% csrf_token %}
+              {% include 'seller_panel/partials/product_form_fields.html' with form=seller_product_form %}
+              <div class="seller-form-actions">
+                <button type="submit" class="seller-btn"><i class="fas fa-cloud-arrow-up"></i> Post Live Product</button>
+              </div>
+            </form>
+          </article>
+        </section>
+
+        <section class="seller-section" data-section="products-2">
+          <div data-seller-live-fragment="products_all">
+            {% include 'seller_panel/partials/products_table.html' with products=seller_products show_stock_form=True %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="products-3">
+          <div data-seller-live-fragment="products_pending">
+            {% include 'seller_panel/partials/products_table.html' with products=live_products show_stock_form=True table_title='Live Products' %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="products-4">
+          <div data-seller-live-fragment="products_out">
+            {% include 'seller_panel/partials/products_table.html' with products=out_of_stock_products show_stock_form=True %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="products-5">
+          <div data-seller-live-fragment="product_reviews">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_reviews_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="orders">
+          <div data-seller-live-fragment="orders_all">
+            {% include 'seller_panel/partials/order_board.html' with title='All Orders' seller_order_rows=seller_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-1">
+          <div data-seller-live-fragment="orders_all">
+            {% include 'seller_panel/partials/order_board.html' with title='All Orders' seller_order_rows=seller_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-2">
+          <div data-seller-live-fragment="orders_pending">
+            {% include 'seller_panel/partials/order_board.html' with title='Pending Orders' seller_order_rows=seller_pending_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-3">
+          <div data-seller-live-fragment="orders_confirmed">
+            {% include 'seller_panel/partials/order_board.html' with title='Confirmed Orders' seller_order_rows=seller_confirmed_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-4">
+          <div data-seller-live-fragment="orders_packed">
+            {% include 'seller_panel/partials/order_board.html' with title='Packed Orders' seller_order_rows=seller_packed_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-5">
+          <div data-seller-live-fragment="orders_shipped">
+            {% include 'seller_panel/partials/order_board.html' with title='Shipped Orders' seller_order_rows=seller_shipped_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-6">
+          <div data-seller-live-fragment="orders_delivered">
+            {% include 'seller_panel/partials/order_board.html' with title='Delivered Orders' seller_order_rows=seller_delivered_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-7">
+          <div data-seller-live-fragment="orders_cancelled">
+            {% include 'seller_panel/partials/order_board.html' with title='Cancelled Orders' seller_order_rows=seller_cancelled_order_rows %}
+          </div>
+        </section>
+        <section class="seller-section" data-section="orders-8">
+          <div data-seller-live-fragment="orders_returned">
+            {% include 'seller_panel/partials/order_board.html' with title='Returned Orders' seller_order_rows=seller_returned_order_rows %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="inventory">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Inventory / Stock Management</h2>
+              <span class="seller-chip warning"><span data-seller-live-text="stock_alerts">{{ seller_snapshot.stock_alerts }}</span> alerts</span>
+            </div>
+          </article>
+          <div data-seller-live-fragment="inventory">
+            {% include 'seller_panel/partials/products_table.html' with products=seller_products show_stock_form=True %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="earnings">
+          <div class="seller-grid-two">
+            <article class="seller-workspace">
+              <h2>Sales Report</h2>
+              <div class="seller-settings-grid compact">
+                <span><b>Total sales amount</b><em data-seller-live-text="total_sales">{{ seller_snapshot.total_sales }}</em></span>
+                <span><b>Admin commission</b><em data-seller-live-text="admin_commission">{{ seller_snapshot.admin_commission }}</em></span>
+                <span><b>Seller earning</b><em data-seller-live-text="total_earnings">{{ seller_snapshot.total_earnings }}</em></span>
+                <span><b>Pending amount</b><em data-seller-live-text="pending_payout">{{ seller_snapshot.pending_payout }}</em></span>
+              </div>
+            </article>
+            <article class="seller-workspace">
+              <h2>Payout History</h2>
+              <div data-seller-live-fragment="payout">
+                {% include 'seller_panel/partials/data_table.html' with table=seller_payout_table %}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="earnings-1">
+          <article class="seller-workspace">
+            <h2>Sales Report</h2>
+            <div class="seller-settings-grid compact">
+              <span><b>Total sales amount</b><em data-seller-live-text="total_sales">{{ seller_snapshot.total_sales }}</em></span>
+              <span><b>Units sold</b><em data-seller-live-text="sold_units">{{ seller_snapshot.sold_units }}</em></span>
+              <span><b>Average sales</b><em data-seller-live-text="average_sales">{{ seller_snapshot.average_sales }}</em></span>
+              <span><b>Delivered orders</b><em data-seller-live-text="completed_orders">{{ seller_snapshot.completed_orders }}</em></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="seller-section" data-section="earnings-2">
+          <article class="seller-workspace">
+            <h2>Earnings</h2>
+            <div class="seller-settings-grid compact">
+              <span><b>Seller earning</b><em data-seller-live-text="total_earnings">{{ seller_snapshot.total_earnings }}</em></span>
+              <span><b>Pending payout</b><em data-seller-live-text="pending_payout">{{ seller_snapshot.pending_payout }}</em></span>
+              <span><b>Stock value</b><em data-seller-live-text="stock_value">{{ seller_snapshot.stock_value }}</em></span>
+              <span><b>Product revenue</b><em data-seller-live-text="product_revenue">{{ seller_snapshot.product_revenue }}</em></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="seller-section" data-section="earnings-3">
+          <article class="seller-workspace">
+            <h2>Commission</h2>
+            <div class="seller-settings-grid compact">
+              <span><b>Total sales amount</b><em data-seller-live-text="total_sales">{{ seller_snapshot.total_sales }}</em></span>
+              <span><b>Admin commission</b><em data-seller-live-text="admin_commission">{{ seller_snapshot.admin_commission }}</em></span>
+              <span><b>Seller earning</b><em data-seller-live-text="total_earnings">{{ seller_snapshot.total_earnings }}</em></span>
+              <span><b>Commission rule</b>10% admin / 90% seller</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="seller-section" data-section="earnings-4">
+          <div data-seller-live-fragment="payout">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_payout_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="payout">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Payout / Withdraw Request</h2>
+              <span class="seller-chip">Minimum Rs. 500</span>
+            </div>
+            <form method="post" action="{% url 'seller-payout-request' %}" class="seller-product-form">
+              {% csrf_token %}
+              <label><span>Amount</span><input class="form-input" type="number" name="amount" min="500" step="1" placeholder="500" required></label>
+              <label><span>Bank account</span><input class="form-input" type="text" name="bank_account" value="{% if seller_profile %}{{ seller_profile.bank_account_number }}{% endif %}" placeholder="Primary bank account"></label>
+              <label><span>UPI ID</span><input class="form-input" type="text" name="upi_id" placeholder="optional@upi"></label>
+              <label class="full"><span>Remarks</span><textarea class="form-input" name="remarks" rows="3"></textarea></label>
+              <div class="seller-form-actions"><button type="submit" class="seller-btn">Request Withdraw</button></div>
+            </form>
+          </article>
+          <div data-seller-live-fragment="payout">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_payout_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="returns">
+          <div data-seller-live-fragment="returns">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_returns_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="coupons">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Coupons / Offers</h2>
+              <span class="seller-chip warning">Approval ready</span>
+            </div>
+            <form method="post" action="{% url 'seller-coupon-create' %}" class="seller-product-form">
+              {% csrf_token %}
+              <label><span>Coupon code</span><input class="form-input" type="text" name="code" placeholder="SELLER20" required></label>
+              <label><span>Discount type</span><select class="form-input" name="discount_type">{% for value,label in seller_coupon_discount_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+              <label><span>Discount value</span><input class="form-input" type="number" name="discount_value" min="1" step="0.01" placeholder="20" required></label>
+              <label><span>Minimum order amount</span><input class="form-input" type="number" name="min_order_amount" placeholder="999"></label>
+              <label><span>Start date</span><input class="form-input" type="date" name="starts_at"></label>
+              <label><span>End date</span><input class="form-input" type="date" name="ends_at"></label>
+              <label><span>Usage limit</span><input class="form-input" type="number" name="usage_limit" placeholder="100"></label>
+              <label><span>Product-specific coupon</span><select class="form-input" name="product_id"><option value="">All seller products</option>{% for item in seller_products %}<option value="{{ item.pk }}">{{ item.name }}</option>{% endfor %}</select></label>
+              <div class="seller-form-actions"><button type="submit" class="seller-btn">Create Coupon</button></div>
+            </form>
+          </article>
+          <div data-seller-live-fragment="coupons">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_coupons_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="messages">
+          <div data-seller-live-fragment="messages">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_messages_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="ratings">
+          <div data-seller-live-fragment="ratings">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_ratings_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="shipping">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Shipping Management</h2>
+              <span class="seller-chip">Manual tracking</span>
+            </div>
+            <form method="post" action="{% url 'seller-shipping-update' %}" class="seller-product-form">
+              {% csrf_token %}
+              <label>
+                <span>Order</span>
+                <select class="form-input" name="order_id" required>
+                  <option value="">Select order</option>
+                  {% for order in seller_tracking_orders %}
+                    <option value="{{ order.pk }}">{{ order.order_number }} - {{ order.customer_name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>Courier name</span>
+                <input class="form-input" type="text" name="courier_name" list="seller-courier-options" placeholder="Courier partner">
+                <datalist id="seller-courier-options">
+                  {% for courier in seller_courier_partners %}
+                    <option value="{{ courier.name }}"></option>
+                  {% endfor %}
+                </datalist>
+              </label>
+              <label><span>Tracking ID</span><input class="form-input" type="text" name="tracking_number"></label>
+              <label>
+                <span>Status</span>
+                <select class="form-input" name="status">
+                  {% for value,label in seller_shipment_status_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="full"><span>Last location</span><input class="form-input" type="text" name="last_location" placeholder="City / hub / dispatch note"></label>
+              <div class="seller-form-actions"><button type="submit" class="seller-btn">Save Shipping</button></div>
+            </form>
+          </article>
+          <div data-seller-live-fragment="shipping">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_shipping_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="store-settings">
+          <div data-seller-live-fragment="store_settings">
+            {% include 'seller_panel/partials/store_settings.html' %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="store-settings-1">
+          <div data-seller-live-fragment="store_settings">
+            {% include 'seller_panel/partials/store_settings.html' %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="store-settings-2">
+          <div data-seller-live-fragment="bank_details">
+            {% include 'seller_panel/partials/bank_details.html' %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="store-settings-3">
+          <div data-seller-live-fragment="kyc_documents">
+            {% include 'seller_panel/partials/kyc_documents.html' %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="notifications">
+          <div data-seller-live-fragment="notifications">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_notifications_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="analytics">
+          <div class="seller-grid-two">
+            <article class="seller-workspace">
+              <h2>Reports / Analytics</h2>
+              <div class="seller-settings-grid compact">
+                <span><b>Best selling products</b><em data-seller-live-text="sold_units">{{ seller_snapshot.sold_units }} units sold</em></span>
+                <span><b>Low stock products</b><em data-seller-live-text="low_stock_products">{{ seller_snapshot.low_stock_products }}</em></span>
+                <span><b>Total revenue</b><em data-seller-live-text="total_sales">{{ seller_snapshot.total_sales }}</em></span>
+                <span><b>Order count</b><em data-seller-live-text="pending_orders">{{ seller_snapshot.pending_orders }}</em> pending</span>
+                <span><b>Return rate</b>0%</span>
+                <span><b>Cancel count</b><em data-seller-live-text="cancelled_orders">{{ seller_snapshot.cancelled_orders }}</em></span>
+              </div>
+            </article>
+            <article class="seller-workspace">
+              <h2>Monthly sales graph</h2>
+              <div class="seller-chart">
+                {% for point in monthly_sales_points %}
+                  <span style="height: {{ point.height }}%;"><b>{{ point.label }}</b></span>
+                {% endfor %}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="support">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Support / Help Center</h2>
+              <span class="seller-chip">Admin connected</span>
+            </div>
+            <form method="post" action="{% url 'seller-support-create' %}" class="seller-product-form">
+              {% csrf_token %}
+              <label><span>Subject</span><input class="form-input" type="text" name="subject" required></label>
+              <label class="full"><span>Message</span><textarea class="form-input" name="message" rows="4" required></textarea></label>
+              <div class="seller-form-actions"><button type="submit" class="seller-btn">Create Ticket</button></div>
+            </form>
+          </article>
+          <div data-seller-live-fragment="support">
+            {% include 'seller_panel/partials/data_table.html' with table=seller_support_table %}
+          </div>
+        </section>
+
+        <section class="seller-section" data-section="account">
+          <article class="seller-workspace">
+            <div class="seller-card-head">
+              <h2>Account Settings</h2>
+              <span class="seller-chip">Seller rules</span>
+            </div>
+            <div class="seller-grid-two">
+              <div class="seller-settings-grid compact">
+                <span><b>Change password</b>Available</span>
+                <span><b>Change email</b>Admin approval</span>
+                <span><b>Change phone number</b>Admin approval</span>
+                <span><b>Two-factor authentication</b>Planned</span>
+                <span><b>Login history</b>Planned</span>
+                <span><b>Logout</b><a href="{% url 'logout' %}">Sign out</a></span>
+              </div>
+              <div class="seller-rules">
+                <h3>Seller can do</h3>
+                <p>Product add/edit, stock update, orders manage, shipping tracking update, coupons create, reviews reply, payout request, return review, store profile update.</p>
+                <h3>Admin only</h3>
+                <p>Website categories create/delete, customer delete, payment modify, admin commission change, refund issue, review delete, other sellers data, order amount edit.</p>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </section>
+
+  <div class="seller-row-modal" data-seller-row-modal hidden>
+    <div class="seller-row-modal-backdrop" data-seller-row-modal-close></div>
+    <section class="seller-row-modal-card" role="dialog" aria-modal="true" aria-labelledby="seller-row-modal-title">
+      <div class="seller-card-head">
+        <h2 id="seller-row-modal-title">Row Details</h2>
+        <button type="button" class="seller-icon-btn" aria-label="Close details" data-seller-row-modal-close>
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="seller-row-modal-body" data-seller-row-modal-body></div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const pageTitle = document.getElementById('seller-page-title');
+      const triggers = document.querySelectorAll('.seller-nav-trigger');
+      const sections = document.querySelectorAll('.seller-section');
+      const shell = document.querySelector('.seller-dashboard-shell');
+      const navGroups = document.querySelectorAll('[data-seller-nav-group]');
+      const sidebarToggle = document.querySelector('[data-seller-sidebar-toggle]');
+      const themeToggle = document.querySelector('[data-seller-theme-toggle]');
+      const headerMenuWrap = document.querySelector('[data-seller-header-menu-wrap]');
+      const headerMenuButton = document.querySelector('[data-seller-header-menu]');
+      const notificationMenuWrap = document.querySelector('[data-seller-notification-menu-wrap]');
+      const notificationMenuButton = document.querySelector('[data-seller-notification-menu]');
+      const notificationEndpoint = notificationMenuButton ? notificationMenuButton.dataset.sellerNotificationEndpoint : '';
+      const notificationList = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-list]') : null;
+      const notificationBadge = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-badge]') : null;
+      const notificationCount = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-count]') : null;
+      const notificationReadAll = notificationMenuWrap ? notificationMenuWrap.querySelector('[data-seller-notification-read-all]') : null;
+      const rowModal = document.querySelector('[data-seller-row-modal]');
+      const rowModalBody = document.querySelector('[data-seller-row-modal-body]');
+      const liveUrl = shell ? shell.dataset.liveSellerDashboardUrl : '';
+      const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
+      const savedSidebar = localStorage.getItem('lexvers_seller_sidebar') || 'open';
+      const savedTheme = localStorage.getItem('lexvers_seller_theme') || 'light';
+
+      function bindProductSubCategoryDropdowns() {
+        document.querySelectorAll('form').forEach(function (form) {
+          const category = form.querySelector('[data-category-select]');
+          const subCategory = form.querySelector('[data-subcategory-select]');
+          if (!category || !subCategory) {
+            return;
+          }
+
+          function syncSubCategories() {
+            const selectedCategory = category.value;
+            let hasVisibleSelected = !subCategory.value;
+            Array.from(subCategory.options).forEach(function (option) {
+              const optionCategory = option.dataset.categoryId || '';
+              const isPlaceholder = option.value === '';
+              const isVisible = isPlaceholder || optionCategory === selectedCategory;
+              option.hidden = !isVisible;
+              option.disabled = !isVisible;
+              if (isVisible && option.selected) {
+                hasVisibleSelected = true;
+              }
+            });
+            if (!hasVisibleSelected) {
+              subCategory.value = '';
+            }
+          }
+
+          async function refreshSubCategories() {
+            const selectedCategory = category.value;
+            if (!selectedCategory) {
+              subCategory.innerHTML = '<option value="">---------</option>';
+              return;
+            }
+
+            try {
+              const response = await fetch(`${subCategoryOptionsUrl}?category_id=${encodeURIComponent(selectedCategory)}`);
+              if (!response.ok) {
+                syncSubCategories();
+                return;
+              }
+              const payload = await response.json();
+              const currentValue = subCategory.value;
+              subCategory.innerHTML = '<option value="">---------</option>';
+              (payload.options || []).forEach(function (item) {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                option.dataset.categoryId = item.category_id;
+                option.dataset.categorySlug = item.category_slug;
+                if (String(item.id) === currentValue) {
+                  option.selected = true;
+                }
+                subCategory.appendChild(option);
+              });
+            } catch (error) {
+              syncSubCategories();
+            }
+          }
+
+          category.addEventListener('change', refreshSubCategories);
+          syncSubCategories();
+        });
+      }
+
+      function syncTheme() {
+        const isDark = document.body.classList.contains('dark-mode');
+        if (!themeToggle) return;
+        themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      }
+
+      function setHeaderMenuOpen(isOpen) {
+        if (!headerMenuWrap || !headerMenuButton) return;
+        headerMenuWrap.classList.toggle('is-open', isOpen);
+        headerMenuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+
+      function setNotificationMenuOpen(isOpen) {
+        if (!notificationMenuWrap || !notificationMenuButton) return;
+        notificationMenuWrap.classList.toggle('is-open', isOpen);
+        notificationMenuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+
+      function updateNotificationCount(count) {
+        const safeCount = Number(count || 0);
+        if (notificationBadge) {
+          notificationBadge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+          notificationBadge.hidden = safeCount === 0;
+        }
+        if (notificationCount) {
+          notificationCount.textContent = safeCount + ' new';
+          notificationCount.hidden = safeCount === 0;
+        }
+        if (notificationReadAll) {
+          notificationReadAll.disabled = safeCount === 0;
+        }
+      }
+
+      function renderNotifications(payload) {
+        if (!payload || !notificationList) return;
+        updateNotificationCount(payload.unread_count);
+        notificationList.innerHTML = '';
+        const notifications = payload.notifications || [];
+        if (!notifications.length) {
+          const empty = document.createElement('p');
+          empty.className = 'seller-notification-empty';
+          empty.textContent = 'No new notifications';
+          notificationList.appendChild(empty);
+          return;
+        }
+        notifications.forEach(function (notification) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'seller-notification-item';
+          item.dataset.sellerNotificationId = notification.id;
+          item.dataset.sellerNotificationUrl = notification.url || '';
+          item.dataset.sellerSectionJump = notification.section || 'orders';
+          item.dataset.title = 'Orders';
+
+          const icon = document.createElement('i');
+          icon.className = 'fas fa-circle-info';
+
+          const copy = document.createElement('span');
+          const title = document.createElement('b');
+          title.textContent = notification.title || 'Notification';
+          const message = document.createElement('small');
+          message.textContent = notification.message || notification.order_id || '';
+          const time = document.createElement('em');
+          time.textContent = notification.created_at || '';
+
+          copy.append(title, message, time);
+          item.append(icon, copy);
+          notificationList.appendChild(item);
+        });
+      }
+
+      async function fetchNotifications(params) {
+        if (!notificationEndpoint) return null;
+        const url = new URL(notificationEndpoint, window.location.origin);
+        Object.keys(params || {}).forEach(function (key) {
+          if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+            url.searchParams.set(key, params[key]);
+          }
+        });
+        try {
+          const response = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          if (!response.ok) return null;
+          const payload = await response.json();
+          renderNotifications(payload);
+          return payload;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function closeRowModal() {
+        if (!rowModal) return;
+        rowModal.hidden = true;
+        if (rowModalBody) {
+          rowModalBody.innerHTML = '';
+        }
+      }
+
+      function openRowModal(button) {
+        if (!rowModal || !rowModalBody) return;
+        const row = button.closest('tr');
+        const table = button.closest('table');
+        if (!row || !table) return;
+        const headers = Array.from(table.querySelectorAll('thead th')).map(function (header) {
+          return header.textContent.trim();
+        });
+        const cells = Array.from(row.querySelectorAll('td'));
+        rowModalBody.innerHTML = cells.slice(0, Math.max(cells.length - 1, 0)).map(function (cell, index) {
+          const label = headers[index] || 'Details';
+          const value = cell.textContent.replace(/\s+/g, ' ').trim() || '--';
+          return '<span><b>' + label + '</b>' + value + '</span>';
+        }).join('');
+        rowModal.hidden = false;
+      }
+
+      function bindQuantityOptions() {
+        document.querySelectorAll('[data-quantity-collapse]').forEach(function (section) {
+          const toggle = section.querySelector('[data-quantity-toggle]');
+          const addButton = section.querySelector('[data-add-quantity-option]');
+          const rows = Array.from(section.querySelectorAll('[data-quantity-row]'));
+
+          function setOpen(isOpen) {
+            section.classList.toggle('is-open', isOpen);
+            if (toggle) {
+              toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+          }
+
+          function syncAddButton() {
+            if (!addButton) return;
+            addButton.hidden = rows.every(function (row) {
+              return row.classList.contains('is-visible');
+            });
+          }
+
+          rows.forEach(function (row, index) {
+            if (index === 0 || row.querySelector('.errorlist li')) {
+              row.classList.add('is-visible');
+            }
+          });
+          setOpen(section.dataset.open === 'true' || Boolean(section.querySelector('.errorlist li')));
+          syncAddButton();
+
+          if (toggle) {
+            toggle.addEventListener('click', function () {
+              setOpen(!section.classList.contains('is-open'));
+            });
+          }
+
+          if (addButton) {
+            addButton.addEventListener('click', function () {
+              const nextRow = rows.find(function (row) {
+                return !row.classList.contains('is-visible');
+              });
+              if (nextRow) {
+                nextRow.classList.add('is-visible');
+                setOpen(true);
+              }
+              syncAddButton();
+            });
+          }
+        });
+      }
+
+      function bindProfilePhotoPreview() {
+        document.querySelectorAll('[data-seller-profile-photo-input]').forEach(function (input) {
+          input.addEventListener('change', function () {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+              window.alert('Only jpg, jpeg, png, or webp profile photos are allowed.');
+              input.value = '';
+              return;
+            }
+            const previewUrl = URL.createObjectURL(file);
+            document.querySelectorAll('[data-seller-avatar-img], [data-seller-photo-preview]').forEach(function (image) {
+              image.src = previewUrl;
+              image.hidden = false;
+            });
+            document.querySelectorAll('[data-seller-avatar-initial]').forEach(function (node) {
+              node.hidden = true;
+            });
+          });
+        });
+      }
+
+      if (savedSidebar === 'collapsed' && shell) {
+        shell.classList.add('is-sidebar-collapsed');
+        if (sidebarToggle) {
+          sidebarToggle.setAttribute('aria-pressed', 'true');
+        }
+      }
+
+      document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+      syncTheme();
+      bindProductSubCategoryDropdowns();
+      bindQuantityOptions();
+      bindProfilePhotoPreview();
+
+      if (sidebarToggle && shell) {
+        sidebarToggle.addEventListener('click', function () {
+          const isCollapsed = shell.classList.toggle('is-sidebar-collapsed');
+          sidebarToggle.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
+          localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+        });
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+          const isDark = document.body.classList.toggle('dark-mode');
+          localStorage.setItem('lexvers_seller_theme', isDark ? 'dark' : 'light');
+          syncTheme();
+        });
+      }
+
+      if (headerMenuButton) {
+        headerMenuButton.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const isOpen = headerMenuWrap && headerMenuWrap.classList.contains('is-open');
+          setHeaderMenuOpen(!isOpen);
+          setNotificationMenuOpen(false);
+        });
+      }
+
+      if (notificationMenuButton) {
+        notificationMenuButton.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const isOpen = notificationMenuWrap && notificationMenuWrap.classList.contains('is-open');
+          setNotificationMenuOpen(!isOpen);
+          setHeaderMenuOpen(false);
+          if (!isOpen) fetchNotifications();
+        });
+      }
+
+      if (notificationReadAll) {
+        notificationReadAll.addEventListener('click', function (event) {
+          event.preventDefault();
+          fetchNotifications({ mark_read: '1' });
+        });
+      }
+
+      function setGroupOpen(group, isOpen) {
+        if (!group) return;
+        const dropdown = group.querySelector('[data-seller-nav-dropdown]');
+        group.classList.toggle('is-open', isOpen);
+        if (dropdown) {
+          dropdown.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+      }
+
+      function resolveSectionKey(sectionKey) {
+        const hasExactSection = Array.from(sections).some(function (section) {
+          return section.dataset.section === sectionKey;
+        });
+        if (hasExactSection) {
+          return sectionKey;
+        }
+        const parentKey = (sectionKey || '').split('-')[0];
+        const hasParentSection = Array.from(sections).some(function (section) {
+          return section.dataset.section === parentKey;
+        });
+        return hasParentSection ? parentKey : 'dashboard';
+      }
+
+      function showSection(sectionKey, title) {
+        const resolvedSectionKey = resolveSectionKey(sectionKey);
+        sections.forEach(function (section) {
+          section.classList.toggle('active', section.dataset.section === resolvedSectionKey);
+        });
+        triggers.forEach(function (trigger) {
+          trigger.classList.toggle('active', trigger.dataset.section === sectionKey || trigger.dataset.section === resolvedSectionKey);
+        });
+        navGroups.forEach(function (group) {
+          const hasActiveChild = Boolean(group.querySelector('.seller-nav-trigger.active'));
+          if (hasActiveChild) {
+            setGroupOpen(group, true);
+          }
+        });
+        if (pageTitle) {
+          pageTitle.textContent = title || 'Dashboard';
+        }
+      }
+
+      triggers.forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          const group = trigger.closest('[data-seller-nav-group]');
+          const isDropdown = trigger.hasAttribute('data-seller-nav-dropdown');
+          const wasOpen = group && group.classList.contains('is-open');
+          showSection(trigger.dataset.section, trigger.dataset.title);
+          if (group) {
+            setGroupOpen(group, isDropdown ? !wasOpen : true);
+          }
+        });
+      });
+
+      const initialParams = new URLSearchParams(window.location.search);
+      const initialSection = initialParams.get('section') || window.location.hash.replace('#', '');
+      if (initialSection) {
+        showSection(initialSection, initialParams.get('title'));
+      }
+
+      document.addEventListener('click', async function (event) {
+        const rowViewButton = event.target.closest('[data-seller-row-view]');
+        if (rowViewButton) {
+          event.preventDefault();
+          openRowModal(rowViewButton);
+          return;
+        }
+
+        if (event.target.closest('[data-seller-row-modal-close]')) {
+          event.preventDefault();
+          closeRowModal();
+          return;
+        }
+
+        const notificationOpener = event.target.closest('[data-seller-open-notifications]');
+        if (notificationOpener) {
+          event.preventDefault();
+          setNotificationMenuOpen(true);
+          setHeaderMenuOpen(false);
+          fetchNotifications();
+          return;
+        }
+
+        const notificationItem = event.target.closest('[data-seller-notification-id]');
+        if (notificationItem) {
+          event.preventDefault();
+          const targetUrl = notificationItem.dataset.sellerNotificationUrl;
+          await fetchNotifications({ read_id: notificationItem.dataset.sellerNotificationId });
+          setNotificationMenuOpen(false);
+          if (targetUrl) {
+            window.location.href = targetUrl;
+          } else {
+            showSection(notificationItem.dataset.sellerSectionJump || 'orders', notificationItem.dataset.title || 'Orders');
+          }
+          return;
+        }
+
+        const jumpButton = event.target.closest('[data-seller-section-jump]');
+        if (jumpButton) {
+          event.preventDefault();
+          showSection(jumpButton.dataset.sellerSectionJump, jumpButton.dataset.title);
+          setHeaderMenuOpen(false);
+          setNotificationMenuOpen(false);
+          return;
+        }
+
+        if (headerMenuWrap && !headerMenuWrap.contains(event.target)) {
+          setHeaderMenuOpen(false);
+        }
+        if (notificationMenuWrap && !notificationMenuWrap.contains(event.target)) {
+          setNotificationMenuOpen(false);
+        }
+      });
+
+      document.addEventListener('submit', function (event) {
+        const form = event.target;
+        const buttonConfirm = form.querySelector('[data-seller-confirm-action]');
+        const message = form.dataset.sellerConfirm || (buttonConfirm ? buttonConfirm.dataset.sellerConfirmAction : '');
+        if (message && !window.confirm(message)) {
+          event.preventDefault();
+        }
+      });
+
+      function updateText(selector, value) {
+        document.querySelectorAll(selector).forEach(function (node) {
+          node.textContent = value;
+        });
+      }
+
+      function formatLiveValue(key, value) {
+        if (['sale_percent', 'active_percent'].includes(key)) {
+          return value + '%';
+        }
+        return value;
+      }
+
+      function updateFragments(fragments) {
+        Object.keys(fragments || {}).forEach(function (key) {
+          document.querySelectorAll('[data-seller-live-fragment="' + key + '"]').forEach(function (node) {
+            if (node.contains(document.activeElement)) {
+              return;
+            }
+            if (node.querySelector('form') && node.closest('.seller-section.active')) {
+              return;
+            }
+            node.innerHTML = fragments[key];
+          });
+        });
+      }
+
+      function updateLiveDashboard(data) {
+        if (!data || !data.snapshot) return;
+
+        Object.keys(data.cards || {}).forEach(function (key) {
+          updateText('[data-seller-card-value="' + key + '"]', data.cards[key]);
+        });
+
+        Object.keys(data.snapshot).forEach(function (key) {
+          updateText('[data-seller-live-text="' + key + '"]', formatLiveValue(key, data.snapshot[key]));
+        });
+
+        const donut = document.querySelector('.seller-donut-ring');
+        if (donut) {
+          donut.style.setProperty('--seller-donut-progress', data.snapshot.sale_percent + '%');
+        }
+        const smallDonut = document.querySelector('.seller-small-donut');
+        if (smallDonut) {
+          smallDonut.style.setProperty('--seller-small-donut-progress', data.snapshot.active_percent + '%');
+        }
+
+        if (data.line_chart) {
+          const area = document.querySelector('[data-seller-line-area]');
+          const path = document.querySelector('[data-seller-line-path]');
+          const marker = document.querySelector('[data-seller-line-marker]');
+          const dot = document.querySelector('[data-seller-line-dot]');
+          const tooltip = document.querySelector('[data-seller-chart-tooltip]');
+          if (area) area.setAttribute('d', data.line_chart.area_path);
+          if (path) path.setAttribute('d', data.line_chart.line_path);
+          if (marker) {
+            marker.setAttribute('x1', data.line_chart.focus_x);
+            marker.setAttribute('x2', data.line_chart.focus_x);
+          }
+          if (dot) {
+            dot.setAttribute('cx', data.line_chart.focus_x);
+            dot.setAttribute('cy', data.line_chart.focus_y);
+          }
+          if (tooltip) {
+            tooltip.innerHTML = data.line_chart.focus_value + '<br><small>' + data.line_chart.focus_label + '</small>';
+          }
+        }
+
+        (data.progress_bars || []).forEach(function (bar, index) {
+          const node = document.querySelector('[data-seller-progress-bar="' + index + '"]');
+          if (node) {
+            node.style.height = bar.height + '%';
+          }
+        });
+
+        updateFragments(data.fragments);
+      }
+
+      if (liveUrl) {
+        window.setInterval(function () {
+          fetch(liveUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (response) {
+              return response.ok ? response.json() : null;
+            })
+            .then(updateLiveDashboard)
+            .catch(function () {});
+        }, 5000);
+      }
+
+      fetchNotifications();
+      if (notificationEndpoint) {
+        window.setInterval(function () {
+          fetchNotifications();
+        }, 5000);
+      }
+    })();
+  </script>
+</body>
+</html>

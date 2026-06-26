@@ -1,0 +1,285 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block extra_admin_head %}
+  <style>
+    .seller-review-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .seller-review-action {
+      padding: 16px;
+      border-radius: 18px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+    }
+
+    .seller-review-action h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #111827;
+    }
+
+    .seller-review-action textarea {
+      width: 100%;
+      min-height: 92px;
+      border: 1px solid #fed7aa;
+      border-radius: 14px;
+      padding: 10px 12px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+
+    .seller-doc-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .seller-doc-actions a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .seller-review-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ seller.store_name }}</h1>
+    <p>{{ seller.request_code }} - Complete seller registration request, documents, review status, products, and order history.</p>
+  </div>
+  <div class="button-row">
+    <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-seller-edit' seller.pk %}" data-form-title="Edit Seller">Edit Seller</button>
+    <a href="{% url 'admin-sellers' %}" class="btn-ghost">Back</a>
+  </div>
+</section>
+
+<section class="panel-table-wrap admin-detail-section" id="admin-review">
+  <div class="panel-table-head">
+    <div>
+      <h2>Admin Review</h2>
+      <p>Status is saved with reviewer and reviewed date. Remark is required for Reject and Request More Info.</p>
+    </div>
+  </div>
+  <div class="seller-review-grid">
+    <form method="post" action="{% url 'admin-seller-status' seller.pk 'approved' %}" class="seller-review-action">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <h3>Approve</h3>
+      <p>Enable seller dashboard access and create/update seller login.</p>
+      <button type="submit" class="btn-inline">Approve</button>
+    </form>
+    <form method="post" action="{% url 'admin-seller-status' seller.pk 'rejected' %}" class="seller-review-action">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <h3>Reject</h3>
+      <textarea name="admin_remark" placeholder="Required rejection remark">{{ seller.admin_remark }}</textarea>
+      <button type="submit" class="btn-ghost">Reject</button>
+    </form>
+    <form method="post" action="{% url 'admin-seller-status' seller.pk 'more_info' %}" class="seller-review-action">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <h3>Request More Info</h3>
+      <textarea name="admin_remark" placeholder="Required more-info remark">{{ seller.admin_remark }}</textarea>
+      <button type="submit" class="btn-inline">Request More Info</button>
+    </form>
+  </div>
+  <table>
+    <tbody>
+      <tr><th>Status</th><td><span class="table-state {{ seller_status_tone }}">{{ seller.get_status_display }}</span></td><th>Admin Remark</th><td>{{ seller.admin_remark|default:seller.admin_note|default:'No remark added.' }}</td></tr>
+      <tr>
+        <th>Reviewed By</th>
+        <td>{% if seller.reviewed_by %}{{ seller.reviewed_by.get_full_name|default:seller.reviewed_by.username }}{% else %}Not reviewed yet{% endif %}</td>
+        <th>Reviewed At</th>
+        <td>{{ seller.reviewed_at|date:'d M Y, h:i A'|default:'Not reviewed yet' }}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Personal Details</h2><p>Seller identity and login request.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Request ID</th><td>{{ seller.request_code }}</td><th>Submitted Date</th><td>{{ seller.created_at|date:'d M Y, h:i A' }}</td></tr>
+      <tr><th>Full Name</th><td>{{ seller.name }}</td><th>Email</th><td>{{ seller.email }}</td></tr>
+      <tr><th>Email Verified</th><td>{% if seller.email_verified %}<span class="table-state success">Verified</span>{% else %}<span class="table-state warning">Not verified</span>{% endif %}</td><th>Login Access</th><td>{% if seller.status == 'approved' %}<span class="table-state success">Enabled</span>{% else %}<span class="table-state warning">After approval</span>{% endif %}</td></tr>
+      <tr><th>Phone</th><td>{{ seller.phone }}</td><th>Alternate Phone</th><td>{{ seller.alternate_phone|default:'Not set' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Store Details</h2><p>Customer-facing shop identity.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Shop Name</th><td>{{ seller.store_name }}</td><th>Store Display Name</th><td>{{ seller.store_display_name|default:'Not set' }}</td></tr>
+      <tr><th>Business Type</th><td>{{ seller.get_business_type_display }}</td><th>Store Description</th><td>{{ seller.store_description|default:'Not set' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Owner KYC</h2><p>Aadhaar, PAN, DOB, and owner address.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Aadhaar Number</th><td>{{ seller.aadhaar_number|default:'Not set' }}</td><th>PAN Number</th><td>{{ seller.pan_number|default:'Not set' }}</td></tr>
+      <tr><th>Owner DOB</th><td>{{ seller.owner_dob|date:'d M Y'|default:'Not set' }}</td><th>Owner Address</th><td>{{ seller.owner_address|default:'Not set' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>GST & Tax Details</h2><p>Tax and legal business information.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>GST Available</th><td>{% if seller.gst_available %}Yes{% else %}No{% endif %}</td><th>GST Number</th><td>{{ seller.gst_number|default:'Not set' }}</td></tr>
+      <tr><th>Legal Business Name</th><td>{{ seller.legal_business_name|default:'Not set' }}</td><th>PAN Number</th><td>{{ seller.tax_pan_number|default:'Not set' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Bank Details</h2><p>Settlement account information.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Account Holder</th><td>{{ seller.bank_account_name|default:'Not set' }}</td><th>Bank Name</th><td>{{ seller.bank_name|default:'Not set' }}</td></tr>
+      <tr><th>Account Number</th><td>{{ seller.bank_account_number|default:'Not set' }}</td><th>IFSC Code</th><td>{{ seller.bank_ifsc|default:'Not set' }}</td></tr>
+      <tr><th>Branch Name</th><td>{{ seller.branch_name|default:'Not set' }}</td><th>Commission</th><td>10%</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Pickup Address</h2><p>Pickup contact and address.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Pickup Contact</th><td>{{ seller.pickup_contact_name|default:'Not set' }}</td><th>Pickup Phone</th><td>{{ seller.pickup_phone|default:'Not set' }}</td></tr>
+      <tr><th>Address</th><td colspan="3">{{ seller.pickup_full_address|default:'Not set' }}</td></tr>
+      <tr><th>Same As Owner</th><td>{% if seller.pickup_same_as_owner %}Yes{% else %}No{% endif %}</td><th>Landmark</th><td>{{ seller.pickup_landmark|default:'Not set' }}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Product Category</h2><p>Seller catalog profile.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Product Categories</th><td>{{ seller.product_categories|default:'Not set' }}</td><th>Primary Category</th><td>{{ seller.primary_category|default:'Not set' }}</td></tr>
+      <tr><th>Approx Products Count</th><td>{{ seller.approx_products_count|default:'Not set' }}</td><th>Brand Name</th><td>{{ seller.brand_name|default:'Not set' }}</td></tr>
+      <tr><th>Handmade / Local</th><td colspan="3">{% if seller.sells_handmade %}Yes{% else %}No{% endif %}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Documents Upload</h2><p>Image and PDF preview/download links.</p></div></div>
+  <table>
+    <thead><tr><th>Document</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for row in seller_document_rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{% if row.document %}<span class="table-state success">Uploaded</span>{% else %}<span class="table-state warning">Pending</span>{% endif %}</td>
+          <td>
+            {% if row.document %}
+              <span class="seller-doc-actions">
+                <a href="{{ row.view_url }}" target="_blank"><i class="fas fa-eye"></i> View</a>
+                <a href="{{ row.download_url }}"><i class="fas fa-download"></i> Download</a>
+              </span>
+            {% else %}
+              --
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      {% for extra in seller_extra_document_rows %}
+        <tr>
+          <td>Extra Document: {{ extra.label }}</td>
+          <td><span class="table-state success">Uploaded</span></td>
+          <td>
+            <span class="seller-doc-actions">
+              <a href="{{ extra.view_url }}" target="_blank"><i class="fas fa-eye"></i> View</a>
+              <a href="{{ extra.download_url }}"><i class="fas fa-download"></i> Download</a>
+            </span>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head"><div><h2>Agreement Status</h2><p>Seller confirmations submitted in Step 9.</p></div></div>
+  <table>
+    <tbody>
+      <tr><th>Details Correct</th><td>{% if seller.confirm_details %}Confirmed{% else %}Not confirmed{% endif %}</td><th>Terms Accepted</th><td>{% if seller.terms_accepted %}Accepted{% else %}Not accepted{% endif %}</td></tr>
+      <tr><th>Approval Access Acknowledged</th><td colspan="3">{% if seller.approval_access_ack %}Confirmed{% else %}Not confirmed{% endif %}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Seller Products</h2><p>Products created by this seller after approval.</p></div></div>
+  <table>
+    <thead><tr><th>Product ID</th><th>Product</th><th>Category</th><th>Sub Category</th><th>Company</th><th>Stock</th><th>Price</th><th>Approval</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for item in products %}
+        <tr>
+          <td>{{ item.product_id }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.category.name|default:'General' }}</td>
+          <td>{{ item.sub_category|default:'--' }}</td>
+          <td>{{ item.brand_name }}</td>
+          <td>{{ item.stock }}</td>
+          <td>Rs. {{ item.price }}</td>
+          <td><span class="table-state {{ item.approval_tone }}">{{ item.get_approval_status_display }}</span></td>
+          <td class="action-row"><a href="{% url 'admin-item-detail' item.pk %}">View</a><a href="{% url 'admin-item-edit' item.pk %}">Edit</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9">No seller products yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Seller Order & Commission History</h2><p>Order items sold by this seller with 10% default commission split.</p></div></div>
+  <table>
+    <thead><tr><th>Order</th><th>Customer</th><th>Product</th><th>Qty</th><th>Total</th><th>Commission</th><th>Earning</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for order_item in order_items %}
+        <tr>
+          <td>{{ order_item.order.order_number }}</td>
+          <td>{{ order_item.order.customer_name }}</td>
+          <td>{{ order_item.product_name }}</td>
+          <td>{{ order_item.quantity }}</td>
+          <td>Rs. {{ order_item.line_total }}</td>
+          <td>Rs. {{ order_item.commission_amount }}</td>
+          <td>Rs. {{ order_item.seller_earning }}</td>
+          <td><span class="table-state {{ order_item.order.status_tone }}">{{ order_item.order.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No seller order history yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

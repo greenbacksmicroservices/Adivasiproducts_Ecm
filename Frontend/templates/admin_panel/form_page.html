@@ -1,0 +1,259 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<nav class="admin-breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'admin-dashboard' %}">Dashboard</a>
+  <i class="fas fa-chevron-right"></i>
+  {% if back_href %}
+    <a href="{{ back_href }}">Back</a>
+  {% elif back_url %}
+    <a href="{% url back_url %}">Back</a>
+  {% endif %}
+  <i class="fas fa-chevron-right"></i>
+  <span>{{ title }}</span>
+</nav>
+
+<section class="panel-head">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ subtitle }}</p>
+  </div>
+  {% if back_href %}
+    <a href="{{ back_href }}" class="btn-ghost">Back</a>
+  {% elif back_url %}
+    <a href="{% url back_url %}" class="btn-ghost">Back</a>
+  {% endif %}
+</section>
+
+<section class="form-panel">
+  {% if form.gallery_existing %}
+    <div class="admin-gallery-preview">
+      <div>
+        <h2>Current Product Gallery</h2>
+        <p>These photos will show inside the product detail page.</p>
+      </div>
+      <div class="admin-gallery-grid">
+        {% for photo in form.gallery_existing %}
+          <figure class="admin-gallery-card">
+            <img src="{{ photo.image_source }}" alt="{{ photo.alt_text|default:'Product photo' }}">
+            <figcaption>Photo {{ forloop.counter }}</figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" class="stack-form admin-page-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="non-field-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% if form.admin_fieldsets %}
+      {% for fieldset in form.admin_fieldsets %}
+        <section class="admin-form-section">
+          <div class="admin-form-section-head">
+            <div>
+              <h3>{{ fieldset.title }}</h3>
+              {% if fieldset.description %}<p>{{ fieldset.description }}</p>{% endif %}
+            </div>
+          </div>
+          <div class="admin-form-grid">
+            {% for field in fieldset.fields %}
+              <div class="admin-form-field {% if field.errors %}has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} checkbox-field{% endif %}">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                  <label class="admin-checkbox-row">{{ field }}<span>{{ field.label }}</span></label>
+                {% else %}
+                  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span>*</span>{% endif %}</label>
+                  {{ field }}
+                {% endif %}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {{ field.errors }}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      {% with excluded_fields=form.product_quantity_field_names|default:'' %}
+        {% for field in form %}
+          {% if field.name not in excluded_fields %}
+            <div class="admin-form-field {% if field.errors %}has-error{% endif %}{% if field.field.widget.input_type == 'checkbox' %} checkbox-field{% endif %}">
+              {% if field.field.widget.input_type == 'checkbox' %}
+                <label class="admin-checkbox-row">{{ field }}<span>{{ field.label }}</span></label>
+              {% else %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span>*</span>{% endif %}</label>
+                {{ field }}
+              {% endif %}
+              {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% endwith %}
+    {% endif %}
+
+    {% if form.supports_extra_document_rows %}
+      <section class="admin-form-section admin-extra-documents" data-admin-extra-documents>
+        <div class="admin-form-section-head split">
+          <div>
+            <h3>Extra Documents</h3>
+            <p>Optional. Add multiple documents with a document name and JPG, PNG, or PDF file.</p>
+          </div>
+          <button type="button" class="btn-ghost" data-admin-add-extra-document>Add Document</button>
+        </div>
+        <div class="admin-extra-document-list" data-admin-extra-document-list></div>
+        {% if form.extra_documents.errors %}{{ form.extra_documents.errors }}{% endif %}
+      </section>
+    {% endif %}
+
+    {% if form.quantity_rows %}
+      <section class="quantity-form-panel">
+        <div class="quantity-form-head">
+          <h2>Quantity Options</h2>
+          <p>Add selectable packs such as 100Gm, 200Gm, 500Gm. Each option can have its own price, stock, SKU, and photo.</p>
+        </div>
+        <div class="quantity-form-grid">
+          {% for row in form.quantity_rows %}
+            <article class="quantity-form-card">
+              <h3>Option {{ row.index }}</h3>
+              {% if row.existing and row.existing.image_source %}
+                <img src="{{ row.existing.image_source }}" alt="{{ row.existing.label }}" class="quantity-form-photo">
+              {% endif %}
+              <label>{{ row.label.label }}{{ row.label }}{{ row.label.errors }}</label>
+              <label>{{ row.price.label }}{{ row.price }}{{ row.price.errors }}</label>
+              <label>{{ row.original_price.label }}{{ row.original_price }}{{ row.original_price.errors }}</label>
+              <label>{{ row.stock.label }}{{ row.stock }}{{ row.stock.errors }}</label>
+              <label>{{ row.sku.label }}{{ row.sku }}{{ row.sku.errors }}</label>
+              <label>{{ row.image.label }}{{ row.image }}{{ row.image.errors }}</label>
+              {% if row.remove %}
+                <label class="quantity-remove-row">{{ row.remove }} <span>{{ row.remove.label }}</span>{{ row.remove.errors }}</label>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="button-row admin-form-actions">
+      <button type="submit" class="btn-inline" data-submit-label="Saving...">Save</button>
+      {% if back_href %}
+        <a href="{{ back_href }}" class="btn-ghost">Cancel</a>
+      {% else %}
+        <a href="{% url back_url %}" class="btn-ghost">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
+
+    document.querySelectorAll('form').forEach(function (form) {
+      const category = form.querySelector('[data-category-select]');
+      const subCategory = form.querySelector('[data-subcategory-select]');
+      if (!category || !subCategory) {
+        return;
+      }
+
+      function syncSubCategories() {
+        const selectedCategory = category.value;
+        let hasVisibleSelected = !subCategory.value;
+        Array.from(subCategory.options).forEach(function (option) {
+          const optionCategory = option.dataset.categoryId || '';
+          const isPlaceholder = option.value === '';
+          const isVisible = isPlaceholder || optionCategory === selectedCategory;
+          option.hidden = !isVisible;
+          option.disabled = !isVisible;
+          if (isVisible && option.selected) {
+            hasVisibleSelected = true;
+          }
+        });
+        if (!hasVisibleSelected) {
+          subCategory.value = '';
+        }
+      }
+
+      async function refreshSubCategories() {
+        const selectedCategory = category.value;
+        if (!selectedCategory) {
+          subCategory.innerHTML = '<option value="">---------</option>';
+          return;
+        }
+
+        try {
+          const response = await fetch(`${subCategoryOptionsUrl}?category_id=${encodeURIComponent(selectedCategory)}`);
+          if (!response.ok) {
+            syncSubCategories();
+            return;
+          }
+          const payload = await response.json();
+          const currentValue = subCategory.value;
+          subCategory.innerHTML = '<option value="">---------</option>';
+          (payload.options || []).forEach(function (item) {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.name;
+            option.dataset.categoryId = item.category_id;
+            option.dataset.categorySlug = item.category_slug;
+            if (String(item.id) === currentValue) {
+              option.selected = true;
+            }
+            subCategory.appendChild(option);
+          });
+        } catch (error) {
+          syncSubCategories();
+        }
+      }
+
+      category.addEventListener('change', refreshSubCategories);
+      syncSubCategories();
+    });
+
+    document.querySelectorAll('[data-admin-extra-documents]').forEach(function (panel) {
+      if (panel.dataset.adminExtraDocumentsBound === 'true') {
+        return;
+      }
+      panel.dataset.adminExtraDocumentsBound = 'true';
+      const list = panel.querySelector('[data-admin-extra-document-list]');
+      const addButton = panel.querySelector('[data-admin-add-extra-document]');
+      let index = 0;
+
+      function addRow() {
+        if (!list) {
+          return;
+        }
+        index += 1;
+        const key = 'admin_' + Date.now() + '_' + index;
+        const row = document.createElement('div');
+        row.className = 'admin-extra-document-row';
+        row.dataset.adminExtraDocumentRow = key;
+        row.innerHTML = [
+          '<input type="hidden" name="extra_document_indexes" value="' + key + '">',
+          '<div class="admin-form-field">',
+          '<label>Document name <span>*</span></label>',
+          '<input type="text" name="extra_document_name_' + key + '" class="form-input" placeholder="Example: FSSAI License">',
+          '</div>',
+          '<div class="admin-form-field">',
+          '<label>Document file <span>*</span></label>',
+          '<input type="file" name="extra_document_file_' + key + '" class="form-input" accept=".jpg,.jpeg,.png,.pdf">',
+          '</div>',
+          '<button type="button" class="btn-ghost" data-admin-remove-extra-document>Remove</button>',
+        ].join('');
+        row.querySelector('[data-admin-remove-extra-document]').addEventListener('click', function () {
+          row.remove();
+        });
+        list.appendChild(row);
+      }
+
+      if (addButton) {
+        addButton.addEventListener('click', addRow);
+      }
+      addRow();
+    });
+  });
+</script>
+{% endblock %}

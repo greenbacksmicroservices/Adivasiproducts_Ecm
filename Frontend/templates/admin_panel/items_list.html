@@ -1,0 +1,383 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>Product Management</h1>
+    <p>View and manage all products across all categories and sellers.</p>
+  </div>
+  <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-item-create' %}" data-form-title="Add Product">+ New Product</button>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head">
+    <div>
+      <h2>All Products</h2>
+      <p>Database driven products only with realtime client-side filters.</p>
+    </div>
+  </div>
+
+  <div class="admin-table-toolbar product-filter-toolbar" data-product-filters>
+    <div class="admin-table-search">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="search" placeholder="Search products" data-product-search>
+    </div>
+    <select class="form-input compact-select" data-product-category-filter>
+      <option value="">All categories</option>
+      {% for category in product_categories %}
+        <option value="{{ category.slug }}">{{ category.name }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-input compact-select" data-product-status-filter>
+      <option value="">All status</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+      <option value="out">Out Of Stock</option>
+    </select>
+    <select class="form-input compact-select" data-product-seller-filter>
+      <option value="">All sellers</option>
+      <option value="admin">Admin Catalog</option>
+      {% for seller in product_sellers %}
+        <option value="seller-{{ seller.pk }}">{{ seller.store_name }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-input compact-select" type="date" data-product-date-filter>
+    <select class="form-input compact-select" data-product-page-size>
+      <option value="10">10 rows</option>
+      <option value="25" selected>25 rows</option>
+      <option value="50">50 rows</option>
+      <option value="100">100 rows</option>
+    </select>
+    <button type="button" class="btn-ghost" data-product-clear>Clear</button>
+    <button type="button" class="btn-ghost" data-product-export="csv">Export CSV</button>
+    <button type="button" class="btn-ghost" data-product-export="excel">Export Excel</button>
+  </div>
+
+  <table class="product-data-table" data-products-table>
+    <thead>
+      <tr>
+        <th data-sort="product_id">Product ID</th>
+        <th>Image</th>
+        <th data-sort="name">Product Name</th>
+        <th data-sort="category">Category</th>
+        <th data-sort="sub_category">Sub Category</th>
+        <th data-sort="seller">Seller</th>
+        <th data-sort="company">Company</th>
+        <th data-sort="price">Price</th>
+        <th data-sort="stock">Stock</th>
+        <th data-sort="status">Status</th>
+        <th data-sort="created">Created Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr
+          data-product-row
+          data-product-id="{{ item.product_id }}"
+          data-name="{{ item.name|lower }}"
+          data-category="{{ item.category.slug|default:'' }}"
+          data-category-label="{{ item.category.name|default:'General' }}"
+          data-sub-category="{{ item.sub_category|default:''|lower }}"
+          data-seller="{% if item.owner_type == 'seller' and item.seller_id %}seller-{{ item.seller_id }}{% else %}admin{% endif %}"
+          data-seller-label="{{ item.owner_label }}"
+          data-company="{{ item.brand_name|default:'Lexvers'|lower }}"
+          data-price="{{ item.price }}"
+          data-stock="{{ item.stock }}"
+          data-status="{% if item.stock == 0 %}out{% elif item.is_active %}active{% else %}inactive{% endif %}"
+          data-created="{{ item.created_at|date:'Y-m-d' }}"
+        >
+          <td>{{ item.product_id }}</td>
+          <td>
+            <span class="table-thumb">
+              {% if item.image_source %}
+                <img src="{{ item.image_source }}" alt="{{ item.name }}">
+              {% endif %}
+            </span>
+          </td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.category.name|default:'--' }}</td>
+          <td>{{ item.sub_category|default:'--' }}</td>
+          <td>{{ item.owner_label }}</td>
+          <td>{{ item.brand_name|default:'Lexvers' }}</td>
+          <td>Rs. {{ item.price }}</td>
+          <td><span class="stock-pill {{ item.stock_state }}">{{ item.stock }}</span></td>
+          <td>
+            {% if item.stock == 0 %}
+              <span class="table-state danger">Out Of Stock</span>
+            {% elif item.is_active %}
+              <span class="table-state success">Active</span>
+            {% else %}
+              <span class="table-state danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td>{{ item.created_at|date:'d M Y' }}</td>
+          <td class="action-row">
+            <a href="{% url 'admin-item-detail' item.pk %}">View</a>
+            <a href="{% url 'admin-item-edit' item.pk %}">Edit</a>
+            <a class="danger" href="{% url 'admin-item-delete' item.pk %}">Delete</a>
+            <button
+              type="button"
+              class="overview-action stock"
+              data-stock-trigger
+              data-stock-action="{% url 'admin-item-stock-update' item.pk %}"
+              data-stock-name="{{ item.name }}"
+              data-stock-current="{{ item.stock }}"
+            >
+              Add Stock
+            </button>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="12">No products found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="admin-pagination product-pagination" data-product-pagination></div>
+  <p class="table-muted-line product-table-count" data-product-count></p>
+</section>
+
+<div class="stock-modal" data-stock-modal aria-hidden="true">
+  <div class="stock-modal-backdrop" data-stock-close></div>
+  <form method="post" class="stock-modal-card" data-stock-form>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <div class="stock-modal-head">
+      <div>
+        <h2>Add Stock</h2>
+        <p data-stock-title>Update available stock</p>
+        <p class="stock-current-line">Current Stock: <strong data-stock-current-label>0</strong></p>
+      </div>
+      <button type="button" class="stock-modal-close" data-stock-close aria-label="Close stock dialog">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <label for="stock-input">Add quantity</label>
+    <input id="stock-input" name="stock" type="number" min="0" step="1" class="form-input" required data-stock-input>
+    <div class="button-row">
+      <button type="submit" class="btn-inline">Update Stock</button>
+      <button type="button" class="btn-ghost" data-stock-close>Cancel</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const table = document.querySelector('[data-products-table]');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('[data-product-row]'));
+    const searchInput = document.querySelector('[data-product-search]');
+    const categoryFilter = document.querySelector('[data-product-category-filter]');
+    const statusFilter = document.querySelector('[data-product-status-filter]');
+    const sellerFilter = document.querySelector('[data-product-seller-filter]');
+    const dateFilter = document.querySelector('[data-product-date-filter]');
+    const pageSizeSelect = document.querySelector('[data-product-page-size]');
+    const pagination = document.querySelector('[data-product-pagination]');
+    const countLabel = document.querySelector('[data-product-count]');
+    const clearButton = document.querySelector('[data-product-clear]');
+    const exportButtons = document.querySelectorAll('[data-product-export]');
+    const signatureUrl = '{% url "admin-live-signature" %}';
+
+    let page = 1;
+    let sortKey = '';
+    let sortDirection = 'asc';
+    let filteredRows = allRows.slice();
+    let lastSignature = '';
+
+    function rowText(row) {
+      return row.textContent.toLowerCase();
+    }
+
+    function getComparable(row, key) {
+      if (key === 'price' || key === 'stock') {
+        return Number(row.dataset[key] || 0);
+      }
+      return (row.dataset[key] || '').toLowerCase();
+    }
+
+    function matchesFilters(row) {
+      const search = (searchInput.value || '').trim().toLowerCase();
+      const category = categoryFilter.value;
+      const status = statusFilter.value;
+      const seller = sellerFilter.value;
+      const created = dateFilter.value;
+
+      return (!search || rowText(row).includes(search))
+        && (!category || row.dataset.category === category)
+        && (!status || row.dataset.status === status)
+        && (!seller || row.dataset.seller === seller)
+        && (!created || row.dataset.created === created);
+    }
+
+    function syncRows() {
+      filteredRows = allRows.filter(matchesFilters);
+      if (sortKey) {
+        filteredRows.sort(function (a, b) {
+          const left = getComparable(a, sortKey);
+          const right = getComparable(b, sortKey);
+          if (left < right) return sortDirection === 'asc' ? -1 : 1;
+          if (left > right) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      const pageSize = Number(pageSizeSelect.value || 25);
+      const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+      page = Math.min(page, totalPages);
+      const start = (page - 1) * pageSize;
+      const visibleRows = filteredRows.slice(start, start + pageSize);
+
+      allRows.forEach(function (row) {
+        row.hidden = true;
+      });
+      visibleRows.forEach(function (row) {
+        row.hidden = false;
+        tbody.appendChild(row);
+      });
+
+      if (countLabel) {
+        countLabel.textContent = `${filteredRows.length} products shown`;
+      }
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      if (!pagination) return;
+      pagination.innerHTML = '';
+      if (totalPages <= 1) return;
+
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.textContent = 'Prev';
+      prev.disabled = page === 1;
+      prev.addEventListener('click', function () {
+        page -= 1;
+        syncRows();
+      });
+      pagination.appendChild(prev);
+
+      for (let index = 1; index <= totalPages; index += 1) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = index;
+        button.classList.toggle('active', index === page);
+        button.addEventListener('click', function () {
+          page = index;
+          syncRows();
+        });
+        pagination.appendChild(button);
+      }
+
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.textContent = 'Next';
+      next.disabled = page === totalPages;
+      next.addEventListener('click', function () {
+        page += 1;
+        syncRows();
+      });
+      pagination.appendChild(next);
+    }
+
+    function resetPageAndSync() {
+      page = 1;
+      syncRows();
+    }
+
+    function exportRows(format) {
+      const headers = ['Product ID', 'Product Name', 'Category', 'Sub Category', 'Seller', 'Company', 'Price', 'Stock', 'Status', 'Created Date'];
+      const separator = format === 'excel' ? '\t' : ',';
+      const extension = format === 'excel' ? 'xls' : 'csv';
+      const lines = [headers.join(separator)];
+
+      filteredRows.forEach(function (row) {
+        const cells = [
+          row.dataset.productId,
+          row.children[2].textContent.trim(),
+          row.children[3].textContent.trim(),
+          row.children[4].textContent.trim(),
+          row.children[5].textContent.trim(),
+          row.children[6].textContent.trim(),
+          row.children[7].textContent.trim(),
+          row.children[8].textContent.trim(),
+          row.children[9].textContent.trim(),
+          row.children[10].textContent.trim(),
+        ].map(function (value) {
+          const normalized = String(value || '').replace(/"/g, '""');
+          return format === 'excel' ? normalized : `"${normalized}"`;
+        });
+        lines.push(cells.join(separator));
+      });
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `products.${extension}`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    [searchInput, categoryFilter, statusFilter, sellerFilter, dateFilter, pageSizeSelect].forEach(function (control) {
+      if (control) control.addEventListener('input', resetPageAndSync);
+      if (control) control.addEventListener('change', resetPageAndSync);
+    });
+
+    clearButton.addEventListener('click', function () {
+      searchInput.value = '';
+      categoryFilter.value = '';
+      statusFilter.value = '';
+      sellerFilter.value = '';
+      dateFilter.value = '';
+      pageSizeSelect.value = '25';
+      resetPageAndSync();
+    });
+
+    exportButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        exportRows(button.dataset.productExport);
+      });
+    });
+
+    table.querySelectorAll('th[data-sort]').forEach(function (header) {
+      header.classList.add('sortable-heading');
+      header.addEventListener('click', function () {
+        const nextKey = header.dataset.sort;
+        sortDirection = sortKey === nextKey && sortDirection === 'asc' ? 'desc' : 'asc';
+        sortKey = nextKey;
+        table.querySelectorAll('th[data-sort]').forEach(function (node) {
+          node.classList.remove('active-sort', 'desc-sort');
+        });
+        header.classList.add('active-sort');
+        header.classList.toggle('desc-sort', sortDirection === 'desc');
+        resetPageAndSync();
+      });
+    });
+
+    async function pollSignature() {
+      try {
+        const response = await fetch(signatureUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!lastSignature) {
+          lastSignature = payload.signature;
+          return;
+        }
+        if (payload.signature && payload.signature !== lastSignature) {
+          window.location.reload();
+        }
+      } catch (error) {
+        return;
+      }
+    }
+
+    syncRows();
+    pollSignature();
+    window.setInterval(pollSignature, 5000);
+  });
+</script>
+{% endblock %}

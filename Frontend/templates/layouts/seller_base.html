@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ seller_page_title|default:'Seller Panel' }} | Lexvers Seller</title>
+  <link rel="icon" type="image/png" href="{% static 'images/shared/Pannel_logo.png' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/seller_panel/seller.css' %}">
+</head>
+<body class="seller-panel-body">
+  <section
+    class="seller-dashboard-shell"
+    data-live-seller-dashboard-url="{% if seller_live_enabled %}{% url 'seller-live-dashboard' %}{% endif %}"
+    data-seller-dashboard-url="{% url 'seller-dashboard' %}"
+  >
+    {% include 'seller_panel/partials/seller_sidebar.html' %}
+
+    <main class="seller-main">
+      {% include 'seller_panel/partials/seller_header.html' %}
+
+      <section class="seller-dashboard-content">
+        {% if messages %}
+          <div class="seller-message-stack">
+            {% for message in messages %}
+              <div class="seller-alert">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block seller_content %}{% endblock %}
+      </section>
+    </main>
+  </section>
+
+  {% include 'seller_panel/partials/seller_modal.html' %}
+  {% include 'seller_panel/partials/seller_scripts.html' %}
+  {% block seller_extra_scripts %}{% endblock %}
+</body>
+</html>

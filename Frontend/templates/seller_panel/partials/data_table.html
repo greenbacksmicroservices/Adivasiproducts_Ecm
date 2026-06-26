@@ -1,0 +1,72 @@
+<article class="seller-table-panel">
+  <div class="seller-card-head">
+    <div>
+      <h2>{{ table.title }}</h2>
+      {% if table.subtitle %}<p>{{ table.subtitle }}</p>{% endif %}
+    </div>
+    {% if table.badge %}<span class="seller-chip">{{ table.badge }}</span>{% endif %}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        {% for header in table.headers %}
+          <th>{{ header }}</th>
+        {% endfor %}
+        {% if table.has_actions %}<th>Action</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in table.rows %}
+        <tr>
+          {% for cell in row.cells %}
+            <td>
+              {% if cell.tone %}
+                <span class="seller-chip {{ cell.tone }}">{{ cell.value }}</span>
+              {% else %}
+                {{ cell.value }}
+              {% endif %}
+            </td>
+          {% endfor %}
+          {% if table.has_actions %}
+            <td>
+              <div class="seller-row-actions">
+                {% for action in row.actions %}
+                  {% if action.method == 'client' %}
+                    {% if action.modal %}
+                      <button type="button" class="seller-small-btn {{ action.style }}" data-seller-row-view>
+                        {% if action.style == 'view' %}<i class="fas fa-eye"></i>{% elif action.style == 'edit' %}<i class="fas fa-pen"></i>{% endif %}
+                        {{ action.label }}
+                      </button>
+                    {% else %}
+                      <button type="button" class="seller-small-btn {{ action.style }}" data-seller-section-jump="{{ action.section }}" data-title="{{ action.title|default:action.label }}">
+                        {% if action.style == 'view' %}<i class="fas fa-eye"></i>{% elif action.style == 'edit' %}<i class="fas fa-pen"></i>{% endif %}
+                        {{ action.label }}
+                      </button>
+                    {% endif %}
+                  {% elif action.method == 'post' %}
+                    <form method="post" action="{{ action.href }}" class="seller-inline-action">
+                      {% csrf_token %}
+                      <button type="submit" class="seller-small-btn {{ action.style }}" {% if action.style == 'delete' %}data-seller-confirm-action="Delete this row?"{% endif %}>
+                        {% if action.style == 'delete' %}<i class="fas fa-trash"></i>{% elif action.style == 'edit' %}<i class="fas fa-pen"></i>{% else %}<i class="fas fa-eye"></i>{% endif %}
+                        {{ action.label }}
+                      </button>
+                    </form>
+                  {% else %}
+                    <a href="{{ action.href }}" class="seller-small-link {{ action.style }}">
+                      {% if action.style == 'edit' %}<i class="fas fa-pen"></i>{% elif action.style == 'delete' %}<i class="fas fa-trash"></i>{% else %}<i class="fas fa-eye"></i>{% endif %}
+                      {{ action.label }}
+                    </a>
+                  {% endif %}
+                {% empty %}
+                  <span class="seller-row-note">No action</span>
+                {% endfor %}
+              </div>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="{{ table.colspan }}">{{ table.empty }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>

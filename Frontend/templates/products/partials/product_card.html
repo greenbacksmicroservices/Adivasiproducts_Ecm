@@ -1,0 +1,65 @@
+<article class="product-card {% if compact %}compact-card{% endif %}">
+  <button
+    class="wishlist-btn {% if item.id in saved_product_ids %}saved{% endif %}"
+    type="button"
+    aria-label="{% if item.id in saved_product_ids %}Remove {{ item.name }} from saved{% else %}Save {{ item.name }}{% endif %}"
+    data-save-toggle="1"
+    data-save-url="{% url 'toggle-saved-product' item.id %}"
+    data-login-url="{% url 'login' %}"
+  >
+    <i class="{% if item.id in saved_product_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i>
+  </button>
+
+  <a href="{% url 'product-detail' item.slug %}" class="product-link">
+    <div class="product-image-wrap">
+      {% if item.image_source %}
+        <img src="{{ item.image_source }}" alt="{{ item.name }}" class="product-image">
+      {% else %}
+        <img src="https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=400&q=80" alt="{{ item.name }}" class="product-image">
+      {% endif %}
+      {% if item.spice_level %}
+         <span class="spice-tag {{ item.spice_level }}">{{ item.get_spice_level_display }}</span>
+      {% endif %}
+    </div>
+
+    <div class="product-title">{{ item.name }}</div>
+    <div class="product-subtitle">{{ item.short_description }}</div>
+  </a>
+
+  <div class="product-body">
+    <div class="product-meta">
+      <span>{{ item.brand_name|default:'Lexvers' }}</span>
+      <span>{{ item.pack_display|default:'Standard pack' }}</span>
+    </div>
+    <div class="price-row">
+      <span class="product-price">Rs. {{ item.effective_price }}</span>
+      {% if item.effective_original_price %}
+        <del>Rs. {{ item.effective_original_price }}</del>
+      {% endif %}
+      {% if item.effective_discount_percent > 0 %}
+        <span class="discount">{{ item.effective_discount_percent }}% OFF</span>
+      {% endif %}
+    </div>
+    <div class="product-meta">
+      <span>{{ item.category.name|default:'General' }}</span>
+      <span class="stock-state {{ item.stock_state }}">Stock: {{ item.stock }}</span>
+    </div>
+
+    <button
+      class="add-btn"
+      type="button"
+      data-cart-add="1"
+      data-product-id="{{ item.id }}"
+      data-item-id="{{ item.id }}"
+      data-item-name="{{ item.name }}"
+      data-item-price="{{ item.effective_price }}"
+      data-item-image="{{ item.image_source }}"
+      data-item-stock="{{ item.stock }}"
+      data-item-brand="{{ item.brand_name }}"
+      data-item-pack="{{ item.pack_display }}"
+      {% if item.stock < 1 %}disabled{% endif %}
+    >
+      {% if item.stock < 1 %}Out of Stock{% else %}Add to Cart{% endif %}
+    </button>
+  </div>
+</article>

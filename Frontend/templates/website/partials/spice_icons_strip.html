@@ -1,0 +1,36 @@
+{% if show_spice_filters %}
+<div class="spice-finder-section" data-filter-category="{{ selected_category }}">
+  <div class="spice-finder-head">
+    <h3>{{ current_category_label }} Finder</h3>
+    <p>Click any icon to see available company, pack size, stock, and price below without searching.</p>
+  </div>
+  <div class="spice-icon-row">
+    <a
+      class="spice-icon-pill {% if not selected_spice %}active{% endif %}"
+      href="{% url 'store-category' selected_category %}?q={{ search_text|urlencode }}"
+      data-spice=""
+    >
+      <span class="spice-thumb"><i class="fa-solid fa-box-open"></i></span>
+      <span class="spice-name">All {{ current_category_label }}</span>
+    </a>
+    {% for item in spice_filters %}
+      <a
+        class="spice-icon-pill {% if item.active %}active{% endif %}"
+        href="{% url 'store-category' selected_category %}?q={{ search_text|urlencode }}&spice={{ item.key|urlencode }}"
+        data-spice="{{ item.key }}"
+      >
+        <span class="spice-thumb">
+          {% if item.image %}
+             <img src="{{ item.image }}" alt="">
+          {% elif item.icon %}
+             <span style="font-size: 14px;">{{ item.icon }}</span>
+          {% else %}
+             <i class="fa-solid fa-seedling"></i>
+          {% endif %}
+        </span>
+        <span class="spice-name">{{ item.label }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

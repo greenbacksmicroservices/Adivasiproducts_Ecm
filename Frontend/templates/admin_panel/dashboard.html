@@ -1,0 +1,100 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+
+
+<section class="cards-grid dashboard-card-grid">
+  {% for card in dashboard_cards %}
+    <a href="{{ card.href }}" class="metric-card dashboard-link-card {{ card.theme }}">
+      <div class="card-icon"><i class="{{ card.icon }}"></i></div>
+      <div class="card-info">
+        <p>{{ card.label }}</p>
+        <h3>{{ card.value }}</h3>
+      </div>
+      <span class="metric-card-arrow"><i class="fas fa-arrow-right"></i></span>
+    </a>
+  {% endfor %}
+</section>
+
+<section class="admin-dashboard-grid">
+  <article class="panel-table-wrap dashboard-table compact-dashboard-table">
+    <div class="panel-table-head">
+      <div>
+        <h2>Latest updates</h2>
+        <p>Recently edited catalog records.</p>
+      </div>
+      <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-item-create' %}" data-form-title="Add Product">+ Add Product</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner</th>
+          <th>Stock</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in latest_items %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.owner_label }}</td>
+            <td><span class="stock-pill {{ item.stock_state }}">{{ item.stock }}</span></td>
+            <td>{{ item.updated_at|date:'d M, h:i A' }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4">No items yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <section class="dashboard-chart-grid">
+    {% for chart in dashboard_charts %}
+      <article class="dashboard-chart-card">
+        <div class="dashboard-chart-head">
+          <span><i class="{{ chart.icon }}"></i></span>
+          <h2>{{ chart.title }}</h2>
+        </div>
+        {% if chart.kind == 'donut' %}
+          <div class="dashboard-donut-wrap">
+            <div class="dashboard-donut" style="background: {{ chart.gradient }};">
+              <span>{{ chart.total }}</span>
+            </div>
+            <div class="dashboard-chart-legend">
+              {% for bar in chart.bars %}
+                <span><i style="background: {{ bar.color }};"></i>{{ bar.label }} <b>{{ bar.value }}</b></span>
+              {% endfor %}
+            </div>
+          </div>
+        {% elif chart.kind == 'line' %}
+          <div class="dashboard-line-wrap">
+            <svg viewBox="0 0 220 130" role="img" aria-label="{{ chart.title }}">
+              <polyline points="{{ chart.points }}" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>
+              {% for point in chart.line_points %}
+                <circle cx="{{ point.x }}" cy="{{ point.y }}" r="5"></circle>
+              {% endfor %}
+            </svg>
+            <div class="dashboard-line-labels">
+              {% for point in chart.line_points %}
+                <span><b>{{ point.value }}</b>{{ point.label }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <div class="dashboard-bars">
+            {% for bar in chart.bars %}
+              <div class="dashboard-bar-item">
+                <strong>{{ bar.value }}</strong>
+                <span class="dashboard-bar" style="height: {{ bar.height }}px;"></span>
+                <small>{{ bar.label }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

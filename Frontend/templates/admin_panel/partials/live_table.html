@@ -1,0 +1,159 @@
+{% if table_headers %}
+  <section class="panel-table-wrap admin-data-grid" data-live-table>
+    <div class="panel-table-head">
+      <div>
+        <h2>{{ table_title }}</h2>
+        <p>{{ table_subtitle }}</p>
+      </div>
+    </div>
+
+    <form method="get" class="admin-table-toolbar" data-live-controls>
+      <div class="admin-table-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="search" name="q" value="{{ search_text }}" placeholder="Search table">
+      </div>
+      {% for field in extra_filters %}
+        {% if field.type == 'select' %}
+          <select name="{{ field.name }}" class="form-input compact-select">
+            <option value="">{{ field.placeholder }}</option>
+            {% for option in field.options %}
+              <option value="{{ option.value }}" {% if option.value|stringformat:'s' == field.value|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        {% else %}
+          <input
+            type="{{ field.type|default:'text' }}"
+            name="{{ field.name }}"
+            value="{{ field.value }}"
+            placeholder="{{ field.placeholder }}"
+            class="form-input compact-select"
+          >
+        {% endif %}
+      {% endfor %}
+      <select name="filter" class="form-input compact-select">
+        <option value="">All status</option>
+        {% for option in status_options %}
+          <option value="{{ option }}" {% if selected_filter == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+      <select name="per_page" class="form-input compact-select">
+        {% for option in per_page_options %}
+          <option value="{{ option }}" {% if per_page == option %}selected{% endif %}>{{ option }} rows</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-inline">Apply</button>
+      <a href="{{ clear_table_url }}" class="btn-ghost">Clear</a>
+      <a href="{{ export_csv_url }}" class="btn-ghost">Export CSV</a>
+      <a href="{{ export_excel_url }}" class="btn-ghost">Export Excel</a>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          {% for header in table_headers %}
+            <th>
+              <a href="{{ header.sort_url }}" class="sort-link {% if header.active %}active{% endif %}">
+                {{ header.label }}
+                {% if header.active %}
+                  <i class="fas fa-arrow-{% if header.direction == 'desc' %}down{% else %}up{% endif %}"></i>
+                {% endif %}
+              </a>
+            </th>
+          {% endfor %}
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+          <tr>
+            {% for cell in row.cells %}
+              <td>
+                {% if cell.kind == 'avatar' %}
+                  <span class="admin-table-avatar" aria-label="{{ cell.value }}">
+                    {% if cell.avatar_url %}
+                      <img src="{{ cell.avatar_url }}" alt="{{ cell.value }}" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                      <span hidden>{{ cell.initial }}</span>
+                    {% else %}
+                      <span>{{ cell.initial }}</span>
+                    {% endif %}
+                  </span>
+                {% elif cell.tone %}
+                  <span class="table-state {{ cell.tone }}">{{ cell.value }}</span>
+                {% else %}
+                  {{ cell.value }}
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td class="overview-action-cell">
+              <div class="overview-action-row">
+                {% for action in row.actions %}
+                  {% if action.style == 'stock' %}
+                    <button
+                      type="button"
+                      class="overview-action stock"
+                      data-stock-trigger
+                      data-stock-action="{{ action.href }}"
+                      data-stock-name="{{ row.cells.0.value }}"
+                      data-stock-current="{{ action.current_stock|default:'0' }}"
+                      data-stock-mode="{{ action.stock_mode|default:'set' }}"
+                    >
+                      {{ action.label }}
+                    </button>
+                  {% elif action.method == 'post' %}
+                    <form method="post" action="{{ action.href }}" class="overview-action-form"{% if action.style == 'delete' %} data-confirm-form data-confirm-message="{{ action.label }} this record?"{% endif %}>
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="overview-action {{ action.style }}">{{ action.label }}</button>
+                    </form>
+                  {% elif action.modal %}
+                    <button
+                      type="button"
+                      class="overview-action {{ action.style }}"
+                      data-admin-form-trigger
+                      data-form-url="{{ action.href }}"
+                      data-form-title="{{ action.label }}"
+                    >
+                      {{ action.label }}
+                    </button>
+                  {% else %}
+                    <a href="{{ action.href }}" class="overview-action {{ action.style }}">{{ action.label }}</a>
+                  {% endif %}
+                {% empty %}
+                  <span class="table-muted-line">No action</span>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{{ table_headers|length|add:1 }}">{{ empty_message }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if paginator.num_pages > 1 %}
+      <nav class="admin-pagination" aria-label="Table pagination">
+        {% if previous_page_url %}
+          <a href="{{ previous_page_url }}">Prev</a>
+        {% else %}
+          <span>Prev</span>
+        {% endif %}
+        {% for page_link in page_links %}
+          {% if page_link.ellipsis %}
+            <span>...</span>
+          {% elif page_link.current %}
+            <strong>{{ page_link.number }}</strong>
+          {% else %}
+            <a href="{{ page_link.url }}">{{ page_link.number }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if next_page_url %}
+          <a href="{{ next_page_url }}">Next</a>
+        {% else %}
+          <span>Next</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+{% endif %}

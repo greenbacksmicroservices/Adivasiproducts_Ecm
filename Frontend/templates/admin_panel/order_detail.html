@@ -1,0 +1,110 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>{{ order.order_number }}</h1>
+    <p>Customer, address, payment, products, seller split, timeline, and fulfillment actions.</p>
+  </div>
+  <div class="button-row">
+    <button type="button" class="btn-inline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    <a href="{% url 'admin-order-invoice' order.pk %}" class="btn-inline" target="_blank">Invoice</a>
+    <a href="{% url 'admin-orders' %}" class="btn-ghost">Back</a>
+  </div>
+</section>
+
+<section class="summary-grid">
+  <article class="summary-card c-blue"><i class="fas fa-receipt"></i><span>Order Status</span><strong>{{ order.get_status_display }}</strong></article>
+  <article class="summary-card c-green"><i class="fas fa-credit-card"></i><span>Payment</span><strong>{{ order.get_payment_status_display }}</strong></article>
+  <article class="summary-card c-orange"><i class="fas fa-boxes-stacked"></i><span>Items</span><strong>{{ order.item_count }}</strong></article>
+  <article class="summary-card c-purple"><i class="fas fa-indian-rupee-sign"></i><span>Total</span><strong>Rs. {{ order.total_amount }}</strong></article>
+</section>
+
+<section class="admin-order-grid">
+  <article class="panel-table-wrap admin-detail-card">
+    <div class="panel-table-head"><div><h2>Customer & Address</h2><p>Saved checkout snapshot.</p></div></div>
+    <table>
+      <tbody>
+        <tr><th>Name</th><td>{{ order.customer_name }}</td></tr>
+        <tr><th>Phone</th><td>{{ order.customer_phone }}{% if order.alternate_phone %}, {{ order.alternate_phone }}{% endif %}</td></tr>
+        <tr><th>Email</th><td>{{ order.customer_email|default:'Not set' }}</td></tr>
+        <tr><th>Address</th><td>{{ order.shipping_address|default:'Address not added' }}</td></tr>
+        <tr><th>Date</th><td>{{ order.created_at|date:'d M Y, h:i A' }}</td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article class="panel-table-wrap admin-detail-card">
+    <div class="panel-table-head"><div><h2>Payment</h2><p>Gateway-ready payment record.</p></div></div>
+    <table>
+      <tbody>
+        <tr><th>Method</th><td>{{ order.payment_method }}</td></tr>
+        <tr><th>Status</th><td><span class="table-state {{ order.payment_tone }}">{{ order.get_payment_status_display }}</span></td></tr>
+        <tr><th>Subtotal</th><td>Rs. {{ order.subtotal }}</td></tr>
+        <tr><th>Delivery</th><td>{% if order.shipping_fee %}Rs. {{ order.shipping_fee }}{% else %}Free{% endif %}</td></tr>
+        <tr><th>Total</th><td><strong>Rs. {{ order.total_amount }}</strong></td></tr>
+      </tbody>
+    </table>
+  </article>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Order Timeline</h2><p>Status visible to customer and seller.</p></div></div>
+  <div class="admin-order-timeline">
+    {% for step in timeline_steps %}
+      <span class="{% if step.active %}active{% endif %} {% if step.current %}current{% endif %}">
+        <i class="fas fa-circle-check"></i>{{ step.label }}
+      </span>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Status Actions</h2><p>Every update writes status history and notifies customer/seller.</p></div></div>
+  <form method="post" action="{% url 'admin-order-update-status' order.order_number %}" class="admin-status-form">
+    {% csrf_token %}
+    <select name="status" class="form-input">
+      {% for value,label in status_choices %}
+        <option value="{{ value }}" {% if order.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="note" class="form-input" placeholder="Optional admin remark">
+    <button type="submit" class="btn-inline"><i class="fas fa-pen"></i> Update Status</button>
+  </form>
+  <div class="button-row quick-status-row">
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="confirmed"><button class="btn-inline" type="submit">Confirm Order</button></form>
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="packed"><button class="btn-inline" type="submit">Mark as Packed</button></form>
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="shipped"><button class="btn-inline" type="submit">Mark as Shipped</button></form>
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="out_for_delivery"><button class="btn-inline" type="submit">Out for Delivery</button></form>
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="delivered"><button class="btn-inline" type="submit">Delivered</button></form>
+    <form method="post" action="{% url 'admin-order-update-status' order.order_number %}">{% csrf_token %}<input type="hidden" name="status" value="cancelled"><button class="btn-ghost danger" type="submit">Cancel Order</button></form>
+  </div>
+</section>
+
+<section class="panel-table-wrap">
+  <div class="panel-table-head"><div><h2>Products</h2><p>Seller-specific snapshots and item status.</p></div></div>
+  <table>
+    <thead><tr><th>Product</th><th>Seller</th><th>Pack</th><th>Qty</th><th>Unit</th><th>Total</th><th>Item Status</th></tr></thead>
+    <tbody>
+      {% for item in order_items %}
+        <tr>
+          <td>
+            <div class="admin-order-product-cell">
+              <img src="{{ item.display_image|default:'https://images.unsplash.com/photo-1599909538557-c3f9de9b756d?auto=format&fit=crop&w=120&q=80' }}" alt="{{ item.product_name }}">
+              <span>{{ item.product_name }}<small>{{ item.brand_name|default:'Lexvers' }}</small></span>
+            </div>
+          </td>
+          <td>{{ item.seller_name|default:'Admin catalog' }}</td>
+          <td>{{ item.pack_size|default:'Standard pack' }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>Rs. {{ item.unit_price }}</td>
+          <td>Rs. {{ item.line_total }}</td>
+          <td><span class="table-state {{ item.status_tone }}">{{ item.get_item_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7">No items found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

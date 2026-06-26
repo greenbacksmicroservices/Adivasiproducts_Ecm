@@ -1,0 +1,14 @@
+<div class="product-grid">
+  {% for item in products %}
+    {% include 'products/partials/product_card.html' with item=item %}
+  {% empty %}
+    <div class="empty-products">
+      <h3>{{ empty_products_message|default:'No products found' }}</h3>
+      {% if empty_products_message == 'No products available in this category yet.' %}
+        <p>Please check back soon or explore other categories.</p>
+      {% else %}
+        <p>Try another search or category.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>

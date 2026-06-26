@@ -1,0 +1,16 @@
+{% for tab in category_tabs %}
+  <a
+    class="{% if tab.active %}active{% endif %}"
+    href="{% if tab.slug %}{% url 'store-category' tab.slug %}?q={{ search_text|urlencode }}{% if tab.slug == selected_category and selected_spice %}&spice={{ selected_spice|urlencode }}{% endif %}{% else %}{% url 'home' %}?q={{ search_text|urlencode }}{% endif %}"
+    data-category="{{ tab.slug }}"
+  >
+    <span class="category-tab-media">
+      {% if tab.image %}
+        <img src="{{ tab.image }}" alt="" class="category-tab-photo">
+      {% elif not tab.slug %}<i class="fa-solid fa-percent"></i>{% elif tab.slug == 'spices' %}<i class="fa-solid fa-pepper-hot"></i>{% elif tab.slug == 'silk-sarees' %}<i class="fa-solid fa-shirt"></i>{% elif tab.slug == 'handlooms' %}<i class="fa-solid fa-rug"></i>{% elif tab.slug == 'hand-crafts' %}<i class="fa-solid fa-palette"></i>{% elif tab.slug == 'food' %}<i class="fa-solid fa-bowl-food"></i>{% else %}<i class="fa-solid fa-tags"></i>{% endif %}
+    </span>
+    <span class="category-tab-label">{{ tab.label }}</span>
+  </a>
+{% empty %}
+  <p class="empty-text">No categories found.</p>
+{% endfor %}

@@ -1,0 +1,62 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block admin_content %}
+<section class="panel-head split">
+  <div>
+    <h1>Sub Categories</h1>
+    <p>Manage database-backed sub categories for product forms and website category pages.</p>
+  </div>
+  <button type="button" class="btn-inline" data-admin-form-trigger data-form-url="{% url 'admin-subcategory-create' %}" data-form-title="Add Sub Category">+ Add Sub Category</button>
+</section>
+
+<section class="panel-table-wrap admin-detail-section">
+  <div class="panel-table-head">
+    <div>
+      <h2>Sub Categories</h2>
+      <p>Only sub category records are shown here.</p>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Photo</th>
+        <th>Sub Category Name</th>
+        <th>Parent Category</th>
+        <th>Total Products</th>
+        <th>Created Date</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sub_category in sub_categories %}
+        <tr>
+          <td>{{ sub_category.pk }}</td>
+          <td>
+            <span class="table-thumb">
+              {% if sub_category.image_source %}
+                <img src="{{ sub_category.image_source }}" alt="{{ sub_category.name }}">
+              {% else %}
+                <span class="table-thumb-placeholder">{{ sub_category.icon_label }}</span>
+              {% endif %}
+            </span>
+          </td>
+          <td>{{ sub_category.name }}</td>
+          <td>{{ sub_category.category.name }}</td>
+          <td>{{ sub_category.product_total }}</td>
+          <td>{{ sub_category.created_at|date:'d M Y' }}</td>
+          <td>{% if sub_category.is_active %}<span class="table-state success">Active</span>{% else %}<span class="table-state danger">Hidden</span>{% endif %}</td>
+          <td class="action-row">
+            <a href="{% url 'admin-subcategory-detail' sub_category.pk %}">View</a>
+            <a href="{% url 'admin-subcategory-edit' sub_category.pk %}">Edit</a>
+            <a class="danger" href="{% url 'admin-subcategory-delete' sub_category.pk %}">Delete</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No sub-categories yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

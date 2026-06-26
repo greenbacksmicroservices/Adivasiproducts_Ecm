@@ -1,0 +1,87 @@
+{% load static %}
+<aside class="seller-sidebar">
+  <div class="seller-sidebar-brand">
+    <a href="{% url 'home' %}" class="seller-brand-plaque" data-title="Storefront">
+      <span class="seller-brand-logo-frame">
+        <img src="{% static 'images/shared/greenbacks-lexverse-logo-transparent.png' %}" alt="Lexvers Seller Panel">
+      </span>
+      <span class="seller-brand-copy">
+        <strong>Seller Panel</strong>
+        <small>Lexvers marketplace</small>
+      </span>
+    </a>
+  </div>
+
+  <section class="seller-profile-card">
+    <div class="seller-profile-avatar" data-seller-avatar>
+      <img
+        src="{% if seller_avatar_url %}{{ seller_avatar_url }}{% endif %}"
+        alt="{{ seller_display_name|default:'Seller' }}"
+        data-seller-avatar-img
+        onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
+        {% if not seller_avatar_url %}hidden{% endif %}
+      >
+      <span data-seller-avatar-initial {% if seller_avatar_url %}hidden{% endif %}>{{ seller_avatar_initial|default:'S' }}</span>
+      <small><i class="fas fa-check"></i></small>
+    </div>
+    <h2>{{ seller_display_name|default:'Seller' }}</h2>
+    <p>{{ seller_store_label|default:'Lexvers seller' }}</p>
+  </section>
+
+  <nav class="seller-nav" aria-label="Seller navigation">
+    {% for item in seller_nav %}
+      {% if item.href %}
+        <a
+          href="{% url item.href %}"
+          class="seller-nav-link {% if seller_active_section == item.key %}active{% endif %}"
+          data-title="{{ item.label }}"
+        >
+          <i class="{{ item.icon }}"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      {% else %}
+        {% if item.children %}
+          <div class="seller-nav-group" data-seller-nav-group>
+            <button
+              type="button"
+              class="seller-nav-item seller-nav-trigger seller-nav-parent {% if seller_active_section == item.key %}active{% endif %}"
+              data-section="{{ item.key }}"
+              data-title="{{ item.label }}"
+              data-seller-nav-dropdown
+              aria-expanded="false"
+            >
+              <i class="{{ item.icon }}"></i>
+              <span>{{ item.label }}</span>
+              <span class="seller-nav-tail">
+                <small>{{ item.children|length }}</small>
+                <i class="fas fa-chevron-down seller-nav-chevron"></i>
+              </span>
+            </button>
+            <div class="seller-nav-children">
+              {% for child in item.children %}
+                <button
+                  type="button"
+                  class="seller-nav-sub seller-nav-trigger"
+                  data-section="{{ item.key }}-{{ forloop.counter }}"
+                  data-title="{{ child }}"
+                >
+                  {{ child }}
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <button
+            type="button"
+            class="seller-nav-item seller-nav-trigger {% if seller_active_section == item.key or not seller_active_section and forloop.first %}active{% endif %}"
+            data-section="{{ item.key }}"
+            data-title="{{ item.label }}"
+          >
+            <i class="{{ item.icon }}"></i>
+            <span>{{ item.label }}</span>
+          </button>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  </nav>
+</aside>
