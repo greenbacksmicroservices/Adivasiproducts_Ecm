@@ -1,1 +1,17 @@
 Watching for file changes with StatReloader
+HTTP GET /disclaimer/ 200 [0.06, 127.0.0.1:53562]
+HTTP GET /store/ 200 [1.06, 127.0.0.1:51353]
+HTTP GET /static/css/website/site.css 200 [0.12, 127.0.0.1:53562]
+HTTP GET /static/images/shared/greenbacks-lexverse-logo-transparent.png 200 [0.14, 127.0.0.1:56089]
+Not Found: /favicon.ico
+HTTP GET /favicon.ico 404 [0.07, 127.0.0.1:60046]
+HTTP GET /disclaimer/ 200 [0.01, 127.0.0.1:60503]
+HTTP GET /static/css/website/site.css 200 [0.01, 127.0.0.1:58809]
+HTTP GET /static/images/shared/greenbacks-lexverse-logo-transparent.png 200 [0.08, 127.0.0.1:64168]
+Not Found: /favicon.ico
+HTTP GET /favicon.ico 404 [0.13, 127.0.0.1:60111]
+HTTP GET /disclaimer/ 200 [0.01, 127.0.0.1:59380]
+HTTP GET /static/css/website/site.css 200 [0.01, 127.0.0.1:59380]
+HTTP GET /static/images/shared/greenbacks-lexverse-logo-transparent.png 200 [0.02, 127.0.0.1:51212]
+Not Found: /favicon.ico
+HTTP GET /favicon.ico 404 [0.03, 127.0.0.1:61318]
