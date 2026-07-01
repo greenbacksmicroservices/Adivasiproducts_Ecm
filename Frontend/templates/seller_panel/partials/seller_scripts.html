@@ -23,6 +23,11 @@
     const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
     const savedSidebar = localStorage.getItem('lexvers_seller_sidebar') || 'open';
     const savedTheme = localStorage.getItem('lexvers_seller_theme') || 'light';
+    const mobileSidebarQuery = window.matchMedia('(max-width: 720px)');
+
+    function isMobileSidebar() {
+      return mobileSidebarQuery.matches;
+    }
 
     function bindProductSubCategoryDropdowns() {
       document.querySelectorAll('form').forEach(function (form) {
@@ -201,11 +206,19 @@
       rowModal.hidden = false;
     }
 
-    function setGroupOpen(group, isOpen) {
+    function setGroupOpen(group, isOpen, options) {
       if (!group) return;
+      const settings = options || {};
+      if (isOpen && settings.closeSiblings !== false) {
+        navGroups.forEach(function (navGroup) {
+          if (navGroup !== group) {
+            setGroupOpen(navGroup, false, { closeSiblings: false });
+          }
+        });
+      }
       const dropdown = group.querySelector('[data-seller-nav-dropdown]');
       group.classList.toggle('is-open', isOpen);
-      group.classList.toggle('is-flyout-open', isOpen);
+      group.classList.toggle('is-flyout-open', isOpen && shell && shell.classList.contains('is-sidebar-collapsed'));
       if (dropdown) {
         dropdown.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       }
@@ -246,9 +259,7 @@
       });
       navGroups.forEach(function (group) {
         const hasActiveChild = Boolean(group.querySelector('.seller-nav-trigger.active'));
-        if (hasActiveChild) {
-          setGroupOpen(group, true);
-        }
+        setGroupOpen(group, hasActiveChild, { closeSiblings: false });
       });
       if (pageTitle) {
         pageTitle.textContent = title || 'Dashboard';
@@ -332,7 +343,7 @@
       });
     }
 
-    if (savedSidebar === 'collapsed' && shell) {
+    if ((savedSidebar === 'collapsed' || isMobileSidebar()) && shell) {
       shell.classList.add('is-sidebar-collapsed');
       if (sidebarToggle) {
         sidebarToggle.setAttribute('aria-pressed', 'true');
@@ -346,12 +357,15 @@
     bindProfilePhotoPreview();
 
     if (sidebarToggle && shell) {
-      sidebarToggle.addEventListener('click', function () {
+      sidebarToggle.addEventListener('click', function (event) {
+        event.stopPropagation();
         const isCollapsed = shell.classList.toggle('is-sidebar-collapsed');
         sidebarToggle.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
-        localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+        if (!isMobileSidebar()) {
+          localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+        }
         navGroups.forEach(function (group) {
-          group.classList.remove('is-flyout-open');
+          setGroupOpen(group, false, { closeSiblings: false });
         });
       });
     }
@@ -398,9 +412,6 @@
         const wasOpen = group && group.classList.contains(isCollapsed ? 'is-flyout-open' : 'is-open');
 
         if (isDropdown && isCollapsed && group) {
-          navGroups.forEach(function (navGroup) {
-            if (navGroup !== group) navGroup.classList.remove('is-flyout-open');
-          });
           setGroupOpen(group, !wasOpen);
           return;
         }
@@ -408,6 +419,14 @@
         showSection(trigger.dataset.section, trigger.dataset.title);
         if (group) {
           setGroupOpen(group, isDropdown ? !wasOpen : true);
+        } else {
+          navGroups.forEach(function (navGroup) {
+            setGroupOpen(navGroup, false, { closeSiblings: false });
+          });
+        }
+        if (isMobileSidebar() && shell) {
+          shell.classList.add('is-sidebar-collapsed');
+          if (sidebarToggle) sidebarToggle.setAttribute('aria-pressed', 'true');
         }
       });
     });
@@ -463,6 +482,16 @@
       }
       if (notificationMenuWrap && !notificationMenuWrap.contains(event.target)) {
         setNotificationMenuOpen(false);
+      }
+      if (
+        shell &&
+        isMobileSidebar() &&
+        !shell.classList.contains('is-sidebar-collapsed') &&
+        !event.target.closest('.seller-sidebar') &&
+        !event.target.closest('[data-seller-sidebar-toggle]')
+      ) {
+        shell.classList.add('is-sidebar-collapsed');
+        if (sidebarToggle) sidebarToggle.setAttribute('aria-pressed', 'true');
       }
       if (shell && shell.classList.contains('is-sidebar-collapsed') && !event.target.closest('[data-seller-nav-group]')) {
         navGroups.forEach(function (group) {

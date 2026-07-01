@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils.crypto import get_random_string
 
 from .models import (
@@ -1718,38 +1718,133 @@ class AdminSellerApplicationForm(SellerApplicationForm):
         return application
 
 
-class SellerStoreProfileForm(StyledFormMixin, forms.ModelForm):
+class SellerProfileForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = SellerApplication
         fields = [
             'name',
-            'store_name',
-            'business_type',
+            'email',
             'phone',
+            'alternate_phone',
+        ]
+        labels = {
+            'name': 'Seller name',
+            'email': 'Email',
+            'phone': 'Phone',
+            'alternate_phone': 'Alternate phone',
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields['alternate_phone'].required = False
+        self._style_fields()
+
+    def clean_email(self):
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if SellerApplication.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError('This email is already used by another seller.')
+        user_query = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email))
+        if self.user:
+            user_query = user_query.exclude(pk=self.user.pk)
+        if user_query.exists():
+            raise ValidationError('This email is already used by another account.')
+        return email
+
+    def clean_phone(self):
+        return _clean_indian_phone(self.cleaned_data.get('phone'), 'Phone number')
+
+    def clean_alternate_phone(self):
+        value = (self.cleaned_data.get('alternate_phone') or '').strip()
+        return _clean_indian_phone(value, 'Alternate phone number') if value else ''
+
+    def save(self, commit=True):
+        application = super().save(commit=False)
+        if self.user:
+            self.user.first_name = application.name
+            self.user.email = application.email
+            self.user.username = application.email
+            if commit:
+                self.user.save(update_fields=['first_name', 'email', 'username'])
+        if commit:
+            application.save()
+        return application
+
+
+class SellerPasswordChangeForm(PasswordChangeForm, StyledFormMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.help_text = ''
+        self._style_fields()
+
+
+class SellerStoreProfileForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = SellerApplication
+        fields = [
+            'store_name',
+            'store_display_name',
+            'store_description',
+            'business_type',
+            'store_logo',
+            'store_banner',
+            'primary_category',
+            'product_categories',
+            'brand_name',
+            'gst_available',
             'gst_number',
+            'legal_business_name',
+            'tax_pan_number',
             'pan_number',
             'business_address',
             'pickup_address',
         ]
         labels = {
-            'name': 'Seller name',
-            'store_name': 'Store name',
+            'store_name': 'Store / business name',
+            'store_display_name': 'Store display name',
+            'store_description': 'Store description',
             'business_type': 'Business type',
-            'phone': 'Phone number',
+            'store_logo': 'Store logo',
+            'store_banner': 'Store banner',
+            'primary_category': 'Store category',
+            'product_categories': 'Product categories',
+            'brand_name': 'Brand name',
+            'gst_available': 'GST available',
             'gst_number': 'GST number',
+            'legal_business_name': 'Legal business name',
+            'tax_pan_number': 'Tax PAN number',
             'pan_number': 'PAN number',
             'business_address': 'Business address',
             'pickup_address': 'Pickup address',
         }
         widgets = {
+            'store_description': forms.Textarea(attrs={'rows': 4}),
+            'product_categories': forms.Textarea(attrs={'rows': 3}),
             'business_address': forms.Textarea(attrs={'rows': 4}),
             'pickup_address': forms.Textarea(attrs={'rows': 4}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name in ['gst_number', 'pan_number', 'pickup_address']:
+        for field_name in [
+            'store_display_name',
+            'store_description',
+            'store_logo',
+            'store_banner',
+            'primary_category',
+            'product_categories',
+            'brand_name',
+            'gst_number',
+            'legal_business_name',
+            'tax_pan_number',
+            'pan_number',
+            'business_address',
+            'pickup_address',
+        ]:
             self.fields[field_name].required = False
+        self.fields['store_logo'].widget.attrs['accept'] = '.jpg,.jpeg,.png,.webp,image/*'
+        self.fields['store_banner'].widget.attrs['accept'] = '.jpg,.jpeg,.png,.webp,image/*'
         self._style_fields()
 
 
@@ -1757,52 +1852,70 @@ class SellerBankDetailsForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = SellerApplication
         fields = [
+            'bank_name',
             'bank_account_name',
             'bank_account_number',
             'bank_ifsc',
-            'bank_document',
+            'branch_name',
+            'cancelled_cheque',
         ]
         labels = {
+            'bank_name': 'Bank name',
             'bank_account_name': 'Account holder name',
             'bank_account_number': 'Account number',
             'bank_ifsc': 'IFSC code',
-            'bank_document': 'Cancelled cheque / bank proof',
+            'branch_name': 'Branch',
+            'cancelled_cheque': 'Cancelled cheque / passbook',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.required = False
-        self.fields['bank_document'].widget.attrs['accept'] = '.pdf,.jpg,.jpeg,.png'
+        self.fields['cancelled_cheque'].widget.attrs['accept'] = '.pdf,.jpg,.jpeg,.png'
         self._style_fields()
+
+    def clean_bank_account_number(self):
+        value = (self.cleaned_data.get('bank_account_number') or '').strip()
+        if value and not re.fullmatch(r'[0-9]{6,34}', value):
+            raise ValidationError('Enter a valid bank account number.')
+        return value
+
+    def clean_bank_ifsc(self):
+        value = _normalize_upper(self.cleaned_data.get('bank_ifsc'))
+        if value and not re.fullmatch(r'[A-Z]{4}0[A-Z0-9]{6}', value):
+            raise ValidationError('Enter a valid IFSC code, for example ABCD0123456.')
+        return value
 
 
 class SellerDocumentsForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = SellerApplication
         fields = [
-            'aadhaar_number',
-            'pan_number',
-            'gst_number',
-            'aadhaar_document',
-            'pan_document',
+            'aadhaar_front',
+            'aadhaar_back',
+            'pan_card',
             'gst_document',
-            'trade_license_document',
-            'company_document',
-            'bank_document',
+            'business_registration_certificate',
+            'cancelled_cheque',
+            'shop_photo',
+            'owner_photo',
+            'business_proof',
             'address_proof',
+            'signature_upload',
         ]
         labels = {
-            'aadhaar_number': 'Aadhaar number',
-            'pan_number': 'PAN number',
-            'gst_number': 'GST number',
-            'aadhaar_document': 'Aadhaar document',
-            'pan_document': 'PAN document',
+            'aadhaar_front': 'Aadhaar front',
+            'aadhaar_back': 'Aadhaar back',
+            'pan_card': 'PAN card',
             'gst_document': 'GST certificate',
-            'trade_license_document': 'Trade license',
-            'company_document': 'Company documents',
-            'bank_document': 'Cancelled cheque / bank proof',
+            'business_registration_certificate': 'Business registration certificate',
+            'cancelled_cheque': 'Cancelled cheque / passbook',
+            'shop_photo': 'Shop photo',
+            'owner_photo': 'Owner photo',
+            'business_proof': 'Business proof',
             'address_proof': 'Address proof',
+            'signature_upload': 'Signature',
         }
 
     def __init__(self, *args, **kwargs):
@@ -1810,13 +1923,17 @@ class SellerDocumentsForm(StyledFormMixin, forms.ModelForm):
         for field in self.fields.values():
             field.required = False
         for field_name in [
-            'aadhaar_document',
-            'pan_document',
+            'aadhaar_front',
+            'aadhaar_back',
+            'pan_card',
             'gst_document',
-            'trade_license_document',
-            'company_document',
-            'bank_document',
+            'business_registration_certificate',
+            'cancelled_cheque',
+            'shop_photo',
+            'owner_photo',
+            'business_proof',
             'address_proof',
+            'signature_upload',
         ]:
             self.fields[field_name].widget.attrs['accept'] = '.pdf,.jpg,.jpeg,.png'
         self._style_fields()

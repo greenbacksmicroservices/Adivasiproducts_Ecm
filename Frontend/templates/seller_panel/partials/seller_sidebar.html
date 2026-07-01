@@ -41,14 +41,14 @@
         </a>
       {% else %}
         {% if item.children %}
-          <div class="seller-nav-group" data-seller-nav-group>
+          <div class="seller-nav-group {% if seller_active_section == item.key %}is-open{% endif %}" data-seller-nav-group>
             <button
               type="button"
               class="seller-nav-item seller-nav-trigger seller-nav-parent {% if seller_active_section == item.key %}active{% endif %}"
               data-section="{{ item.key }}"
               data-title="{{ item.label }}"
               data-seller-nav-dropdown
-              aria-expanded="false"
+              aria-expanded="{% if seller_active_section == item.key %}true{% else %}false{% endif %}"
             >
               <i class="{{ item.icon }}"></i>
               <span>{{ item.label }}</span>

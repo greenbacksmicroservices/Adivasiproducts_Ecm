@@ -20,7 +20,9 @@
         {% if messages %}
           <div class="seller-message-stack">
             {% for message in messages %}
-              <div class="seller-alert">{{ message }}</div>
+              {% if message.message != 'Login successful.' %}
+                <div class="seller-alert">{{ message }}</div>
+              {% endif %}
             {% endfor %}
           </div>
         {% endif %}
@@ -78,6 +80,13 @@
                   <circle data-seller-line-dot cx="{{ seller_line_chart.focus_x }}" cy="{{ seller_line_chart.focus_y }}" r="8" fill="#5377ff" stroke="#fff" stroke-width="4"></circle>
                 </svg>
                 <div class="seller-chart-tooltip" data-seller-chart-tooltip>{{ seller_line_chart.focus_value }}<br><small>{{ seller_line_chart.focus_label }}</small></div>
+                {% if not seller_snapshot.total_orders %}
+                  <div class="seller-chart-empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <strong>No sales yet</strong>
+                    <span>Revenue trend will appear after your first seller order.</span>
+                  </div>
+                {% endif %}
               </div>
             </article>
 
@@ -137,7 +146,7 @@
               <em>{{ seller_snapshot.stock_health_percent }}%</em>
             </article>
             <article class="seller-modern-card seller-mini-report">
-              <h2>Category Stock</h2>
+              <h2>Product Performance</h2>
               <div class="seller-mini-bars">
                 {% for bar in seller_category_bars %}
                   <i style="height: {{ bar.height }}%;" title="{{ bar.label }}: {{ bar.value }}"></i>
@@ -440,27 +449,15 @@
         </section>
 
         <section class="seller-section" data-section="store-settings">
-          <div data-seller-live-fragment="store_settings">
-            {% include 'seller_panel/partials/store_settings.html' %}
-          </div>
-        </section>
-
-        <section class="seller-section" data-section="store-settings-1">
-          <div data-seller-live-fragment="store_settings">
-            {% include 'seller_panel/partials/store_settings.html' %}
-          </div>
-        </section>
-
-        <section class="seller-section" data-section="store-settings-2">
-          <div data-seller-live-fragment="bank_details">
-            {% include 'seller_panel/partials/bank_details.html' %}
-          </div>
-        </section>
-
-        <section class="seller-section" data-section="store-settings-3">
-          <div data-seller-live-fragment="kyc_documents">
-            {% include 'seller_panel/partials/kyc_documents.html' %}
-          </div>
+          <article class="seller-workspace seller-settings-redirect">
+            <div class="seller-card-head">
+              <div>
+                <h2>Seller Settings</h2>
+                <p>Profile, store, bank, documents, and security are managed in one page.</p>
+              </div>
+              <a href="{% url 'seller-settings' %}" class="seller-btn"><i class="fas fa-user-gear"></i> Open Settings</a>
+            </div>
+          </article>
         </section>
 
         <section class="seller-section" data-section="notifications">
@@ -477,13 +474,20 @@
                 <span><b>Best selling products</b><em data-seller-live-text="sold_units">{{ seller_snapshot.sold_units }} units sold</em></span>
                 <span><b>Low stock products</b><em data-seller-live-text="low_stock_products">{{ seller_snapshot.low_stock_products }}</em></span>
                 <span><b>Total revenue</b><em data-seller-live-text="total_sales">{{ seller_snapshot.total_sales }}</em></span>
-                <span><b>Order count</b><em data-seller-live-text="pending_orders">{{ seller_snapshot.pending_orders }}</em> pending</span>
-                <span><b>Return rate</b>0%</span>
+                <span><b>Order count</b><em data-seller-live-text="total_orders">{{ seller_snapshot.total_orders }}</em> total</span>
+                <span><b>Returned orders</b><em data-seller-live-text="returned_orders">{{ seller_snapshot.returned_orders }}</em></span>
                 <span><b>Cancel count</b><em data-seller-live-text="cancelled_orders">{{ seller_snapshot.cancelled_orders }}</em></span>
+              </div>
+              <div class="seller-performance-list">
+                {% for product in best_selling_products %}
+                  <span><b>{{ product.name }}</b><em>{{ product.units }} units</em><strong>{{ product.revenue }}</strong></span>
+                {% empty %}
+                  <p class="seller-empty">No sales yet. Product performance will appear after seller orders arrive.</p>
+                {% endfor %}
               </div>
             </article>
             <article class="seller-workspace">
-              <h2>Monthly sales graph</h2>
+              <h2>Monthly revenue graph</h2>
               <div class="seller-chart">
                 {% for point in monthly_sales_points %}
                   <span style="height: {{ point.height }}%;"><b>{{ point.label }}</b></span>
@@ -576,6 +580,11 @@
       const subCategoryOptionsUrl = '{% url "sub-category-options" %}';
       const savedSidebar = localStorage.getItem('lexvers_seller_sidebar') || 'open';
       const savedTheme = localStorage.getItem('lexvers_seller_theme') || 'light';
+      const mobileSidebarQuery = window.matchMedia('(max-width: 720px)');
+
+      function isMobileSidebar() {
+        return mobileSidebarQuery.matches;
+      }
 
       function bindProductSubCategoryDropdowns() {
         document.querySelectorAll('form').forEach(function (form) {
@@ -827,7 +836,7 @@
         });
       }
 
-      if (savedSidebar === 'collapsed' && shell) {
+      if ((savedSidebar === 'collapsed' || isMobileSidebar()) && shell) {
         shell.classList.add('is-sidebar-collapsed');
         if (sidebarToggle) {
           sidebarToggle.setAttribute('aria-pressed', 'true');
@@ -841,10 +850,16 @@
       bindProfilePhotoPreview();
 
       if (sidebarToggle && shell) {
-        sidebarToggle.addEventListener('click', function () {
+        sidebarToggle.addEventListener('click', function (event) {
+          event.stopPropagation();
           const isCollapsed = shell.classList.toggle('is-sidebar-collapsed');
           sidebarToggle.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
-          localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+          if (!isMobileSidebar()) {
+            localStorage.setItem('lexvers_seller_sidebar', isCollapsed ? 'collapsed' : 'open');
+          }
+          navGroups.forEach(function (group) {
+            setGroupOpen(group, false, { closeSiblings: false });
+          });
         });
       }
 
@@ -882,10 +897,19 @@
         });
       }
 
-      function setGroupOpen(group, isOpen) {
+      function setGroupOpen(group, isOpen, options) {
         if (!group) return;
+        const settings = options || {};
+        if (isOpen && settings.closeSiblings !== false) {
+          navGroups.forEach(function (navGroup) {
+            if (navGroup !== group) {
+              setGroupOpen(navGroup, false, { closeSiblings: false });
+            }
+          });
+        }
         const dropdown = group.querySelector('[data-seller-nav-dropdown]');
         group.classList.toggle('is-open', isOpen);
+        group.classList.toggle('is-flyout-open', isOpen && shell && shell.classList.contains('is-sidebar-collapsed'));
         if (dropdown) {
           dropdown.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
@@ -915,9 +939,7 @@
         });
         navGroups.forEach(function (group) {
           const hasActiveChild = Boolean(group.querySelector('.seller-nav-trigger.active'));
-          if (hasActiveChild) {
-            setGroupOpen(group, true);
-          }
+          setGroupOpen(group, hasActiveChild, { closeSiblings: false });
         });
         if (pageTitle) {
           pageTitle.textContent = title || 'Dashboard';
@@ -928,10 +950,23 @@
         trigger.addEventListener('click', function () {
           const group = trigger.closest('[data-seller-nav-group]');
           const isDropdown = trigger.hasAttribute('data-seller-nav-dropdown');
-          const wasOpen = group && group.classList.contains('is-open');
+          const isCollapsed = shell && shell.classList.contains('is-sidebar-collapsed');
+          const wasOpen = group && group.classList.contains(isCollapsed ? 'is-flyout-open' : 'is-open');
+          if (isDropdown && isCollapsed && group) {
+            setGroupOpen(group, !wasOpen);
+            return;
+          }
           showSection(trigger.dataset.section, trigger.dataset.title);
           if (group) {
             setGroupOpen(group, isDropdown ? !wasOpen : true);
+          } else {
+            navGroups.forEach(function (navGroup) {
+              setGroupOpen(navGroup, false, { closeSiblings: false });
+            });
+          }
+          if (isMobileSidebar() && shell) {
+            shell.classList.add('is-sidebar-collapsed');
+            if (sidebarToggle) sidebarToggle.setAttribute('aria-pressed', 'true');
           }
         });
       });
@@ -993,6 +1028,21 @@
         }
         if (notificationMenuWrap && !notificationMenuWrap.contains(event.target)) {
           setNotificationMenuOpen(false);
+        }
+        if (
+          shell &&
+          isMobileSidebar() &&
+          !shell.classList.contains('is-sidebar-collapsed') &&
+          !event.target.closest('.seller-sidebar') &&
+          !event.target.closest('[data-seller-sidebar-toggle]')
+        ) {
+          shell.classList.add('is-sidebar-collapsed');
+          if (sidebarToggle) sidebarToggle.setAttribute('aria-pressed', 'true');
+        }
+        if (shell && shell.classList.contains('is-sidebar-collapsed') && !event.target.closest('[data-seller-nav-group]')) {
+          navGroups.forEach(function (group) {
+            group.classList.remove('is-flyout-open');
+          });
         }
       });
 

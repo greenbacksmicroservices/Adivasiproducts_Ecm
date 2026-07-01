@@ -24,7 +24,9 @@
         {% if messages %}
           <div class="seller-message-stack">
             {% for message in messages %}
-              <div class="seller-alert">{{ message }}</div>
+              {% if message.message != 'Login successful.' %}
+                <div class="seller-alert">{{ message }}</div>
+              {% endif %}
             {% endfor %}
           </div>
         {% endif %}

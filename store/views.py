@@ -19,6 +19,7 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Avg, Count, F, Max, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.forms import modelform_factory
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.core.paginator import Paginator
@@ -63,7 +64,9 @@ from .forms import (
     SellerApplicationForm,
     SellerBankDetailsForm,
     SellerDocumentsForm,
+    SellerPasswordChangeForm,
     SellerPayoutForm,
+    SellerProfileForm,
     SellerProductForm,
     SellerReviewForm,
     SellerStoreProfileForm,
@@ -198,12 +201,7 @@ SELLER_NAV = [
     {'label': 'Messages', 'icon': 'fas fa-comments', 'key': 'messages'},
     {'label': 'Reviews & Ratings', 'icon': 'fas fa-star-half-stroke', 'key': 'ratings'},
     {'label': 'Shipping Management', 'icon': 'fas fa-truck-fast', 'key': 'shipping'},
-    {
-        'label': 'Settings',
-        'icon': 'fas fa-gear',
-        'key': 'store-settings',
-        'children': ['Store Profile', 'Bank Details', 'Documents'],
-    },
+    {'label': 'Settings', 'icon': 'fas fa-gear', 'key': 'store-settings', 'href': 'seller-settings'},
     {'label': 'Reports / Analytics', 'icon': 'fas fa-chart-pie', 'key': 'analytics'},
     {'label': 'Support Tickets', 'icon': 'fas fa-headset', 'key': 'support'},
 ]
@@ -2506,11 +2504,13 @@ def _get_seller_application_for_user(user):
     return SellerApplication.objects.filter(email__in=lookup_values).order_by('-created_at').first()
 
 
-def _seller_settings_forms(seller_profile):
+def _seller_settings_forms(seller_profile, user=None):
     return {
+        'seller_profile_form': SellerProfileForm(instance=seller_profile, user=user),
         'seller_store_form': SellerStoreProfileForm(instance=seller_profile),
         'seller_bank_form': SellerBankDetailsForm(instance=seller_profile),
         'seller_documents_form': SellerDocumentsForm(instance=seller_profile),
+        'seller_password_form': SellerPasswordChangeForm(user) if user else None,
     }
 
 
@@ -2596,6 +2596,83 @@ def _seller_layout_context(user, page_title='Dashboard', active_section='dashboa
         'seller_live_enabled': live_enabled,
         **_seller_avatar_context(user, seller_profile),
         **_seller_header_notifications(user),
+    }
+
+
+def _mask_bank_account(account_number):
+    account_number = ''.join(ch for ch in str(account_number or '') if ch.isdigit())
+    if not account_number:
+        return 'Not added'
+    if len(account_number) <= 4:
+        return account_number
+    return f"{'*' * max(len(account_number) - 4, 0)}{account_number[-4:]}"
+
+
+def _seller_document_rows_for_owner(seller):
+    rows = []
+    if not seller:
+        return rows
+    for document_key, label, _field_names, show_if_missing in SELLER_ADMIN_DOCUMENT_FIELDS:
+        document = _seller_document_file(seller, document_key)
+        if not document and not show_if_missing:
+            continue
+        view_url = ''
+        download_url = ''
+        file_name = ''
+        if document:
+            view_url = reverse('seller-document-download', kwargs={'document_key': document_key})
+            download_url = f'{view_url}?download=1'
+            file_name = os.path.basename(document.name or '')
+        rows.append(
+            {
+                'key': document_key,
+                'label': label,
+                'document': document,
+                'file_name': file_name,
+                'view_url': view_url,
+                'download_url': download_url,
+                'required': show_if_missing,
+            }
+        )
+    return rows
+
+
+def _seller_extra_document_rows_for_owner(seller):
+    if not seller:
+        return []
+    rows = []
+    for extra in seller.extra_documents.all():
+        view_url = reverse('seller-extra-document-download', kwargs={'document_pk': extra.pk})
+        rows.append(
+            {
+                'label': extra.display_name,
+                'file_name': os.path.basename(extra.file.name or ''),
+                'view_url': view_url,
+                'download_url': f'{view_url}?download=1',
+            }
+        )
+    return rows
+
+
+def _seller_settings_context(request, seller_profile, active_tab='profile', form_overrides=None):
+    forms = _seller_settings_forms(seller_profile, request.user)
+    forms.update(form_overrides or {})
+    session_key = request.session.session_key
+    document_rows = _seller_document_rows_for_owner(seller_profile)
+    uploaded_document_count = sum(1 for row in document_rows if row.get('document'))
+    return {
+        **_seller_layout_context(request.user, 'Settings', 'store-settings'),
+        **forms,
+        'seller_settings_active_tab': active_tab or 'profile',
+        'seller_document_rows': document_rows,
+        'seller_extra_document_rows': _seller_extra_document_rows_for_owner(seller_profile),
+        'seller_uploaded_document_count': uploaded_document_count,
+        'seller_masked_bank_account': _mask_bank_account(seller_profile.bank_account_number if seller_profile else ''),
+        'seller_current_session': {
+            'session_key': f'...{session_key[-8:]}' if session_key else 'Not available',
+            'ip_address': _client_ip(request) or 'Not available',
+            'user_agent': request.META.get('HTTP_USER_AGENT', 'Not available'),
+        },
     }
 
 
@@ -2773,6 +2850,12 @@ def _build_seller_dashboard_data(user):
     products = _seller_product_queryset(seller_profile, include_all_for_admin=user.is_staff)
     product_items = list(products)
     seller_order_items_qs = _seller_order_items_queryset(seller_profile, include_all_for_admin=user.is_staff)
+    non_revenue_statuses = [Order.Status.CANCELLED, Order.Status.RETURNED]
+    order_sales_items_qs = seller_order_items_qs.exclude(
+        item_status__in=non_revenue_statuses,
+    ).exclude(
+        order__status__in=non_revenue_statuses,
+    )
     seller_order_items = list(seller_order_items_qs[:50])
 
     total_products = len(product_items)
@@ -2787,18 +2870,15 @@ def _build_seller_dashboard_data(user):
     low_stock_products = sum(1 for item in product_items if 0 < item.stock <= 5)
     total_stock = sum(item.stock or 0 for item in product_items)
     initial_stock_total = sum(max(item.initial_stock or 0, item.stock or 0) for item in product_items)
-    sold_units = sum(_product_sold_units(item) for item in product_items)
     stock_value = sum((_product_stock_value(item) for item in product_items), Decimal('0'))
-    sold_value = sum((_product_sold_value(item) for item in product_items), Decimal('0'))
-    order_sales_value = seller_order_items_qs.exclude(
-        order__status__in=[Order.Status.CANCELLED, Order.Status.RETURNED],
-    ).aggregate(total=Sum('line_total')).get('total') or Decimal('0')
-    order_units = seller_order_items_qs.exclude(
-        order__status__in=[Order.Status.CANCELLED, Order.Status.RETURNED],
-    ).aggregate(total=Sum('quantity')).get('total') or 0
-    if order_sales_value:
-        sold_value = order_sales_value
-        sold_units = order_units
+    order_totals = order_sales_items_qs.aggregate(
+        revenue=Sum('line_total'),
+        units=Sum('quantity'),
+        orders=Count('order', distinct=True),
+    )
+    sold_value = order_totals.get('revenue') or Decimal('0')
+    sold_units = order_totals.get('units') or 0
+    total_orders = seller_order_items_qs.values('order_id').distinct().count()
     average_sale = sold_value / sold_units if sold_units else Decimal('0')
     average_price = (sum((item.price for item in product_items), Decimal('0')) / total_products) if total_products else Decimal('0')
     stock_alerts = low_stock_products + out_of_stock_products
@@ -2806,33 +2886,60 @@ def _build_seller_dashboard_data(user):
     active_percent = _percent(active_products, total_products)
     sale_percent = _percent(sold_units, total_stock + sold_units)
 
-    pending_application_count = SellerApplication.objects.filter(status=SellerApplication.Status.PENDING).count()
+    pending_application_count = SellerApplication.objects.filter(status=SellerApplication.Status.PENDING).count() if user.is_staff else 0
     pending_orders = seller_order_items_qs.filter(item_status=Order.Status.PENDING).values('order_id').distinct().count()
-    completed_orders = seller_order_items_qs.filter(item_status=Order.Status.DELIVERED).values('order_id').distinct().count()
+    confirmed_orders = seller_order_items_qs.filter(item_status=Order.Status.CONFIRMED).values('order_id').distinct().count()
+    packed_orders = seller_order_items_qs.filter(item_status=Order.Status.PACKED).values('order_id').distinct().count()
+    shipped_orders = seller_order_items_qs.filter(item_status=Order.Status.SHIPPED).values('order_id').distinct().count()
+    delivered_orders = seller_order_items_qs.filter(item_status=Order.Status.DELIVERED).values('order_id').distinct().count()
     cancelled_orders = seller_order_items_qs.filter(
-        order__status__in=[Order.Status.CANCELLED, Order.Status.RETURNED],
+        item_status=Order.Status.CANCELLED,
     ).values('order_id').distinct().count()
+    returned_orders = seller_order_items_qs.filter(item_status=Order.Status.RETURNED).values('order_id').distinct().count()
     pending_payout = sold_value * Decimal('0.90')
     admin_commission = sold_value * Decimal('0.10')
 
     now = timezone.localtime()
     current_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_starts = [_shift_month_start(current_month, offset) for offset in range(-5, 1)]
+    monthly_rows = (
+        order_sales_items_qs
+        .annotate(month=TruncMonth('order__created_at'))
+        .values('month')
+        .annotate(
+            revenue=Sum('line_total'),
+            units=Sum('quantity'),
+            orders=Count('order', distinct=True),
+        )
+        .order_by('month')
+    )
+    monthly_lookup = {}
+    for row in monthly_rows:
+        month_value = row.get('month')
+        if not month_value:
+            continue
+        month_local = timezone.localtime(month_value) if timezone.is_aware(month_value) else timezone.make_aware(month_value)
+        monthly_lookup[month_local.date().replace(day=1)] = {
+            'revenue': row.get('revenue') or Decimal('0'),
+            'units': row.get('units') or 0,
+            'orders': row.get('orders') or 0,
+        }
+
     monthly_points = []
+    monthly_revenue_value = Decimal('0')
     for month_start in month_starts:
-        month_end = _shift_month_start(month_start, 1)
-        month_products = [
-            item
-            for item in product_items
-            if month_start <= timezone.localtime(item.updated_at) < month_end
-        ]
-        revenue_value = sum((_product_sold_value(item) for item in month_products), Decimal('0'))
-        activity_value = revenue_value or sum((_product_stock_value(item) for item in month_products), Decimal('0'))
+        month_key = month_start.date().replace(day=1)
+        month_data = monthly_lookup.get(month_key, {})
+        revenue_value = month_data.get('revenue') or Decimal('0')
+        if month_key == current_month.date().replace(day=1):
+            monthly_revenue_value = revenue_value
         monthly_points.append(
             {
                 'label': month_start.strftime('%b'),
-                'raw_value': activity_value,
-                'value': _format_currency(activity_value),
+                'raw_value': revenue_value,
+                'value': _format_currency(revenue_value),
+                'orders': month_data.get('orders') or 0,
+                'units': month_data.get('units') or 0,
             }
         )
 
@@ -2847,28 +2954,33 @@ def _build_seller_dashboard_data(user):
     ]
     seller_line_chart = _line_chart_paths(monthly_points)
 
-    category_totals = {}
-    for item in product_items:
-        label = item.category.name if item.category else 'General'
-        category_totals[label] = category_totals.get(label, 0) + (item.stock or 0)
-    top_categories = sorted(category_totals.items(), key=lambda pair: pair[1], reverse=True)[:4]
-    max_category_total = max((value for _, value in top_categories), default=0)
+    top_product_rows = list(
+        order_sales_items_qs
+        .values('product_id', 'product_name')
+        .annotate(units=Sum('quantity'), revenue=Sum('line_total'))
+        .order_by('-units', '-revenue', 'product_name')[:8]
+    )
+    top_categories = [
+        (row['product_name'] or 'Product', row.get('units') or 0, row.get('revenue') or Decimal('0'))
+        for row in top_product_rows[:4]
+    ]
+    max_category_total = max((value for _, value, _revenue in top_categories), default=0)
     seller_category_bars = [
         {
             'label': label[:10],
             'height': max(12, _percent(value, max_category_total)) if max_category_total else 12,
             'value': value,
         }
-        for label, value in top_categories
-    ] or [{'label': 'No stock', 'height': 12, 'value': 0}]
+        for label, value, _revenue in top_categories
+    ] or [{'label': 'No sales', 'height': 12, 'value': 0}]
 
     progress_sources = [
-        ('Active', active_products, total_products),
-        ('Pending', pending_products, total_products),
-        ('Rejected', rejected_products, total_products),
+        ('Pending', pending_orders, total_orders),
+        ('Packed', packed_orders, total_orders),
+        ('Shipped', shipped_orders, total_orders),
+        ('Delivered', delivered_orders, total_orders),
+        ('Cancelled', cancelled_orders, total_orders),
         ('Low', low_stock_products, total_products),
-        ('Out', out_of_stock_products, total_products),
-        ('Sold', sold_units, total_stock + sold_units),
     ]
     seller_progress_bars = [
         {
@@ -2882,7 +2994,7 @@ def _build_seller_dashboard_data(user):
     seller_status_lines = [
         {'label': 'Active catalog', 'percent': active_percent, 'value': f'{active_products}/{total_products}'},
         {'label': 'Stock health', 'percent': stock_health_percent, 'value': f'{total_stock} units'},
-        {'label': 'Revenue progress', 'percent': sale_percent, 'value': _format_currency(sold_value)},
+        {'label': 'Delivered orders', 'percent': _percent(delivered_orders, total_orders), 'value': f'{delivered_orders}/{total_orders}'},
     ]
 
     seller_snapshot = {
@@ -2890,10 +3002,18 @@ def _build_seller_dashboard_data(user):
         'active_products': active_products,
         'pending_products': pending_products,
         'rejected_products': rejected_products,
+        'total_orders': total_orders,
         'pending_orders': pending_orders,
-        'completed_orders': completed_orders,
+        'confirmed_orders': confirmed_orders,
+        'packed_orders': packed_orders,
+        'shipped_orders': shipped_orders,
+        'delivered_orders': delivered_orders,
+        'completed_orders': delivered_orders,
         'cancelled_orders': cancelled_orders,
+        'returned_orders': returned_orders,
         'total_sales': _format_currency(sold_value),
+        'total_revenue': _format_currency(sold_value),
+        'monthly_revenue': _format_currency(monthly_revenue_value),
         'average_sales': _format_currency(average_sale),
         'average_price': _format_currency(average_price),
         'admin_commission': _format_currency(admin_commission),
@@ -2915,43 +3035,83 @@ def _build_seller_dashboard_data(user):
     seller_dashboard_cards = [
         {
             'key': 'product_revenue',
-            'label': 'Product Revenue',
+            'label': 'Total Revenue',
             'value': seller_snapshot['product_revenue'],
             'icon': 'fas fa-chart-line',
             'tone': 'blue',
             'target': 'earnings',
             'title': 'Sales & Earnings',
-            'note': f'{sold_units} units moved',
+            'note': f'{sold_units} units sold',
         },
         {
-            'key': 'average_sales',
-            'label': 'Average Sales',
-            'value': seller_snapshot['average_sales'],
+            'key': 'monthly_revenue',
+            'label': 'Monthly Revenue',
+            'value': seller_snapshot['monthly_revenue'],
             'icon': 'fas fa-percent',
             'tone': 'coral',
             'target': 'analytics',
             'title': 'Reports / Analytics',
-            'note': f'Avg price {seller_snapshot["average_price"]}',
+            'note': f'{now.strftime("%B")} sales',
+        },
+        {
+            'key': 'total_orders',
+            'label': 'Total Orders',
+            'value': seller_snapshot['total_orders'],
+            'icon': 'fas fa-receipt',
+            'tone': 'green',
+            'target': 'orders-1',
+            'title': 'All Orders',
+            'note': f'{delivered_orders} delivered',
         },
         {
             'key': 'pending_orders',
             'label': 'Pending Orders',
             'value': seller_snapshot['pending_orders'],
             'icon': 'fas fa-bag-shopping',
-            'tone': 'green',
+            'tone': 'gold',
             'target': 'orders-2',
             'title': 'Pending Orders',
-            'note': f'{completed_orders} delivered',
+            'note': f'{packed_orders} packed',
         },
         {
             'key': 'total_products',
             'label': 'Total Products',
             'value': seller_snapshot['total_products'],
             'icon': 'fas fa-box-open',
-            'tone': 'gold',
+            'tone': 'blue',
             'target': 'products-2',
             'title': 'All Products',
             'note': f'{active_products} active',
+        },
+        {
+            'key': 'active_products',
+            'label': 'Active Products',
+            'value': seller_snapshot['active_products'],
+            'icon': 'fas fa-circle-check',
+            'tone': 'green',
+            'target': 'products-3',
+            'title': 'Live Products',
+            'note': f'{pending_products} pending approval',
+        },
+        {
+            'key': 'shipped_orders',
+            'label': 'Shipped Orders',
+            'value': seller_snapshot['shipped_orders'],
+            'icon': 'fas fa-truck-fast',
+            'tone': 'coral',
+            'target': 'orders-5',
+            'title': 'Shipped Orders',
+            'note': f'{packed_orders} packed',
+        },
+        {
+            'key': 'cancelled_orders',
+            'label': 'Cancelled Orders',
+            'value': seller_snapshot['cancelled_orders'],
+            'icon': 'fas fa-ban',
+            'tone': 'gold',
+            'target': 'orders-7',
+            'title': 'Cancelled Orders',
+            'note': f'{returned_orders} returned',
         },
     ]
 
@@ -2973,6 +3133,14 @@ def _build_seller_dashboard_data(user):
         key=lambda item: item.updated_at,
         reverse=True,
     )[:8]
+    best_selling_products = [
+        {
+            'name': row.get('product_name') or 'Product',
+            'units': row.get('units') or 0,
+            'revenue': _format_currency(row.get('revenue') or Decimal('0')),
+        }
+        for row in top_product_rows[:6]
+    ]
 
     product_ids = [item.pk for item in product_items]
     order_ids = list(seller_order_items_qs.values_list('order_id', flat=True).distinct())
@@ -3026,7 +3194,7 @@ def _build_seller_dashboard_data(user):
 
     coupons = Coupon.objects.order_by('-updated_at')
     if seller_profile and not user.is_staff:
-        coupons = coupons.filter(title__icontains=seller_profile.store_name)
+        coupons = coupons.filter(seller=seller_profile)
     coupon_rows = [
         _seller_row(
             [
@@ -3146,6 +3314,7 @@ def _build_seller_dashboard_data(user):
         'live_products': live_product_list,
         'out_of_stock_products': out_of_stock_list,
         'low_stock_products': low_stock_list,
+        'best_selling_products': best_selling_products,
         'monthly_sales_points': monthly_sales_points,
         'seller_line_chart': seller_line_chart,
         'seller_progress_bars': seller_progress_bars,
@@ -3187,7 +3356,6 @@ def login_view(request):
             messages.warning(request, _seller_pending_message(seller_application))
             return redirect('login')
         login(request, user)
-        messages.success(request, 'Login successful.')
         return redirect('panel-welcome')
     if request.method == 'POST' and not form.is_valid():
         lookup_email = (request.POST.get('username') or '').strip().lower()
@@ -3888,7 +4056,7 @@ def seller_dashboard(request):
         return redirect('become-seller')
 
     dashboard_data = _build_seller_dashboard_data(request.user)
-    settings_forms = _seller_settings_forms(dashboard_data['seller_profile'])
+    settings_forms = _seller_settings_forms(dashboard_data['seller_profile'], request.user)
 
     return render(
         request,
@@ -3904,8 +4072,122 @@ def seller_dashboard(request):
     )
 
 
+@login_required
+@require_http_methods(['GET', 'POST'])
+def seller_settings(request):
+    if not _is_seller_user(request.user) or request.user.is_staff:
+        messages.error(request, 'Approved seller account required for seller settings.')
+        return redirect('seller-dashboard')
+
+    seller_profile = _get_seller_profile(request.user)
+    if not seller_profile:
+        messages.error(request, 'Approved seller profile not found.')
+        return redirect('become-seller')
+
+    active_tab = request.GET.get('tab') or 'profile'
+    form_overrides = {}
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+        active_tab = {
+            'profile': 'profile',
+            'profile_photo': 'profile',
+            'store': 'store',
+            'bank': 'bank',
+            'documents': 'documents',
+            'password': 'security',
+        }.get(action, 'profile')
+
+        if action == 'profile':
+            form = SellerProfileForm(request.POST, instance=seller_profile, user=request.user)
+            if form.is_valid():
+                application = form.save()
+                _ensure_seller_user(application)
+                messages.success(request, 'Seller profile updated successfully.')
+                return redirect(f"{reverse('seller-settings')}?tab=profile")
+            form_overrides['seller_profile_form'] = form
+            messages.error(request, 'Please fix the profile details and try again.')
+        elif action == 'profile_photo':
+            uploaded_photo = request.FILES.get('profile_photo')
+            if not uploaded_photo:
+                messages.error(request, 'Profile photo select karein.')
+            else:
+                validation_error = _validate_seller_profile_photo(uploaded_photo)
+                if validation_error:
+                    messages.error(request, validation_error)
+                else:
+                    seller_profile.profile_photo = uploaded_photo
+                    seller_profile.save(update_fields=['profile_photo', 'updated_at'])
+                    messages.success(request, 'Profile photo updated.')
+                    return redirect(f"{reverse('seller-settings')}?tab=profile")
+        elif action == 'store':
+            form = SellerStoreProfileForm(request.POST, request.FILES, instance=seller_profile)
+            if form.is_valid():
+                application = form.save()
+                _ensure_seller_user(application)
+                messages.success(request, 'Store profile updated successfully.')
+                return redirect(f"{reverse('seller-settings')}?tab=store")
+            form_overrides['seller_store_form'] = form
+            messages.error(request, 'Please fix the store profile fields.')
+        elif action == 'bank':
+            form = SellerBankDetailsForm(request.POST, request.FILES, instance=seller_profile)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Bank details updated successfully.')
+                return redirect(f"{reverse('seller-settings')}?tab=bank")
+            form_overrides['seller_bank_form'] = form
+            messages.error(request, 'Please fix the bank details.')
+        elif action == 'documents':
+            form = SellerDocumentsForm(request.POST, request.FILES, instance=seller_profile)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Seller documents updated successfully.')
+                return redirect(f"{reverse('seller-settings')}?tab=documents")
+            form_overrides['seller_documents_form'] = form
+            messages.error(request, 'Please check the uploaded document fields.')
+        elif action == 'password':
+            form = SellerPasswordChangeForm(request.user, request.POST)
+            if form.is_valid():
+                form.save()
+                update_session_auth_hash(request, form.user)
+                seller_profile.password_hash = request.user.password
+                seller_profile.save(update_fields=['password_hash', 'updated_at'])
+                messages.success(request, 'Password changed securely.')
+                return redirect(f"{reverse('seller-settings')}?tab=security")
+            form_overrides['seller_password_form'] = form
+            messages.error(request, 'Password change failed. Check the old password and validation rules.')
+        else:
+            messages.error(request, 'Invalid settings action.')
+
+    return render(
+        request,
+        'seller_panel/settings.html',
+        _seller_settings_context(request, seller_profile, active_tab, form_overrides),
+    )
+
+
+@login_required
+def seller_document_download(request, document_key):
+    seller_profile = _get_seller_profile(request.user)
+    if not seller_profile:
+        raise Http404('Document not found.')
+    document = _seller_document_file(seller_profile, document_key)
+    if not document:
+        raise Http404('Document not found.')
+    return _seller_document_response(document, download=request.GET.get('download') == '1')
+
+
+@login_required
+def seller_extra_document_download(request, document_pk):
+    seller_profile = _get_seller_profile(request.user)
+    if not seller_profile:
+        raise Http404('Document not found.')
+    extra_document = get_object_or_404(SellerApplicationExtraDocument, pk=document_pk, application=seller_profile)
+    return _seller_document_response(extra_document.file, download=request.GET.get('download') == '1')
+
+
 def _seller_live_fragments(request, dashboard_data):
-    settings_forms = _seller_settings_forms(dashboard_data['seller_profile'])
+    settings_forms = _seller_settings_forms(dashboard_data['seller_profile'], request.user)
     settings_context = {
         **_seller_layout_context(request.user, 'Dashboard', 'dashboard', live_enabled=True),
         **dashboard_data,
@@ -4166,7 +4448,7 @@ def seller_settings_update(request, section):
     seller_profile = _get_seller_profile(request.user)
     if not seller_profile:
         messages.error(request, 'Approved seller account required for settings update.')
-        return redirect('seller-dashboard')
+        return redirect('seller-settings')
 
     forms = {
         'store': SellerStoreProfileForm,
@@ -4176,7 +4458,7 @@ def seller_settings_update(request, section):
     form_class = forms.get(section)
     if not form_class:
         messages.error(request, 'Invalid settings section.')
-        return redirect('seller-dashboard')
+        return redirect('seller-settings')
 
     form = form_class(request.POST, request.FILES, instance=seller_profile)
     if form.is_valid():
@@ -4190,7 +4472,8 @@ def seller_settings_update(request, section):
         messages.success(request, f'{labels[section]} updated. Admin panel me data sync ho gaya.')
     else:
         messages.error(request, 'Settings update failed. Fields check karein.')
-    return redirect('seller-dashboard')
+    tab = {'store': 'store', 'bank': 'bank', 'documents': 'documents'}.get(section, 'profile')
+    return redirect(f"{reverse('seller-settings')}?tab={tab}")
 
 
 @login_required
@@ -4203,12 +4486,12 @@ def seller_profile_photo_update(request):
     uploaded_photo = request.FILES.get('profile_photo')
     if not uploaded_photo:
         messages.error(request, 'Profile photo select karein.')
-        return redirect('seller-dashboard')
+        return redirect(f"{reverse('seller-settings')}?tab=profile")
 
     validation_error = _validate_seller_profile_photo(uploaded_photo)
     if validation_error:
         messages.error(request, validation_error)
-        return redirect('seller-dashboard')
+        return redirect(f"{reverse('seller-settings')}?tab=profile")
 
     seller_profile = _get_seller_profile(request.user)
     if seller_profile:
@@ -4219,7 +4502,7 @@ def seller_profile_photo_update(request):
         profile.photo = uploaded_photo
         profile.save(update_fields=['photo', 'updated_at'])
     messages.success(request, 'Profile photo updated.')
-    return redirect('seller-dashboard')
+    return redirect(f"{reverse('seller-settings')}?tab=profile")
 
 
 @login_required
@@ -4257,7 +4540,7 @@ def seller_coupon_delete(request, pk):
         return redirect('become-seller')
     coupons = Coupon.objects.all()
     if not request.user.is_staff:
-        coupons = coupons.filter(title__icontains=seller_profile.store_name)
+        coupons = coupons.filter(seller=seller_profile)
     coupon = get_object_or_404(coupons, pk=pk)
     coupon.delete()
     messages.success(request, 'Coupon request deleted.')
