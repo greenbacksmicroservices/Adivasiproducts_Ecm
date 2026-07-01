@@ -19,7 +19,6 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Avg, Count, F, Max, Q, Sum
-from django.db.models.functions import TruncMonth
 from django.forms import modelform_factory
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.core.paginator import Paginator
@@ -2902,28 +2901,23 @@ def _build_seller_dashboard_data(user):
     now = timezone.localtime()
     current_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_starts = [_shift_month_start(current_month, offset) for offset in range(-5, 1)]
-    monthly_rows = (
-        order_sales_items_qs
-        .annotate(month=TruncMonth('order__created_at'))
-        .values('month')
-        .annotate(
-            revenue=Sum('line_total'),
-            units=Sum('quantity'),
-            orders=Count('order', distinct=True),
-        )
-        .order_by('month')
-    )
     monthly_lookup = {}
-    for row in monthly_rows:
-        month_value = row.get('month')
-        if not month_value:
+    monthly_items = order_sales_items_qs.filter(
+        order__created_at__gte=month_starts[0],
+    ).select_related('order')
+    for item in monthly_items:
+        created_at = item.order.created_at
+        if not created_at:
             continue
-        month_local = timezone.localtime(month_value) if timezone.is_aware(month_value) else timezone.make_aware(month_value)
-        monthly_lookup[month_local.date().replace(day=1)] = {
-            'revenue': row.get('revenue') or Decimal('0'),
-            'units': row.get('units') or 0,
-            'orders': row.get('orders') or 0,
-        }
+        month_local = timezone.localtime(created_at) if timezone.is_aware(created_at) else timezone.make_aware(created_at)
+        month_key = month_local.date().replace(day=1)
+        month_data = monthly_lookup.setdefault(
+            month_key,
+            {'revenue': Decimal('0'), 'units': 0, 'order_ids': set()},
+        )
+        month_data['revenue'] += item.line_total or Decimal('0')
+        month_data['units'] += item.quantity or 0
+        month_data['order_ids'].add(item.order_id)
 
     monthly_points = []
     monthly_revenue_value = Decimal('0')
@@ -2938,7 +2932,7 @@ def _build_seller_dashboard_data(user):
                 'label': month_start.strftime('%b'),
                 'raw_value': revenue_value,
                 'value': _format_currency(revenue_value),
-                'orders': month_data.get('orders') or 0,
+                'orders': len(month_data.get('order_ids') or []),
                 'units': month_data.get('units') or 0,
             }
         )
