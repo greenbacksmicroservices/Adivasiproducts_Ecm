@@ -161,6 +161,25 @@
       </div>
     </article>
 
+    {% if detail_images %}
+      <article class="detail-info-panel detail-more-photos-panel">
+        <h2>Product Details</h2>
+        <div class="detail-more-photo-grid">
+          {% for photo in detail_images %}
+            <figure class="detail-more-photo">
+              <img src="{{ photo.image_source }}" alt="{{ photo.title|default:product.name }}">
+              {% if photo.title or photo.caption %}
+                <figcaption>
+                  {% if photo.title %}<strong>{{ photo.title }}</strong>{% endif %}
+                  {% if photo.caption %}<span>{{ photo.caption }}</span>{% endif %}
+                </figcaption>
+              {% endif %}
+            </figure>
+          {% endfor %}
+        </div>
+      </article>
+    {% endif %}
+
     <article class="detail-info-panel review-panel">
       <div class="review-head">
         <div>

@@ -861,6 +861,31 @@ class SpiceItemPhoto(TimestampedModel):
         return self.alt_text or f'{self.product.name} photo'
 
 
+class ProductDetailImage(TimestampedModel):
+    product = models.ForeignKey(
+        SpiceItem,
+        related_name='detail_images',
+        on_delete=models.CASCADE,
+    )
+    image_file = models.ImageField(upload_to='spices/details/')
+    title = models.CharField(max_length=120, blank=True)
+    caption = models.CharField(max_length=220, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ('display_order', 'id')
+
+    @property
+    def image_source(self):
+        if self.image_file:
+            return self.image_file.url
+        return ''
+
+    def __str__(self):
+        return self.title or f'{self.product.name} detail photo'
+
+
 class ProductQuantityOption(TimestampedModel):
     product = models.ForeignKey(
         SpiceItem,

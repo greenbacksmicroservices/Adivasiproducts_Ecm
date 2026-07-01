@@ -19,6 +19,7 @@ from .models import (
     OrderStatusHistory,
     Offer,
     Payment,
+    ProductDetailImage,
     ProductQuantityOption,
     ProductReview,
     PushNotification,
@@ -122,8 +123,15 @@ class SearchHistoryAdmin(admin.ModelAdmin):
 class SpiceItemPhotoInline(admin.TabularInline):
     model = SpiceItemPhoto
     extra = 3
-    max_num = 6
+    max_num = 10
     fields = ('image_file', 'alt_text', 'display_order', 'is_active')
+
+
+class ProductDetailImageInline(admin.TabularInline):
+    model = ProductDetailImage
+    extra = 0
+    max_num = 10
+    fields = ('image_file', 'title', 'caption', 'display_order', 'is_active')
 
 
 class ProductQuantityOptionInline(admin.TabularInline):
@@ -151,7 +159,7 @@ class SpiceItemAdmin(admin.ModelAdmin):
     search_fields = ('product_id', 'name', 'short_description', 'sku_code', 'category__name', 'seller__store_name')
     readonly_fields = ('product_id', 'created_at', 'updated_at')
     prepopulated_fields = {'slug': ('name',)}
-    inlines = [ProductQuantityOptionInline, SpiceItemPhotoInline]
+    inlines = [ProductQuantityOptionInline, SpiceItemPhotoInline, ProductDetailImageInline]
 
 
 @admin.register(SpiceItemPhoto)
@@ -159,6 +167,13 @@ class SpiceItemPhotoAdmin(admin.ModelAdmin):
     list_display = ('product', 'display_order', 'is_active', 'updated_at')
     list_filter = ('is_active',)
     search_fields = ('product__name', 'alt_text')
+
+
+@admin.register(ProductDetailImage)
+class ProductDetailImageAdmin(admin.ModelAdmin):
+    list_display = ('product', 'title', 'display_order', 'is_active', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('product__name', 'title', 'caption')
 
 
 class OrderItemInline(admin.TabularInline):

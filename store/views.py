@@ -394,7 +394,7 @@ def _recent_search_section(request):
                 | Q(category__name__icontains=term)
             )
             .select_related('category', 'seller')
-            .prefetch_related('gallery_images', 'quantity_options')
+            .prefetch_related('gallery_images', 'detail_images', 'quantity_options')
             .order_by('-is_featured', 'display_order', 'name')
         )
         products = list(matches[:2])
@@ -897,7 +897,7 @@ def _store_queryset(search_text='', category_slug='', selected_spice=''):
     products = SpiceItem.objects.filter(
         is_active=True,
         approval_status=SpiceItem.ApprovalStatus.APPROVED,
-    ).select_related('category', 'seller').prefetch_related('gallery_images', 'quantity_options').order_by(
+    ).select_related('category', 'seller').prefetch_related('gallery_images', 'detail_images', 'quantity_options').order_by(
         '-is_featured',
         'display_order',
         'name',
@@ -2257,7 +2257,7 @@ def product_detail(request, slug):
         SpiceItem.objects.filter(
             is_active=True,
             approval_status=SpiceItem.ApprovalStatus.APPROVED,
-        ).select_related('category', 'seller').prefetch_related('gallery_images', 'quantity_options'),
+        ).select_related('category', 'seller').prefetch_related('gallery_images', 'detail_images', 'quantity_options'),
         slug=slug,
     )
     if request.method == 'POST':
@@ -2287,7 +2287,7 @@ def product_detail(request, slug):
         is_active=True,
         approval_status=SpiceItem.ApprovalStatus.APPROVED,
         category=product.category,
-    ).exclude(pk=product.pk).select_related('category', 'seller').prefetch_related('gallery_images', 'quantity_options').order_by(
+    ).exclude(pk=product.pk).select_related('category', 'seller').prefetch_related('gallery_images', 'detail_images', 'quantity_options').order_by(
         '-is_featured',
         'display_order',
         'name',
@@ -2345,6 +2345,11 @@ def product_detail(request, slug):
 
     approved_reviews = product.reviews.filter(status=ProductReview.Status.APPROVED).select_related('customer')
     review_stats = approved_reviews.aggregate(avg=Avg('rating'), total=Count('id'))
+    detail_images = [
+        photo
+        for photo in product.detail_images.all()
+        if photo.is_active and photo.image_source
+    ]
 
     return render(
         request,
@@ -2357,6 +2362,7 @@ def product_detail(request, slug):
             'quantity_options': quantity_options,
             'quantity_gallery_images': quantity_gallery_images,
             'selected_quantity_option': selected_quantity_option,
+            'detail_images': detail_images,
             'approved_reviews': approved_reviews,
             'review_average': review_stats['avg'] or 0,
             'review_count': review_stats['total'] or 0,
@@ -2695,7 +2701,7 @@ def _is_seller_user(user):
 
 
 def _seller_product_queryset(seller_profile=None, include_all_for_admin=False):
-    products = SpiceItem.objects.select_related('category', 'seller').prefetch_related('gallery_images', 'quantity_options')
+    products = SpiceItem.objects.select_related('category', 'seller').prefetch_related('gallery_images', 'detail_images', 'quantity_options')
     if include_all_for_admin:
         return products.order_by('-updated_at', 'name')
     if seller_profile:
@@ -4317,6 +4323,7 @@ def seller_product_create(request):
         product.save()
         form.save_quantity_options(product)
         form.save_gallery_images(product)
+        form.save_detail_images(product)
         messages.success(request, 'Product added. Product ab store par automatic live hai.')
         return redirect('seller-dashboard')
 
@@ -4371,6 +4378,7 @@ def seller_product_preview(request, pk):
             **_seller_layout_context(request.user, product.name, 'products'),
             'product': product,
             'gallery_images': product.gallery_images.filter(is_active=True),
+            'detail_images': product.detail_images.filter(is_active=True),
             'quantity_options': product.quantity_options.filter(is_active=True),
         },
     )
@@ -4402,6 +4410,7 @@ def seller_product_edit(request, pk):
         updated_product.save()
         form.save_quantity_options(updated_product)
         form.save_gallery_images(updated_product)
+        form.save_detail_images(updated_product)
         messages.success(request, f'{updated_product.name} updated successfully.')
         return redirect('seller-dashboard')
 
@@ -9022,7 +9031,7 @@ def admin_settings_admin_users(request):
 @user_passes_test(_staff_required, login_url='login')
 def admin_items(request):
     _ensure_default_spice_sub_categories()
-    items = SpiceItem.objects.select_related('category', 'seller').prefetch_related('gallery_images', 'quantity_options').order_by('-updated_at')
+    items = SpiceItem.objects.select_related('category', 'seller').prefetch_related('gallery_images', 'detail_images', 'quantity_options').order_by('-updated_at')
     return render(
         request,
         'admin_panel/items_list.html',
@@ -9044,6 +9053,8 @@ def admin_item_create(request):
         item = form.save()
         form.save_quantity_options(item)
         form.save_gallery_images(item)
+        if hasattr(form, 'save_detail_images'):
+            form.save_detail_images(item)
         messages.success(request, 'Spice item added successfully.')
         return redirect('admin-items')
 
@@ -9060,12 +9071,14 @@ def admin_item_create(request):
 
 @user_passes_test(_staff_required, login_url='login')
 def admin_item_edit(request, pk):
-    item = get_object_or_404(SpiceItem.objects.prefetch_related('gallery_images', 'quantity_options'), pk=pk)
+    item = get_object_or_404(SpiceItem.objects.prefetch_related('gallery_images', 'detail_images', 'quantity_options'), pk=pk)
     form = SpiceItemForm(request.POST or None, request.FILES or None, instance=item)
     if request.method == 'POST' and form.is_valid():
         item = form.save()
         form.save_quantity_options(item)
         form.save_gallery_images(item)
+        if hasattr(form, 'save_detail_images'):
+            form.save_detail_images(item)
         messages.success(request, 'Spice item updated successfully.')
         return redirect('admin-items')
 

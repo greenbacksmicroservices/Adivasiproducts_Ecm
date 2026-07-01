@@ -1,121 +1,239 @@
 {{ form.non_field_errors }}
 
-<section class="seller-form-section">
-  <div class="seller-form-section-head">
-    <span><i class="fas fa-box-open"></i></span>
-    <div>
-      <h2>Basic Product Details</h2>
-      <p>Name, category, brand, and customer-facing description.</p>
+<div class="seller-product-builder" data-product-form-builder>
+  <section class="seller-form-section">
+    <div class="seller-form-section-head">
+      <span><i class="fas fa-box-open"></i></span>
+      <div>
+        <h2>Basic Product Details</h2>
+        <p>Name, category, brand, and customer-facing description.</p>
+      </div>
     </div>
-  </div>
-  <div class="seller-form-grid">
-    {% include 'seller_panel/partials/form_field.html' with field=form.product_id %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.name %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.category %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.sub_category %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.brand_name %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.short_description full=True %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.description full=True %}
-  </div>
-</section>
-
-<section class="seller-form-section">
-  <div class="seller-form-section-head">
-    <span><i class="fas fa-indian-rupee-sign"></i></span>
-    <div>
-      <h2>Pricing Details</h2>
-      <p>Selling price and optional compare price.</p>
+    <div class="seller-form-grid">
+      {% include 'seller_panel/partials/form_field.html' with field=form.product_id %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.name %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.category %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.sub_category %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.brand_name %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.short_description full=True %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.description full=True %}
     </div>
-  </div>
-  <div class="seller-form-grid">
-    {% include 'seller_panel/partials/form_field.html' with field=form.price %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.original_price %}
-  </div>
-</section>
+  </section>
 
-<section class="seller-form-section">
-  <div class="seller-form-section-head">
-    <span><i class="fas fa-warehouse"></i></span>
-    <div>
-      <h2>Stock / Inventory</h2>
-      <p>Inventory, SKU, shipping, and return settings.</p>
+  <section class="seller-form-section">
+    <div class="seller-form-section-head">
+      <span><i class="fas fa-indian-rupee-sign"></i></span>
+      <div>
+        <h2>Pricing</h2>
+        <p>Base price and optional compare price for discount display.</p>
+      </div>
     </div>
-  </div>
-  <div class="seller-form-grid">
-    {% include 'seller_panel/partials/form_field.html' with field=form.stock %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.sku_code %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.shipping_weight %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.return_available %}
-  </div>
-</section>
-
-<section class="seller-form-section">
-  <div class="seller-form-section-head">
-    <span><i class="fas fa-images"></i></span>
-    <div>
-      <h2>Images</h2>
-      <p>Main image plus optional gallery photos.</p>
+    <div class="seller-form-grid">
+      {% include 'seller_panel/partials/form_field.html' with field=form.price %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.original_price %}
     </div>
-  </div>
-  <div class="seller-form-grid">
-    {% include 'seller_panel/partials/form_field.html' with field=form.image_file full=True %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_1 %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_2 %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.gallery_image_3 %}
-  </div>
-</section>
+  </section>
 
-{% if form.quantity_rows %}
-  <section class="seller-form-section seller-quantity-options" data-quantity-collapse data-open="{% if form.errors %}true{% else %}false{% endif %}">
-    <button type="button" class="seller-collapsible-head" data-quantity-toggle aria-expanded="false">
-      <span class="seller-collapse-title">
-        <i class="fas fa-layer-group"></i>
-        <span>
-          <b>Quantity Options</b>
-          <small>Add 100Gm, 200Gm, 500Gm packs with separate price, stock, SKU, and photo.</small>
-        </span>
-      </span>
-      <span class="seller-collapse-icon">
-        <i class="fas fa-plus seller-collapse-plus"></i>
-        <i class="fas fa-minus seller-collapse-minus"></i>
-      </span>
-    </button>
-    <div class="seller-collapsible-body" data-quantity-body>
-      <div class="seller-quantity-grid">
-        {% for row in form.quantity_rows %}
-          <article class="seller-quantity-card {% if row.index == 1 or row.existing or row.label.errors or row.price.errors or row.original_price.errors or row.stock.errors or row.sku.errors or row.image.errors %}is-visible{% endif %}" data-quantity-row>
-            <h3>Option {{ row.index }}</h3>
-            {% include 'seller_panel/partials/form_field.html' with field=row.label %}
-            {% include 'seller_panel/partials/form_field.html' with field=row.price %}
-            {% include 'seller_panel/partials/form_field.html' with field=row.original_price %}
-            {% include 'seller_panel/partials/form_field.html' with field=row.stock %}
-            {% include 'seller_panel/partials/form_field.html' with field=row.sku %}
-            {% include 'seller_panel/partials/form_field.html' with field=row.image %}
-            {% if row.remove %}
-              {% include 'seller_panel/partials/form_field.html' with field=row.remove %}
-            {% endif %}
+  <section class="seller-form-section">
+    <div class="seller-form-section-head">
+      <span><i class="fas fa-warehouse"></i></span>
+      <div>
+        <h2>Stock & Inventory</h2>
+        <p>Inventory, SKU, availability, shipping, and return settings.</p>
+      </div>
+    </div>
+    <div class="seller-form-grid">
+      {% include 'seller_panel/partials/form_field.html' with field=form.stock %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.sku_code %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.shipping_weight %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.return_available %}
+    </div>
+  </section>
+
+  <section class="seller-form-section seller-media-section" data-repeat-section data-repeat-kind="gallery" data-repeat-max="10">
+    <div class="seller-form-section-head seller-section-head-actions">
+      <span><i class="fas fa-images"></i></span>
+      <div>
+        <h2>Images</h2>
+        <p>Main image is required. Add up to 10 optional gallery photos.</p>
+      </div>
+      <button type="button" class="seller-icon-add-btn" data-add-repeat-row aria-label="Add gallery photo">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+
+    <div class="seller-main-image-row">
+      <div class="seller-main-image-preview">
+        {% if form.instance.pk and form.instance.image_source %}
+          <img src="{{ form.instance.image_source }}" alt="{{ form.instance.name|default:'Product image' }}" data-preview-image>
+        {% else %}
+          <img src="" alt="" data-preview-image hidden>
+          <i class="fas fa-image" data-preview-placeholder></i>
+        {% endif %}
+      </div>
+      <label class="seller-form-field full">
+        <span>{{ form.image_file.label }}{% if form.image_file.field.required %}<b class="required-star">*</b>{% endif %}</span>
+        {{ form.image_file }}
+        {% if form.image_file.help_text %}<small>{{ form.image_file.help_text }}</small>{% endif %}
+        {{ form.image_file.errors }}
+      </label>
+    </div>
+
+    {% if form.gallery_existing_rows %}
+      <div class="seller-existing-media-grid">
+        {% for row in form.gallery_existing_rows %}
+          <article class="seller-existing-media-card" data-existing-repeat-row>
+            <img src="{{ row.photo.image_source }}" alt="{{ row.photo.alt_text|default:form.instance.name }}" data-preview-image data-persisted-src="{{ row.photo.image_source }}">
+            <div>
+              <strong>Gallery photo {{ forloop.counter }}</strong>
+              <label class="seller-form-field">
+                <span>{{ row.replace.label }}</span>
+                {{ row.replace }}
+                {{ row.replace.errors }}
+              </label>
+            </div>
+            <span class="seller-hidden-control">{{ row.remove }}</span>
+            <button type="button" class="seller-remove-icon-btn" data-remove-existing-row aria-label="Remove gallery photo">
+              <i class="fas fa-trash"></i>
+            </button>
           </article>
         {% endfor %}
       </div>
-      <button type="button" class="seller-add-quantity-btn" data-add-quantity-option>
-        <i class="fas fa-plus"></i> Add more quantity option
+    {% endif %}
+
+    <div class="seller-repeat-grid">
+      {% for row in form.gallery_upload_rows %}
+        <article class="seller-upload-card {% if row.image.errors or forloop.first and not form.gallery_existing_rows %}is-visible{% endif %}" data-repeat-row>
+          <div class="seller-upload-preview">
+            <img src="" alt="" data-preview-image hidden>
+            <i class="fas fa-image" data-preview-placeholder></i>
+          </div>
+          <label class="seller-form-field">
+            <span>{{ row.image.label }}</span>
+            {{ row.image }}
+            {{ row.image.errors }}
+          </label>
+          <button type="button" class="seller-remove-icon-btn" data-remove-repeat-row aria-label="Remove gallery upload row">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </article>
+      {% endfor %}
+    </div>
+    <small class="seller-repeat-note"><span data-repeat-count>0</span>/10 gallery photos selected.</small>
+  </section>
+
+  {% if form.quantity_rows %}
+    <section class="seller-form-section seller-quantity-options is-open" data-quantity-collapse data-repeat-section data-repeat-kind="quantity" data-repeat-max="10" data-open="true">
+      <div class="seller-form-section-head seller-section-head-actions">
+        <span><i class="fas fa-layer-group"></i></span>
+        <div>
+          <h2>Quantity Options</h2>
+          <p>Add 100Gm, 200Gm, 500Gm, 1Kg packs with separate price, stock, SKU, and photo.</p>
+        </div>
+        <button type="button" class="seller-icon-add-btn" data-add-repeat-row data-add-quantity-option aria-label="Add quantity option">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+      <div class="seller-quantity-grid" data-quantity-body>
+        {% for row in form.quantity_rows %}
+          <article class="seller-quantity-card {% if row.index == 1 or row.existing or row.label.errors or row.price.errors or row.original_price.errors or row.stock.errors or row.sku.errors or row.image.errors %}is-visible{% endif %}" data-repeat-row data-quantity-row="{% if row.existing %}existing{% else %}new{% endif %}">
+            <div class="seller-dynamic-row-head">
+              <h3>Option {{ row.index }}</h3>
+              {% if row.remove %}
+                <span class="seller-hidden-control">{{ row.remove }}</span>
+              {% endif %}
+              <button type="button" class="seller-remove-icon-btn" data-remove-repeat-row aria-label="Remove quantity option">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <div class="seller-quantity-row-grid">
+              {% include 'seller_panel/partials/form_field.html' with field=row.label %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.price %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.original_price %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.stock %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.sku %}
+              <div class="seller-option-image-field">
+                <div class="seller-upload-preview small">
+                  {% if row.image_url %}
+                    <img src="{{ row.image_url }}" alt="{{ row.existing.label|default:'Quantity option' }}" data-preview-image>
+                  {% else %}
+                    <img src="" alt="" data-preview-image hidden>
+                    <i class="fas fa-image" data-preview-placeholder></i>
+                  {% endif %}
+                </div>
+                {% include 'seller_panel/partials/form_field.html' with field=row.image %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+      <small class="seller-repeat-note"><span data-repeat-count>0</span>/10 quantity options active.</small>
+    </section>
+  {% endif %}
+
+  <section class="seller-form-section seller-media-section" data-repeat-section data-repeat-kind="detail" data-repeat-max="10">
+    <div class="seller-form-section-head seller-section-head-actions">
+      <span><i class="fas fa-camera-retro"></i></span>
+      <div>
+        <h2>Optional Extra Product Detail Photos</h2>
+        <p>Add up to 10 more photos for Product Details / More Details on the customer page.</p>
+      </div>
+      <button type="button" class="seller-icon-add-btn" data-add-repeat-row aria-label="Add product detail photo">
+        <i class="fas fa-plus"></i>
       </button>
     </div>
-  </section>
-{% endif %}
 
-<section class="seller-form-section">
-  <div class="seller-form-section-head">
-    <span><i class="fas fa-list-check"></i></span>
-    <div>
-      <h2>SEO / Extra Details</h2>
-      <p>Specifications and optional product metadata.</p>
+    {% if form.detail_existing_rows %}
+      <div class="seller-existing-media-grid">
+        {% for row in form.detail_existing_rows %}
+          <article class="seller-existing-media-card seller-existing-detail-card" data-existing-repeat-row>
+            <img src="{{ row.photo.image_source }}" alt="{{ row.photo.title|default:form.instance.name }}" data-preview-image data-persisted-src="{{ row.photo.image_source }}">
+            <div class="seller-existing-detail-fields">
+              {% include 'seller_panel/partials/form_field.html' with field=row.title %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.caption %}
+              {% include 'seller_panel/partials/form_field.html' with field=row.replace %}
+            </div>
+            <span class="seller-hidden-control">{{ row.remove }}</span>
+            <button type="button" class="seller-remove-icon-btn" data-remove-existing-row aria-label="Remove detail photo">
+              <i class="fas fa-trash"></i>
+            </button>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="seller-repeat-grid">
+      {% for row in form.detail_upload_rows %}
+        <article class="seller-upload-card seller-detail-upload-card {% if row.image.errors or row.title.errors or row.caption.errors or forloop.first and not form.detail_existing_rows %}is-visible{% endif %}" data-repeat-row>
+          <div class="seller-upload-preview">
+            <img src="" alt="" data-preview-image hidden>
+            <i class="fas fa-image" data-preview-placeholder></i>
+          </div>
+          {% include 'seller_panel/partials/form_field.html' with field=row.image %}
+          {% include 'seller_panel/partials/form_field.html' with field=row.title %}
+          {% include 'seller_panel/partials/form_field.html' with field=row.caption %}
+          <button type="button" class="seller-remove-icon-btn" data-remove-repeat-row aria-label="Remove detail photo row">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </article>
+      {% endfor %}
     </div>
-  </div>
-  <div class="seller-form-grid">
-    {% include 'seller_panel/partials/form_field.html' with field=form.specifications full=True %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.warranty_details %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.pack_size %}
-    {% include 'seller_panel/partials/form_field.html' with field=form.spice_level %}
-  </div>
-</section>
+    <small class="seller-repeat-note"><span data-repeat-count>0</span>/10 detail photos selected.</small>
+  </section>
+
+  <section class="seller-form-section">
+    <div class="seller-form-section-head">
+      <span><i class="fas fa-list-check"></i></span>
+      <div>
+        <h2>SEO / Extra Details</h2>
+        <p>Specifications, default pack, spice level, and optional warranty copy.</p>
+      </div>
+    </div>
+    <div class="seller-form-grid">
+      {% include 'seller_panel/partials/form_field.html' with field=form.specifications full=True %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.warranty_details %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.pack_size %}
+      {% include 'seller_panel/partials/form_field.html' with field=form.spice_level %}
+    </div>
+  </section>
+</div>

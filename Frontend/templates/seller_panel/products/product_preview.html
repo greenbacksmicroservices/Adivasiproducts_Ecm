@@ -28,6 +28,20 @@
       </div>
     </article>
 
+    {% if detail_images %}
+      <article class="seller-workspace">
+        <div class="seller-card-head">
+          <h2>Extra Detail Photos</h2>
+          <span class="seller-chip">{{ detail_images|length }} photos</span>
+        </div>
+        <div class="seller-preview-gallery">
+          {% for photo in detail_images %}
+            <img src="{{ photo.image_source }}" alt="{{ photo.title|default:product.name }}">
+          {% endfor %}
+        </div>
+      </article>
+    {% endif %}
+
     <article class="seller-workspace">
       <div class="seller-card-head">
         <h2>Product Details</h2>

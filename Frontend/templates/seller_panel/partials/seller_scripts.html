@@ -270,51 +270,165 @@
       window.history.replaceState({}, '', url.toString());
     }
 
-    function bindQuantityOptions() {
-      document.querySelectorAll('[data-quantity-collapse]').forEach(function (section) {
-        const toggle = section.querySelector('[data-quantity-toggle]');
-        const addButton = section.querySelector('[data-add-quantity-option]');
-        const rows = Array.from(section.querySelectorAll('[data-quantity-row]'));
+    function bindProductForms() {
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const maxImageBytes = 5 * 1024 * 1024;
 
-        function setOpen(isOpen) {
-          section.classList.toggle('is-open', isOpen);
-          if (toggle) {
-            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      function inputsFor(row) {
+        return Array.from(row.querySelectorAll('input, select, textarea'));
+      }
+
+      function rowHasValue(row) {
+        return inputsFor(row).some(function (input) {
+          if (input.type === 'hidden' || input.type === 'checkbox') return false;
+          if (input.type === 'file') return input.files && input.files.length > 0;
+          return String(input.value || '').trim() !== '';
+        });
+      }
+
+      function setPreview(input) {
+        const file = input.files && input.files[0];
+        const row = input.closest('[data-repeat-row], [data-existing-repeat-row], .seller-main-image-row');
+        const preview = row ? row.querySelector('[data-preview-image]') : null;
+        const placeholder = row ? row.querySelector('[data-preview-placeholder]') : null;
+        if (!file || !preview) return;
+
+        if (!allowedImageTypes.includes(file.type)) {
+          window.alert('Only JPG, JPEG, PNG, or WEBP images are allowed.');
+          input.value = '';
+          return;
+        }
+        if (file.size > maxImageBytes) {
+          window.alert('Maximum image size is 5 MB.');
+          input.value = '';
+          return;
+        }
+
+        preview.src = URL.createObjectURL(file);
+        preview.hidden = false;
+        if (placeholder) placeholder.hidden = true;
+      }
+
+      function clearRow(row) {
+        inputsFor(row).forEach(function (input) {
+          if (input.type === 'checkbox') {
+            input.checked = false;
+          } else if (input.type !== 'hidden') {
+            input.value = '';
           }
-        }
-
-        function syncAddButton() {
-          if (!addButton) return;
-          const hiddenRows = rows.filter(function (row) {
-            return !row.classList.contains('is-visible');
-          });
-          addButton.hidden = hiddenRows.length === 0;
-        }
-
-        rows.forEach(function (row, index) {
-          if (index === 0 || row.querySelector('.errorlist li')) {
-            row.classList.add('is-visible');
+          input.disabled = false;
+        });
+        row.querySelectorAll('[data-preview-image]').forEach(function (image) {
+          if (!image.dataset.persistedSrc) {
+            image.removeAttribute('src');
+            image.hidden = true;
           }
         });
-        setOpen(section.dataset.open === 'true' || Boolean(section.querySelector('.errorlist li')));
-        syncAddButton();
+        row.querySelectorAll('[data-preview-placeholder]').forEach(function (placeholder) {
+          placeholder.hidden = false;
+        });
+        row.classList.remove('is-visible', 'is-marked-for-removal');
+      }
 
-        if (toggle) {
-          toggle.addEventListener('click', function () {
-            setOpen(!section.classList.contains('is-open'));
-          });
-        }
+      function syncSection(section) {
+        const maxRows = Number(section.dataset.repeatMax || 10);
+        const addButton = section.querySelector('[data-add-repeat-row]');
+        const activeExisting = Array.from(section.querySelectorAll('[data-existing-repeat-row]')).filter(function (row) {
+          return !row.classList.contains('is-marked-for-removal');
+        }).length;
+        const activeDynamic = Array.from(section.querySelectorAll('[data-repeat-row].is-visible')).filter(function (row) {
+          return !row.classList.contains('is-marked-for-removal');
+        }).length;
+        const activeTotal = activeExisting + activeDynamic;
+        const count = section.querySelector('[data-repeat-count]');
 
+        if (count) count.textContent = String(Math.min(activeTotal, maxRows));
         if (addButton) {
-          addButton.addEventListener('click', function () {
-            const nextRow = rows.find(function (row) {
-              return !row.classList.contains('is-visible');
-            });
-            if (nextRow) {
+          const atMax = activeTotal >= maxRows;
+          addButton.disabled = atMax;
+          addButton.classList.toggle('is-disabled', atMax);
+        }
+      }
+
+      document.querySelectorAll('[data-product-form-builder]').forEach(function (builder) {
+        if (builder.dataset.productBuilderBound === 'true') return;
+        builder.dataset.productBuilderBound = 'true';
+        const form = builder.closest('form');
+
+        builder.querySelectorAll('input[type="file"]').forEach(function (input) {
+          input.addEventListener('change', function () {
+            setPreview(input);
+            const section = input.closest('[data-repeat-section]');
+            if (section) syncSection(section);
+          });
+        });
+
+        builder.querySelectorAll('[data-repeat-section]').forEach(function (section) {
+          const addButton = section.querySelector('[data-add-repeat-row]');
+          const rows = Array.from(section.querySelectorAll('[data-repeat-row]'));
+
+          rows.forEach(function (row) {
+            if (row.querySelector('.errorlist li')) row.classList.add('is-visible');
+          });
+
+          if (addButton) {
+            addButton.addEventListener('click', function () {
+              const nextRow = rows.find(function (row) {
+                return !row.classList.contains('is-visible');
+              });
+              if (!nextRow) {
+                syncSection(section);
+                return;
+              }
               nextRow.classList.add('is-visible');
-              setOpen(true);
-            }
-            syncAddButton();
+              inputsFor(nextRow).forEach(function (input) {
+                input.disabled = false;
+              });
+              const focusTarget = nextRow.querySelector('input:not([type="hidden"]):not([type="checkbox"]), select, textarea');
+              if (focusTarget) focusTarget.focus();
+              syncSection(section);
+            });
+          }
+
+          section.querySelectorAll('[data-remove-repeat-row]').forEach(function (button) {
+            button.addEventListener('click', function () {
+              const row = button.closest('[data-repeat-row]');
+              if (!row) return;
+              const removeCheckbox = row.querySelector('.seller-hidden-control input[type="checkbox"]');
+              if (removeCheckbox) {
+                removeCheckbox.checked = !removeCheckbox.checked;
+                row.classList.toggle('is-marked-for-removal', removeCheckbox.checked);
+              } else {
+                clearRow(row);
+              }
+              syncSection(section);
+            });
+          });
+
+          section.querySelectorAll('[data-remove-existing-row]').forEach(function (button) {
+            button.addEventListener('click', function () {
+              const row = button.closest('[data-existing-repeat-row]');
+              if (!row) return;
+              const removeCheckbox = row.querySelector('.seller-hidden-control input[type="checkbox"]');
+              if (!removeCheckbox) return;
+              removeCheckbox.checked = !removeCheckbox.checked;
+              row.classList.toggle('is-marked-for-removal', removeCheckbox.checked);
+              syncSection(section);
+            });
+          });
+
+          syncSection(section);
+        });
+
+        if (form) {
+          form.addEventListener('submit', function () {
+            builder.querySelectorAll('[data-repeat-row]').forEach(function (row) {
+              if (row.classList.contains('is-visible') && rowHasValue(row)) return;
+              if (row.querySelector('.seller-hidden-control input[type="checkbox"]:checked')) return;
+              inputsFor(row).forEach(function (input) {
+                if (input.type !== 'hidden') input.disabled = true;
+              });
+            });
           });
         }
       });
@@ -353,8 +467,9 @@
     document.body.classList.toggle('dark-mode', savedTheme === 'dark');
     syncTheme();
     bindProductSubCategoryDropdowns();
-    bindQuantityOptions();
+    bindProductForms();
     bindProfilePhotoPreview();
+    window.LexversSellerProductForm = { bind: bindProductForms };
 
     if (sidebarToggle && shell) {
       sidebarToggle.addEventListener('click', function (event) {

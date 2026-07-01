@@ -24,6 +24,7 @@ from .models import (
     Offer,
     Order,
     OrderItem,
+    ProductDetailImage,
     ProductQuantityOption,
     ProductReview,
     PushNotification,
@@ -42,12 +43,16 @@ from .models import (
 )
 
 
-MAX_PRODUCT_GALLERY_IMAGES = 6
-MAX_ADMIN_QUANTITY_OPTIONS = 6
-MAX_SELLER_QUANTITY_OPTIONS = 5
+MAX_PRODUCT_GALLERY_IMAGES = 10
+MAX_PRODUCT_DETAIL_IMAGES = 10
+MAX_ADMIN_QUANTITY_OPTIONS = 10
+MAX_SELLER_QUANTITY_OPTIONS = 10
 SELLER_APPLICATION_FILE_MAX_BYTES = 5 * 1024 * 1024
 SELLER_ALLOWED_FILE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf'}
-SELLER_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
+SELLER_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
+PRODUCT_IMAGE_ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
+PRODUCT_IMAGE_ACCEPT = '.jpg,.jpeg,.png,.webp'
+PRODUCT_IMAGE_MAX_BYTES = SELLER_APPLICATION_FILE_MAX_BYTES
 SELLER_PRODUCT_CATEGORY_CHOICES = [
     ('grocery-food', 'Grocery & Food'),
     ('spices-masala', 'Spices & Masala'),
@@ -99,6 +104,16 @@ def _validate_seller_upload(uploaded_file, image_only=False):
         raise ValidationError(f'Only {allowed} files are allowed.')
     if uploaded_file.size > SELLER_APPLICATION_FILE_MAX_BYTES:
         raise ValidationError('Maximum file size is 5 MB.')
+
+
+def _validate_product_image_upload(uploaded_file):
+    if not uploaded_file:
+        return
+    extension = _seller_file_extension(uploaded_file)
+    if extension not in PRODUCT_IMAGE_ALLOWED_EXTENSIONS:
+        raise ValidationError('Only JPG, JPEG, PNG, or WEBP images are allowed.')
+    if uploaded_file.size > PRODUCT_IMAGE_MAX_BYTES:
+        raise ValidationError('Maximum image size is 5 MB.')
 
 
 def _clean_indian_phone(value, field_label='Phone number'):
@@ -2018,7 +2033,7 @@ class ProductQuantityOptionFormMixin:
                 label=f'Quantity {index} photo',
                 help_text='Optional. Detail photo changes when customer selects this quantity.',
             )
-            self.fields[f'{prefix}_image'].widget.attrs['accept'] = 'image/*'
+            self.fields[f'{prefix}_image'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
 
             if existing:
                 self.fields[f'{prefix}_remove'] = forms.BooleanField(
@@ -2046,6 +2061,7 @@ class ProductQuantityOptionFormMixin:
                     'image': self[f'{prefix}_image'],
                     'remove': self[f'{prefix}_remove'] if f'{prefix}_remove' in self.fields else None,
                     'existing': self._quantity_existing_by_slot.get(index),
+                    'image_url': self._quantity_existing_by_slot.get(index).variant_image_source if self._quantity_existing_by_slot.get(index) else '',
                 }
             )
         return rows
@@ -2075,7 +2091,12 @@ class ProductQuantityOptionFormMixin:
             if price is None:
                 self.add_error(f'{prefix}_price', 'Quantity price required hai.')
             if stock is None:
-                cleaned_data[f'{prefix}_stock'] = 0
+                self.add_error(f'{prefix}_stock', 'Stock quantity required hai.')
+            if image:
+                try:
+                    _validate_product_image_upload(image)
+                except ValidationError as error:
+                    self.add_error(f'{prefix}_image', error)
 
             normalized_label = label.lower()
             if normalized_label in seen_labels:
@@ -2114,6 +2135,8 @@ class ProductQuantityOptionFormMixin:
             option.is_active = True
             uploaded_image = self.cleaned_data.get(f'{prefix}_image')
             if uploaded_image:
+                if option.pk and option.image_file:
+                    option.image_file.delete(save=False)
                 option.image_file = uploaded_image
             option.save()
             saved_any = True
@@ -2183,6 +2206,11 @@ class SpiceItemForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMixin,
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
+            field_name = f'gallery_image_{index}'
+            if field_name not in self.fields:
+                self.fields[field_name] = forms.ImageField(required=False, label=f'Gallery Photo {index}')
+
         self.gallery_existing = []
         if self.instance and self.instance.pk:
             self.gallery_existing = list(self.instance.gallery_images.filter(is_active=True))
@@ -2204,7 +2232,7 @@ class SpiceItemForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMixin,
         self._configure_product_identity_fields()
         self._configure_product_category_fields()
         self.fields['image_file'].label = 'Upload Product Photo'
-        self.fields['image_file'].widget.attrs['accept'] = 'image/*'
+        self.fields['image_file'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
         self.fields['image_file'].help_text = 'Main product photo shown on cards and as first detail image.'
         self.fields['initial_stock'].help_text = 'Original stock quantity for stock history comparison.'
         self.fields['stock'].help_text = 'Current available stock shown on storefront.'
@@ -2214,10 +2242,17 @@ class SpiceItemForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMixin,
         for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
             field = self.fields[f'gallery_image_{index}']
             field.help_text = 'Optional extra product photo for detail page gallery.'
-            field.widget.attrs['accept'] = 'image/*'
+            field.widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
 
     def clean(self):
         cleaned_data = super().clean()
+        image_file = cleaned_data.get('image_file')
+        if image_file:
+            try:
+                _validate_product_image_upload(image_file)
+            except ValidationError as error:
+                self.add_error('image_file', error)
+
         remove_count = sum(
             1
             for photo in self.gallery_existing
@@ -2228,6 +2263,13 @@ class SpiceItemForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMixin,
             for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1)
             if cleaned_data.get(f'gallery_image_{index}')
         )
+        for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
+            uploaded_image = cleaned_data.get(f'gallery_image_{index}')
+            if uploaded_image:
+                try:
+                    _validate_product_image_upload(uploaded_image)
+                except ValidationError as error:
+                    self.add_error(f'gallery_image_{index}', error)
 
         final_count = len(self.gallery_existing) - remove_count + upload_count
         if final_count > MAX_PRODUCT_GALLERY_IMAGES:
@@ -2265,9 +2307,6 @@ class SellerProductForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMi
     quantity_option_slots = MAX_SELLER_QUANTITY_OPTIONS
     product_id = forms.CharField(label='Product ID', required=False, disabled=True)
     sub_category = forms.ChoiceField(label='Sub Category', required=False)
-    gallery_image_1 = forms.ImageField(required=False, label='Product image 2')
-    gallery_image_2 = forms.ImageField(required=False, label='Product image 3')
-    gallery_image_3 = forms.ImageField(required=False, label='Product image 4')
 
     class Meta:
         model = SpiceItem
@@ -2296,14 +2335,15 @@ class SellerProductForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMi
             'sub_category': 'Sub-category',
             'brand_name': 'Company',
             'image_file': 'Main product image',
-            'original_price': 'Discount compare price',
+            'price': 'Base / selling price',
+            'original_price': 'MRP / compare price',
             'stock': 'Stock quantity',
             'sku_code': 'SKU code',
             'short_description': 'Short description',
             'shipping_weight': 'Shipping weight',
             'return_available': 'Return available',
             'warranty_details': 'Warranty details',
-            'pack_size': 'Pack size',
+            'pack_size': 'Default pack size',
         }
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
@@ -2312,40 +2352,325 @@ class SellerProductForm(ProductSubCategoryFormMixin, ProductQuantityOptionFormMi
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.gallery_existing = []
+        self.detail_existing = []
+        if self.instance and self.instance.pk:
+            self.gallery_existing = list(self.instance.gallery_images.filter(is_active=True))
+            self.detail_existing = list(self.instance.detail_images.filter(is_active=True))
+
+        self._configure_gallery_fields()
+        self._configure_detail_image_fields()
         self._configure_quantity_option_fields()
         self._style_fields()
-        self.order_fields(
-            ['product_id'] + list(self.Meta.fields) + self._quantity_field_names() + [f'gallery_image_{index}' for index in range(1, 4)]
-        )
+
+        media_fields = self._gallery_field_names() + self._detail_field_names()
+        self.order_fields(['product_id'] + list(self.Meta.fields) + self._quantity_field_names() + media_fields)
         self._configure_product_identity_fields()
         self._configure_product_category_fields()
-        self.fields['image_file'].widget.attrs['accept'] = 'image/*'
+        self.fields['image_file'].required = not bool(self.instance and self.instance.pk and self.instance.image_source)
+        self.fields['image_file'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
+        self.fields['image_file'].help_text = 'Required. Main product photo shown on cards and as first detail image.'
         self.fields['original_price'].help_text = 'Use higher MRP/compare price to show discount.'
         self.fields['stock'].widget.attrs.update({'min': 0})
         self.fields['return_available'].initial = True
-        for index in range(1, 4):
-            field = self.fields[f'gallery_image_{index}']
-            field.widget.attrs['accept'] = 'image/*'
-            field.help_text = 'Optional extra product detail photo.'
+
+    def _configure_gallery_fields(self):
+        for photo in self.gallery_existing:
+            self.fields[f'gallery_replace_{photo.pk}'] = forms.ImageField(
+                required=False,
+                label='Replace photo',
+                help_text='Optional. Upload a new image to replace this gallery photo.',
+            )
+            self.fields[f'gallery_replace_{photo.pk}'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
+            self.fields[f'gallery_remove_{photo.pk}'] = forms.BooleanField(
+                required=False,
+                label='Remove photo',
+            )
+
+        for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
+            self.fields[f'gallery_image_{index}'] = forms.ImageField(
+                required=False,
+                label=f'Gallery photo {index}',
+                help_text='Optional gallery photo for customer product page.',
+            )
+            self.fields[f'gallery_image_{index}'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
+
+    def _configure_detail_image_fields(self):
+        for photo in self.detail_existing:
+            self.fields[f'detail_existing_{photo.pk}_title'] = forms.CharField(
+                required=False,
+                max_length=120,
+                label='Title',
+                initial=photo.title,
+            )
+            self.fields[f'detail_existing_{photo.pk}_caption'] = forms.CharField(
+                required=False,
+                max_length=220,
+                label='Caption',
+                initial=photo.caption,
+            )
+            self.fields[f'detail_replace_{photo.pk}'] = forms.ImageField(
+                required=False,
+                label='Replace photo',
+                help_text='Optional. Upload a new detail image.',
+            )
+            self.fields[f'detail_replace_{photo.pk}'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
+            self.fields[f'detail_remove_{photo.pk}'] = forms.BooleanField(
+                required=False,
+                label='Remove detail photo',
+            )
+
+        for index in range(1, MAX_PRODUCT_DETAIL_IMAGES + 1):
+            self.fields[f'detail_image_{index}'] = forms.ImageField(
+                required=False,
+                label=f'Detail photo {index}',
+                help_text='Optional product detail / more details photo.',
+            )
+            self.fields[f'detail_image_{index}'].widget.attrs['accept'] = PRODUCT_IMAGE_ACCEPT
+            self.fields[f'detail_title_{index}'] = forms.CharField(
+                required=False,
+                max_length=120,
+                label='Title',
+            )
+            self.fields[f'detail_caption_{index}'] = forms.CharField(
+                required=False,
+                max_length=220,
+                label='Caption',
+            )
+
+    def _gallery_field_names(self):
+        names = []
+        for photo in self.gallery_existing:
+            names.extend([f'gallery_replace_{photo.pk}', f'gallery_remove_{photo.pk}'])
+        names.extend(f'gallery_image_{index}' for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1))
+        return names
+
+    def _detail_field_names(self):
+        names = []
+        for photo in self.detail_existing:
+            names.extend([
+                f'detail_existing_{photo.pk}_title',
+                f'detail_existing_{photo.pk}_caption',
+                f'detail_replace_{photo.pk}',
+                f'detail_remove_{photo.pk}',
+            ])
+        for index in range(1, MAX_PRODUCT_DETAIL_IMAGES + 1):
+            names.extend([f'detail_image_{index}', f'detail_title_{index}', f'detail_caption_{index}'])
+        return names
+
+    @property
+    def gallery_upload_rows(self):
+        return [
+            {
+                'index': index,
+                'image': self[f'gallery_image_{index}'],
+            }
+            for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1)
+        ]
+
+    @property
+    def gallery_existing_rows(self):
+        return [
+            {
+                'photo': photo,
+                'replace': self[f'gallery_replace_{photo.pk}'],
+                'remove': self[f'gallery_remove_{photo.pk}'],
+            }
+            for photo in self.gallery_existing
+        ]
+
+    @property
+    def detail_upload_rows(self):
+        return [
+            {
+                'index': index,
+                'image': self[f'detail_image_{index}'],
+                'title': self[f'detail_title_{index}'],
+                'caption': self[f'detail_caption_{index}'],
+            }
+            for index in range(1, MAX_PRODUCT_DETAIL_IMAGES + 1)
+        ]
+
+    @property
+    def detail_existing_rows(self):
+        return [
+            {
+                'photo': photo,
+                'title': self[f'detail_existing_{photo.pk}_title'],
+                'caption': self[f'detail_existing_{photo.pk}_caption'],
+                'replace': self[f'detail_replace_{photo.pk}'],
+                'remove': self[f'detail_remove_{photo.pk}'],
+            }
+            for photo in self.detail_existing
+        ]
 
     def clean(self):
         cleaned_data = super().clean()
+        image_file = cleaned_data.get('image_file')
+        image_was_uploaded = bool(self.files.get(self.add_prefix('image_file')))
+        if not image_file and not image_was_uploaded and not (self.instance and self.instance.pk and self.instance.image_source):
+            self.add_error('image_file', 'Main product image required hai.')
+        if image_file:
+            try:
+                _validate_product_image_upload(image_file)
+            except ValidationError as error:
+                self.add_error('image_file', error)
+
+        price = cleaned_data.get('price')
+        original_price = cleaned_data.get('original_price')
+        if original_price is not None and price is not None and original_price < price:
+            self.add_error('original_price', 'MRP selling price se kam nahi hona chahiye.')
+
+        self._clean_gallery_images(cleaned_data)
+        self._clean_detail_images(cleaned_data)
         return self._clean_quantity_options(cleaned_data)
 
-    def save_gallery_images(self, product):
-        next_order = 1
-        for index in range(1, 4):
-            uploaded_image = self.cleaned_data.get(f'gallery_image_{index}')
+    def _clean_gallery_images(self, cleaned_data):
+        remove_count = sum(
+            1
+            for photo in self.gallery_existing
+            if cleaned_data.get(f'gallery_remove_{photo.pk}')
+        )
+        upload_count = 0
+
+        for photo in self.gallery_existing:
+            replacement = cleaned_data.get(f'gallery_replace_{photo.pk}')
+            if replacement:
+                try:
+                    _validate_product_image_upload(replacement)
+                except ValidationError as error:
+                    self.add_error(f'gallery_replace_{photo.pk}', error)
+
+        for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
+            uploaded_image = cleaned_data.get(f'gallery_image_{index}')
             if not uploaded_image:
+                continue
+            upload_count += 1
+            try:
+                _validate_product_image_upload(uploaded_image)
+            except ValidationError as error:
+                self.add_error(f'gallery_image_{index}', error)
+
+        final_count = len(self.gallery_existing) - remove_count + upload_count
+        if final_count > MAX_PRODUCT_GALLERY_IMAGES:
+            raise ValidationError(f'Gallery photos maximum {MAX_PRODUCT_GALLERY_IMAGES} allowed hain.')
+
+    def _clean_detail_images(self, cleaned_data):
+        remove_count = sum(
+            1
+            for photo in self.detail_existing
+            if cleaned_data.get(f'detail_remove_{photo.pk}')
+        )
+        upload_count = 0
+
+        for photo in self.detail_existing:
+            replacement = cleaned_data.get(f'detail_replace_{photo.pk}')
+            if replacement:
+                try:
+                    _validate_product_image_upload(replacement)
+                except ValidationError as error:
+                    self.add_error(f'detail_replace_{photo.pk}', error)
+
+        for index in range(1, MAX_PRODUCT_DETAIL_IMAGES + 1):
+            uploaded_image = cleaned_data.get(f'detail_image_{index}')
+            uploaded_image_present = bool(self.files.get(self.add_prefix(f'detail_image_{index}')))
+            title = (cleaned_data.get(f'detail_title_{index}') or '').strip()
+            caption = (cleaned_data.get(f'detail_caption_{index}') or '').strip()
+            if not uploaded_image:
+                if (title or caption) and not uploaded_image_present:
+                    self.add_error(f'detail_image_{index}', 'Detail photo upload karein ya empty row hata dein.')
+                continue
+            upload_count += 1
+            try:
+                _validate_product_image_upload(uploaded_image)
+            except ValidationError as error:
+                self.add_error(f'detail_image_{index}', error)
+
+        final_count = len(self.detail_existing) - remove_count + upload_count
+        if final_count > MAX_PRODUCT_DETAIL_IMAGES:
+            raise ValidationError(f'Product detail photos maximum {MAX_PRODUCT_DETAIL_IMAGES} allowed hain.')
+
+    def save_gallery_images(self, product):
+        for photo in self.gallery_existing:
+            if self.cleaned_data.get(f'gallery_remove_{photo.pk}'):
+                if photo.image_file:
+                    photo.image_file.delete(save=False)
+                photo.delete()
+                continue
+
+            replacement = self.cleaned_data.get(f'gallery_replace_{photo.pk}')
+            if replacement:
+                if photo.image_file:
+                    photo.image_file.delete(save=False)
+                photo.image_file = replacement
+                photo.alt_text = photo.alt_text or f'{product.name} photo {photo.display_order or photo.pk}'
+                photo.save(update_fields=['image_file', 'alt_text', 'updated_at'])
+
+        gallery_meta = product.gallery_images.aggregate(max_order=Max('display_order'))
+        next_order = (gallery_meta.get('max_order') or 0) + 1
+        current_count = product.gallery_images.filter(is_active=True).count()
+
+        for index in range(1, MAX_PRODUCT_GALLERY_IMAGES + 1):
+            uploaded_image = self.cleaned_data.get(f'gallery_image_{index}')
+            if not uploaded_image or current_count >= MAX_PRODUCT_GALLERY_IMAGES:
                 continue
 
             SpiceItemPhoto.objects.create(
                 product=product,
                 image_file=uploaded_image,
-                alt_text=f'{product.name} seller photo {next_order}',
+                alt_text=f'{product.name} gallery photo {next_order}',
                 display_order=next_order,
             )
             next_order += 1
+            current_count += 1
+
+    def save_detail_images(self, product):
+        for photo in self.detail_existing:
+            if self.cleaned_data.get(f'detail_remove_{photo.pk}'):
+                if photo.image_file:
+                    photo.image_file.delete(save=False)
+                photo.delete()
+                continue
+
+            changed_fields = []
+            title = (self.cleaned_data.get(f'detail_existing_{photo.pk}_title') or '').strip()
+            caption = (self.cleaned_data.get(f'detail_existing_{photo.pk}_caption') or '').strip()
+            if photo.title != title:
+                photo.title = title
+                changed_fields.append('title')
+            if photo.caption != caption:
+                photo.caption = caption
+                changed_fields.append('caption')
+
+            replacement = self.cleaned_data.get(f'detail_replace_{photo.pk}')
+            if replacement:
+                if photo.image_file:
+                    photo.image_file.delete(save=False)
+                photo.image_file = replacement
+                changed_fields.append('image_file')
+
+            if changed_fields:
+                changed_fields.append('updated_at')
+                photo.save(update_fields=changed_fields)
+
+        detail_meta = product.detail_images.aggregate(max_order=Max('display_order'))
+        next_order = (detail_meta.get('max_order') or 0) + 1
+        current_count = product.detail_images.filter(is_active=True).count()
+
+        for index in range(1, MAX_PRODUCT_DETAIL_IMAGES + 1):
+            uploaded_image = self.cleaned_data.get(f'detail_image_{index}')
+            if not uploaded_image or current_count >= MAX_PRODUCT_DETAIL_IMAGES:
+                continue
+
+            ProductDetailImage.objects.create(
+                product=product,
+                image_file=uploaded_image,
+                title=(self.cleaned_data.get(f'detail_title_{index}') or '').strip(),
+                caption=(self.cleaned_data.get(f'detail_caption_{index}') or '').strip(),
+                display_order=next_order,
+            )
+            next_order += 1
+            current_count += 1
 
 
 class AdminSellerApplicationEditForm(StyledFormMixin, forms.ModelForm):
